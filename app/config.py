@@ -18,10 +18,11 @@ for d in (PROJECTS, VOICES, BGM, FONTS):
 # Khung hình giống video mẫu
 W, H = 1080, 1920
 FPS = 30
-MEDIA_W, MEDIA_H = 1080, 608   # khung 16:9 – ảnh hiện nguyên vẹn, không cắt, không làm mờ
+MEDIA_W, MEDIA_H = 1080, 680   # khung cao hơn 16:9 một chút (ảnh 16:9 chỉ hụt ~5% mỗi mép trái/phải)
 MEDIA_Y = (H - MEDIA_H) // 2 - 80   # mép trên của khung (giữa màn hình, hơi lệch lên)
-SUB_TOP_BOTTOM_Y = MEDIA_Y + 4            # chân của dòng sub phía trên khung
-SUB_BOTTOM_TOP_Y = MEDIA_Y + MEDIA_H - 18  # đỉnh của dòng sub phía dưới khung
+SUB_GAP = 40                         # khoảng cách giữa chữ và khung ảnh (px)
+SUB_TOP_BOTTOM_Y = MEDIA_Y + 4 - SUB_GAP             # chân của dòng sub phía trên khung
+SUB_BOTTOM_TOP_Y = MEDIA_Y + MEDIA_H - 18 + SUB_GAP  # đỉnh của dòng sub phía dưới khung
 IMAGE_RATIO = 16 / 9
 IMAGE_RATIO_TOL = 0.04   # chấp nhận lệch ±4% so với 16:9 (co giãn không nhận ra)
 SUB_LINE_SPACING = 0.76  # khoảng cách dòng (x cỡ chữ), sát nhau giống mẫu
@@ -39,7 +40,7 @@ DEFAULT_SETTINGS = {
     "subtitle_font": "Noto Sans CJK JP Black",
     "subtitle_size": 124,
     "use_claude_for_highlight": True,
-    "image_zoom": False,         # zoom nhẹ ảnh (sẽ che mất một chút mép ảnh) – mặc định tắt
+    "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }
 
 

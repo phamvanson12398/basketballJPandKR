@@ -18,7 +18,7 @@ from .config import (FONTS, FPS, H, MEDIA_H, MEDIA_W, MEDIA_Y, ROOT, SUB_BOTTOM_
                      SUB_TOP_BOTTOM_Y, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin, load_settings, BGM)
 from .media import n_images_for
 
-ZOOM_SCALE = 2  # ảnh chuẩn bị ở 2x để zoom mượt
+ZOOM_SCALE = 3  # ảnh chuẩn bị ở 3x để zoom mượt, không giật
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> None:
@@ -47,13 +47,17 @@ def venc(final: bool) -> list[str]:
 
 # ------------------------------------------------------------------ ảnh
 def prepare_image(src: Path, dst: Path) -> Path:
-    """Đưa ảnh vào khung 16:9 nguyên vẹn: KHÔNG cắt, KHÔNG làm mờ.
-    Ảnh 16:9 (lệch ≤4%) được co giãn vừa khít khung; ảnh khác tỉ lệ (do bạn tự upload)
-    được đặt giữa, phần thừa để nền trắng."""
+    """Đưa ảnh vào khung (không làm mờ).
+    Ảnh ngang (16:9...) được phóng cho kín khung, chỉ hụt chút ít ở mép trái/phải.
+    Ảnh dọc/vuông (do bạn tự upload) được đặt giữa, phần thừa để nền trắng."""
     tw, th = MEDIA_W * ZOOM_SCALE, MEDIA_H * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
-    if abs((im.width / im.height) / (tw / th) - 1) <= 0.04:
-        out = im.resize((tw, th), Image.LANCZOS)
+    ar = im.width / im.height
+    if ar >= (tw / th) * 0.97:
+        s = max(tw / im.width, th / im.height)
+        r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
+        x, y = (r.width - tw) // 2, (r.height - th) // 2
+        out = r.crop((x, y, x + tw, y + th))
     else:
         s = min(tw / im.width, th / im.height)
         fg = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
@@ -68,11 +72,13 @@ def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
     N = n - 1
     cx, cy = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
     z, x, y = [
-        (f"1+0.10*on/{N}", cx, cy),                 # zoom vào
-        (f"1.10-0.10*on/{N}", cx, cy),              # zoom ra
-        ("1.08", f"(iw-iw/zoom)*on/{N}", cy),       # lia trái → phải
-        ("1.08", f"(iw-iw/zoom)*(1-on/{N})", cy),   # lia phải → trái
-    ][variant % 4]
+        (f"1+0.08*on/{N}", cx, cy),                 # zoom vào
+        (f"1.08-0.08*on/{N}", cx, cy),              # zoom ra
+        ("1.06", f"(iw-iw/zoom)*on/{N}", cy),       # lia trái → phải
+        (f"1+0.08*on/{N}", cx, cy),                 # zoom vào
+        ("1.06", f"(iw-iw/zoom)*(1-on/{N})", cy),   # lia phải → trái
+        (f"1.08-0.08*on/{N}", cx, cy),              # zoom ra
+    ][variant % 6]
     if not load_settings().get("image_zoom"):
         z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
     fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={MEDIA_W}x{MEDIA_H}:fps={FPS},setsar=1[m];"

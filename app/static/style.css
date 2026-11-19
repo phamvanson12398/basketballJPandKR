@@ -67,8 +67,8 @@ button.ghost{background:none}button.danger{color:var(--bad)}
 .mscene .top{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .mscene .text{flex:1;font-weight:600;min-width:200px}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
-.thumb{position:relative;width:176px;height:99px;border-radius:8px;overflow:hidden;border:3px solid transparent;cursor:pointer;background:#e5e7eb}
-.thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+.thumb{position:relative;width:176px;height:111px;border-radius:8px;overflow:hidden;border:3px solid transparent;cursor:pointer;background:#e5e7eb}
+.thumb img{width:100%;height:100%;object-fit:cover;background:#fff}
 .thumb.sel{border-color:var(--ok)}
 .thumb .n{position:absolute;top:4px;left:4px;background:var(--ok);color:#fff;border-radius:99px;font-size:11px;padding:0 6px}
 .thumb .t{position:absolute;bottom:3px;right:4px;background:#000a;color:#fff;font-size:11px;padding:0 4px;border-radius:4px}
