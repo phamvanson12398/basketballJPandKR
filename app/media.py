@@ -129,13 +129,20 @@ def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None
 # ---------------------------------------------------------------- VIDEO
 def search_videos(query: str, n: int = 8, recent: str | None = None) -> list[dict]:
     """recent != None (tin tức) → tìm theo video MỚI NHẤT."""
+    import urllib.parse
     import yt_dlp
-    opts = {"quiet": True, "skip_download": True, "extract_flat": True, "noplaylist": True}
-    prefix = "ytsearchdate" if recent else "ytsearch"
+    opts = {"quiet": True, "skip_download": True, "extract_flat": True, "noplaylist": True,
+            "playlistend": n}
+    # yt-dlp đã bỏ "ytsearchdate" → dùng link tìm kiếm YouTube có bộ lọc "ngày tải lên" + "chỉ video"
+    sp = {"day": "EgQIAhAB", "week": "EgQIAxAB", "month": "EgQIBBAB"}.get(recent or "")
+    target = (f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}&sp={sp}"
+              if sp else f"ytsearch{n}:{query}")
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(f"{prefix}{n}:{query}", download=False)
+        info = ydl.extract_info(target, download=False)
+    if sp and not (info or {}).get("entries"):
+        return search_videos(query, n)   # lọc thời gian quá chặt → tìm bình thường
     out = []
-    for e in info.get("entries", []) or []:
+    for e in list(info.get("entries", []) or [])[:n]:
         dur = e.get("duration") or 0
         if e.get("live_status") in ("is_live", "is_upcoming"):
             continue
