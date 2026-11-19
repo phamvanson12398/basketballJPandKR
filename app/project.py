@@ -6,7 +6,8 @@ import time
 import uuid
 from pathlib import Path
 
-from .config import PROJECTS, JA_CHARS_PER_SEC, VIDEO_RATIO
+from . import languages as LG
+from .config import PROJECTS, VIDEO_RATIO
 
 _lock = threading.RLock()
 
@@ -23,7 +24,7 @@ def pdir(pid: str) -> Path:
 
 
 def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30,
-           news: dict | None = None) -> dict:
+           news: dict | None = None, lang: str = "ja") -> dict:
     pid = new_id(title)
     d = pdir(pid)
     for sub in ("audio", "media", "sources", "render"):
@@ -35,6 +36,7 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "duration": int(duration),
         "genre": genre if genre in ("sports", "biography", "general", "news") else "sports",
         "news": news or {},       # tin tức: {region, days, category}
+        "lang": lang if lang in LG.LANGS else LG.DEFAULT,   # ngôn ngữ video
         "video_pct": max(0, min(100, int(video_pct))),
         "created": time.time(),
         "script_approved": False,
@@ -90,7 +92,7 @@ def scene_est_sec(scene: dict) -> float:
         return float(scene["duration"])
     # đếm theo chữ hiển thị (kanji + kana), không theo câu đọc (hiragana dài hơn nhiều)
     text = scene_plain_text(scene) or scene.get("tts") or ""
-    return max(1.0, len(text) / JA_CHARS_PER_SEC)
+    return max(1.0, LG.est_seconds(text))
 
 
 def video_ratio(p: dict) -> float:

@@ -1,4 +1,9 @@
-# 🎬 Shorts Maker – Tool làm video Shorts tự động (tiếng Nhật)
+# 🎬 Shorts Maker – Tool làm video Shorts tự động (tiếng Nhật / tiếng Hàn)
+
+**Ngôn ngữ video: 🇯🇵 tiếng Nhật hoặc 🇰🇷 tiếng Hàn.** Chọn tiếng nào thì tool đóng vai người viết / biên tập viên
+nước đó, nói với khán giả nước đó: content, giọng đọc, sub, title và hashtag TikTok đều theo ngôn ngữ ấy.
+Với tin tức: tiếng Nhật → phát thanh viên Nhật (quy đổi yên, giờ Nhật, liên hệ Nhật Bản);
+tiếng Hàn → phát thanh viên Hàn kiểu KBS/MBC (합니다체, quy đổi won, giờ Hàn, liên hệ Hàn Quốc).
 
 Làm được 4 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **📰 Tin tức mới nhất** (theo quốc gia hoặc thế giới), **💡 Chủ đề chung** (kiến thức, chuyện lạ...).
 
@@ -41,7 +46,7 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1:7860`.
 
 ### Bước 1 – Content
-- Ở cột trái, chọn **Thể loại**, nhập **Title** (nếu có) và/hoặc **Chủ đề**, chọn **thời lượng** và **tỉ lệ ảnh/video**
+- Ở cột trái, chọn **Ngôn ngữ video**, **Thể loại**, nhập **Title** (nếu có) và/hoặc **Chủ đề**, chọn **thời lượng** và **tỉ lệ ảnh/video**
   (kéo thanh trượt, mặc định 70% ảnh / 30% video; tool nhớ lựa chọn lần trước), rồi bấm **Tạo & viết content**.
 - Claude sẽ tra cứu web và viết kịch bản tiếng Nhật, chia sẵn từng cảnh.
 - **Tin tức**: chọn **quốc gia** (hoặc 🌍 Thế giới, hoặc tự nhập tên nước), **trong vòng** (24 giờ / 3 ngày / 1 tuần / 1 tháng)
@@ -58,7 +63,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Bấm **✅ Duyệt content**.
 
 ### Bước 2 – Giọng đọc
-- **Giọng mẫu**: upload file giọng 3–10 giây (tiếng Nhật, rõ, không có nhạc). Giọng được lưu lại để dùng cho các video sau.
+- **Giọng mẫu**: upload file giọng 3–10 giây, **cùng ngôn ngữ với video** (rõ, không có nhạc). Giọng được lưu lại để dùng cho các video sau.
 - **Mô tả giọng**: chọn giới tính, độ tuổi, cao độ.
 - **Ủy quyền cho tool**: AI tự chọn giọng hợp với chủ đề.
 - Bấm **🎙️ Đọc toàn bộ**, nghe thử từng cảnh, cảnh nào chưa hay thì bấm **Đọc lại**.

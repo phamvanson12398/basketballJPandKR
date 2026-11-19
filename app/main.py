@@ -39,7 +39,7 @@ def create_project(data: dict = Body(...)):
         _err(ValueError("Nhập title hoặc chủ đề nhé"))
     return P.create(title, topic, int(data.get("duration") or 60), genre,
                     int(data.get("video_pct") if data.get("video_pct") is not None else 30),
-                    data.get("news") if genre == "news" else None)
+                    data.get("news") if genre == "news" else None, data.get("lang") or "ja")
 
 
 @app.get("/api/projects/{pid}")
@@ -54,7 +54,7 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -110,8 +110,10 @@ def gen_script(pid: str, data: dict = Body(default={})):
 
 @app.get("/api/news/regions")
 def news_regions():
+    from .languages import LANGS
     from .script_gen import NEWS_REGIONS, NEWS_CATEGORIES
-    return {"regions": NEWS_REGIONS, "categories": NEWS_CATEGORIES}
+    return {"regions": NEWS_REGIONS, "categories": NEWS_CATEGORIES,
+            "langs": [{"id": k, "vi": v["vi"]} for k, v in LANGS.items()]}
 
 
 @app.post("/api/news/suggest")
@@ -120,7 +122,8 @@ def news_suggest(data: dict = Body(...)):
     from .script_gen import suggest_news
     try:
         return suggest_news(data.get("region") or "world", int(data.get("days") or 3),
-                            data.get("category") or "all", data.get("custom_region") or "")
+                            data.get("category") or "all", data.get("custom_region") or "",
+                            data.get("lang") or "ja")
     except Exception as e:  # noqa: BLE001
         _err(e)
 

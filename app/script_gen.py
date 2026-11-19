@@ -1,14 +1,15 @@
 """Viết content (kịch bản) tiếng Nhật bằng Claude CLI."""
 import datetime
 
+from . import languages as LG
 from . import project as P
 from .claude_cli import ask, extract_json
-from .config import JA_CHARS_PER_SEC, IMAGE_SEC
+from .config import IMAGE_SEC
 from .tts import VOICE_DESIGN_OPTIONS
 
 GENRES = {
     "sports": {
-        "role": "日本のスポーツ系ショート動画（TikTok / YouTube Shorts）",
+        "role": "{country}のスポーツ系ショート動画（TikTok / YouTube Shorts）",
         "style": """- 1文目で強烈なフック（例:「日ハムから返品不可の刻印を押された男」）。
 - 事実ベースのエピソードを、短い文でテンポよく積み上げ、意外な展開やオチで締める。""",
         "action": "ダンク・ゴール・好プレー・歓喜・乱闘など=高、インタビュー・事実説明・数字=低",
@@ -16,7 +17,7 @@ GENRES = {
         "video": "選手名+試合/ハイライト/プレー など（例: 河村勇輝 ハイライト 2025）",
     },
     "biography": {
-        "role": "日本の「有名人の人生ストーリー・生い立ち」系ショート動画（TikTok / YouTube Shorts）",
+        "role": "{country}の「有名人の人生ストーリー・生い立ち」系ショート動画（TikTok / YouTube Shorts）",
         "style": """- 1文目で意外な事実や人生の落差を突くフック（例:「年収ゼロから世界の頂点に立った男」）。
 - 生い立ち → 挫折・苦労 → 転機 → 成功 → 現在、という流れを基本に（全部でなくてよい）、
   知られざるエピソードを短い文でテンポよく積み上げ、心に残る一言で締める。
@@ -26,14 +27,14 @@ GENRES = {
         "video": "人物名+インタビュー/ライブ/会見/ドキュメンタリー/名場面 など",
     },
     "news": {
-        "role": "日本のテレビ局のニュースキャスター兼記者として、日本の視聴者に向けてニュースを伝えるショート動画（TikTok / YouTube Shorts）",
+        "role": "{country}のテレビ局のニュースキャスター兼記者として、{country}の視聴者に向けてニュースを伝えるショート動画（TikTok / YouTube Shorts）",
         "style": "",   # news_context() で動的に作る
         "action": "現場映像・抗議・災害・試合・会見の様子など=高、数字・背景説明・解説・地図=低",
         "image": "出来事+場所+人物など具体的に（例: 能登半島地震 輪島 朝市）",
         "video": "出来事+ニュース/現場/会見 など（例: 〇〇 ニュース 現場映像）",
     },
     "general": {
-        "role": "日本の雑学・ニュース解説系ショート動画（TikTok / YouTube Shorts）",
+        "role": "{country}の雑学・ニュース解説系ショート動画（TikTok / YouTube Shorts）",
         "style": """- 1文目で「えっ？」と思わせるフック。
 - 事実ベースの情報を、短い文でテンポよく積み上げ、意外なオチで締める。""",
         "action": "動きのある出来事・現場の様子=高、説明・数字・データ=低",
@@ -91,47 +92,39 @@ def today_ja() -> str:
     return f"{d.year}年{d.month}月{d.day}日"
 
 
-def news_context(news: dict) -> str:
+def news_context(news: dict, lang: str = "ja") -> str:
+    L = LG.get(lang)
     r = _region(news.get("region", "world"), news.get("custom_region", ""))
     c = _category(news.get("category", "all"))
     days = int(news.get("days") or 3)
     cat = f"（ジャンル: {c['ja']}）" if c["ja"] else ""
     return f"""- 今日は{today_ja()}。扱うのは「{r['ja']}」の最新ニュース{cat}で、過去{days}日以内に報じられたもの。
-- 必ず WebSearch / WebFetch で最新の報道を調べること。{r['lang']}の現地報道と、日本語・英語の報道の両方を確認し、
+- 必ず WebSearch / WebFetch で最新の報道を調べること。{r['lang']}の現地報道と、{L['name']}・英語の報道の両方を確認し、
   日時・場所・人数・金額・固有名詞は複数の信頼できる報道機関で一致するものだけを使う。
 - テーマ・メモが空なら、その中で最も注目度が高く、ショート動画向きのニュースを1件選ぶ。
 
 ## 語り手（最重要）
-- あなたは日本人のニュースキャスター。日本に住む日本人の視聴者に「こんなことが起きています」と伝える立場で書く。
-- NHKや民放のニュース番組のような、です・ます調の落ち着いた報道口調（「〜しました」「〜とみられています」）。
-  煽り・タメ口・感嘆の多用はしない。ただし1文目は短く印象的に。
-- 海外のニュースは、日本人が予備知識なしで分かるように補足する
-  （例:「韓国の大学入試にあたる『修学能力試験』」「ベトナムの首相にあたるフン首相」）。
-- 外国の人名・地名は日本の報道で一般的なカタカナ/漢字表記にする。
-- 金額は現地通貨に加えて日本円の目安を添える（例:「約1兆ドル、日本円でおよそ150兆円」）。
-  時刻は必要なら「日本時間の〇日午後〇時」のように日本時間で伝える。
-- 可能なら「日本への影響」「日本との関係」「日本人旅行者・在留日本人への注意点」など、日本の視聴者にとっての意味を1シーン入れる
-  （無理に結び付けない。関係がなければ入れなくてよい）。
-- 最後は「今後の動きが注目されます」のような締めか、日本の視聴者に関係する一言で終える。
+{L['anchor']}
 
 ## 構成と正確さ
 - 1文目で「何が起きたか」を端的に伝える → 経緯 → 背景 → 影響・今後の見通し、の順で伝える。
-- 中立・客観的に。推測・未確認情報・断定的な評価は書かない。必要に応じて「〜と報じられています」と表現する。
-- 日付は「〇月〇日」と具体的に書く（「昨日」「今日」は使わない）。"""
+- 中立・客観的に。推測・未確認情報・断定的な評価は書かない。必要に応じて伝聞の表現を使う。"""
 
 
-def suggest_news(region: str, days: int, category: str, custom_region: str = "") -> list[dict]:
+def suggest_news(region: str, days: int, category: str, custom_region: str = "",
+                 lang: str = "ja") -> list[dict]:
     """Quét tin nóng → danh sách để người dùng chọn."""
     r = _region(region, custom_region)
     c = _category(category)
+    L = LG.get(lang)
     cat = f"ジャンルは「{c['ja']}」に限定。" if c["ja"] else ""
     prompt = f"""今日は{today_ja()}です。WebSearch を使って、「{r['ja']}」で過去{days}日以内に報じられた
-主要ニュースを調べてください。{cat}{r['lang']}の現地メディアと、日本語・英語メディアの両方を確認してください。
-日本の視聴者向けショート動画にしやすい（話題性が高く、映像・写真が多い）ニュースを8件選び、
+主要ニュースを調べてください。{cat}{r['lang']}の現地メディアと、{L['name']}・英語メディアの両方を確認してください。
+{L['country']}の視聴者向けショート動画にしやすい（話題性が高く、映像・写真が多い）ニュースを8件選び、
 次のJSONだけを出力してください（説明文は不要）。
 
 ```json
-[{{"headline_ja": "日本語の見出し", "headline_vi": "Tiêu đề tiếng Việt",
+[{{"headline": "{L['name']}の見出し", "headline_vi": "Tiêu đề tiếng Việt",
   "summary_vi": "Tóm tắt 1–2 câu tiếng Việt", "date": "YYYY-MM-DD",
   "source": "報道機関名", "url": "記事URL", "score": 8}}]
 ```
@@ -140,7 +133,12 @@ score は話題性（1〜10）。新しい順ではなく、話題性の高い�
     data = extract_json(text)
     if isinstance(data, dict):
         data = data.get("news") or data.get("items") or []
-    return [x for x in data if isinstance(x, dict) and x.get("headline_ja")]
+    out = []
+    for x in data:
+        if isinstance(x, dict) and (x.get("headline") or x.get("headline_ja")):
+            x["headline"] = x.get("headline") or x.get("headline_ja")
+            out.append(x)
+    return out
 
 
 # ---------------------------------------------------------------- PROMPT
@@ -155,22 +153,20 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 
 ## スタイル（参考動画の特徴）
 {style}
-- 必ず標準語（共通語）で書く。日本全国の誰が聞いても分かる自然な話し言葉にする。
-  方言・若者言葉・ネットスラング・過度な俗語（例:「バチクソ」「エグい」「ガチで」）は使わない。
+{lang_rules}
 - テンポよく引きのある語り口にするが、誹謗中傷や事実でないことは書かない。必要ならWeb検索で事実を確認する。
-- 字幕は白背景に黒文字で表示され、1チャンク=1〜3行、1行は最大10文字。
+- 字幕は白背景に黒文字で表示され、1チャンク=1〜3行、1行は最大{line_max}文字。
 
 ## 構成ルール
 - 台本を「シーン」に分ける。1シーン = 画像1枚 または 動画クリップ1本。
 - 各シーンのナレーションは約{scene_chars}文字（{scene_sec}秒前後、最大でも{max_chars}文字）。
 - 各シーンを字幕チャンクに分ける。チャンクは自然な文節で区切り、行の改行は "\\n" で表す。
   チャンクを全部つなげるとそのシーンのナレーションになること。
-- tts: 読み上げ用テキスト。基本は字幕と同じだが、人名・難読漢字・数字・アルファベットは
-  ひらがな/カタカナに直す（例: 上沢→うわさわ、4盗塁→よんとうるい、NBA→エヌビーエー）。
+- tts: 読み上げ用テキスト。基本は字幕と同じだが、{tts_rule}。
 - action: そのシーンの内容が「動き」のある映像向きかを0〜10で評価
   （{action_rule}）。
-- image_query: その場面に合う写真を探す検索語（日本語。{image_rule}）。
-- video_query: その場面に合う動画（YouTube等）を探す検索語（日本語。{video_rule}）。
+- image_query: その場面に合う写真を探す検索語（{query_lang}。{image_rule}）。
+- video_query: その場面に合う動画（YouTube等）を探す検索語（{query_lang}。{video_rule}）。
 - voice: このテーマに合うナレーターの声。次の候補からそれぞれ1つ選ぶ:
   gender {genders} / age {ages} / pitch {pitches}
 
@@ -197,19 +193,21 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 
 def generate(pid: str, log, feedback: str = "") -> None:
     p = P.load(pid)
+    L = LG.get(p.get("lang"))
     dur = int(p["duration"])
-    chars = int(dur * JA_CHARS_PER_SEC)
-    scene_chars = int(IMAGE_SEC * JA_CHARS_PER_SEC)
+    chars = int(dur * L["cps"])
+    scene_chars = int(IMAGE_SEC * L["cps"])
     old = ""
     if feedback and p.get("scenes"):
         old = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
         feedback = f"\n## 前回の台本\n{old}\n\n## 修正リクエスト（ベトナム語の場合あり。内容を理解して反映）\n{feedback}\n"
     gen = GENRES.get(p.get("genre") or "sports", GENRES["sports"])
-    style = news_context(p.get("news") or {}) if p.get("genre") == "news" else gen["style"]
+    style = news_context(p.get("news") or {}, p.get("lang")) if p.get("genre") == "news" else gen["style"]
     extra = ("\n## 出典\n- sources に、事実確認に使った記事（見出し・URL・日付）を3件以上必ず入れる。\n"
              if p.get("genre") == "news" else "")
     prompt = PROMPT.format(
-        role=gen["role"], style=style, extra=extra, action_rule=gen["action"],
+        role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
+        lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
@@ -256,8 +254,9 @@ def generate(pid: str, log, feedback: str = "") -> None:
 
 
 # ---------------------------------------------------------------- TIKTOK
-TIKTOK_PROMPT = """あなたは日本のTikTok運用のプロです。次のショート動画を投稿するための
-キャプション（タイトル）とハッシュタグを考えてください。視聴者は日本人です。
+TIKTOK_PROMPT = """あなたは{country}のTikTok運用のプロです。次のショート動画を投稿するための
+キャプション（タイトル）とハッシュタグを考えてください。視聴者は{people}です。
+キャプションとハッシュタグはすべて{lang_name}で書くこと（例は日本語でも、出力は{lang_name}）。
 
 ## 動画情報
 - ジャンル: {genre}
@@ -268,7 +267,7 @@ TIKTOK_PROMPT = """あなたは日本のTikTok運用のプロです。次のシ�
 ## キャプション（タイトル）のルール
 - 5案。それぞれ違う切り口にする（例: 疑問形 / 数字 / 意外な事実 / 感情に訴える / ストレートな要約）。
 - 1案は全角40文字以内が目安。最初の15文字で続きが気になるようにする。
-- 必ず標準語。誇張しすぎ・嘘・誤解を招く表現・誹謗中傷はNG。
+- 必ず{lang_name}の標準語。誇張しすぎ・嘘・誤解を招く表現・誹謗中傷はNG。
   ニュースの場合は事実に忠実に、落ち着いたトーンで。
 - 絵文字は0〜2個まで。
 - 各案にベトナム語訳（vi）を付ける。
@@ -278,13 +277,13 @@ TIKTOK_PROMPT = """あなたは日本のTikTok運用のプロです。次のシ�
 - big: ジャンル全体の大きなタグ（例: #バスケ #NBA #ニュース #偉人）3〜4個
 - mid: テーマ・チーム・出来事のタグ 3〜4個
 - niche: 人物名・固有名詞などの具体的なタグ 2〜3個
-- discover: 日本のTikTokでおすすめに載りやすい定番タグ 1〜2個（例: #おすすめ #fyp）
+- discover: {country}のTikTokでおすすめに載りやすい定番タグ 1〜2個（例: {discover}）
 - 各タグにベトナム語の意味（vi）を付ける。
 
 ## 出力（JSONのみ）
 ```json
 {{
-  "captions": [{{"ja": "キャプション", "vi": "Bản dịch"}}],
+  "captions": [{{"ja": "キャプション（{lang_name}）", "vi": "Bản dịch"}}],
   "hashtags": [{{"tag": "#タグ", "group": "big", "vi": "nghĩa"}}]
 }}
 ```
@@ -300,8 +299,11 @@ def gen_tiktok(pid: str, log) -> None:
         raise RuntimeError("Chưa có content.")
     script = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
     log("Đang nhờ Claude viết title và hashtag TikTok...", 0.2)
+    L = LG.get(p.get("lang"))
     text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ"),
-                                    title=p.get("title", ""), script=script), timeout=300)
+                                    title=p.get("title", ""), script=script, country=L["country"],
+                                    people=L["people"], lang_name=L["name"], discover=L["discover"]),
+               timeout=300)
     data = extract_json(text)
     caps = [c for c in data.get("captions", []) if isinstance(c, dict) and c.get("ja")]
     tags = []

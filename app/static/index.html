@@ -11,6 +11,8 @@
   <h1>🎬 Shorts Maker</h1>
   <div class="card">
     <h3>Tạo video mới</h3>
+    <label>Ngôn ngữ video (tool đóng vai người nước đó, nói với khán giả nước đó)</label>
+    <select id="newLang"></select>
     <label>Thể loại</label>
     <select id="newGenre">
       <option value="sports">⚾ Thể thao</option>
@@ -94,6 +96,7 @@
       <div class="toolbar ratiorow">
         <label>Mục tiêu: Ảnh <b id="pImgPct">70</b>% / Video <b id="pVidPct">30</b>%</label>
         <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
+        <select id="pLang" title="Ngôn ngữ video (áp dụng khi viết lại content)"></select>
         <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
           <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="general">💡 Chủ đề chung</option>
         </select>
@@ -135,6 +138,7 @@
         </div>
         <label class="radio"><input type="radio" name="vmode" value="auto"> <b>Ủy quyền cho tool</b>: AI tự chọn giọng hợp với chủ đề</label>
         <div class="sub" data-vmode="auto"><span class="muted">AI đề xuất: </span><b id="autoInstruct">—</b></div>
+        <p class="hint">⚠️ Giọng mẫu nên <b>cùng ngôn ngữ với video</b> (video tiếng Hàn → giọng mẫu tiếng Hàn), nếu không giọng đọc sẽ bị lơ lớ.</p>
         <p class="hint">Mô tả giọng / Ủy quyền: tool tạo giọng ở cảnh đầu rồi dùng đúng giọng đó cho cả video.
           Nếu nghe chưa hay, bấm đọc lại để ra giọng khác.</p>
         <label>Tốc độ đọc: <b id="speedVal">1.0</b>x</label>

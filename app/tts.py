@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import languages as LG
 from . import project as P
 from .config import VOICES, load_settings
 
@@ -111,6 +112,7 @@ def synth(pid: str, log, only: list[str] | None = None) -> None:
     if not scenes:
         raise RuntimeError("Chưa có content.")
     voice = p.get("voice", {})
+    lang = LG.get(p.get("lang"))["tts"]
     mode = voice.get("mode", "clone")
     speed = float(voice.get("speed") or 1.0)
     num_step = int(load_settings().get("tts_num_step", 32))
@@ -140,7 +142,7 @@ def synth(pid: str, log, only: list[str] | None = None) -> None:
             first = scenes[0]
             text = first.get("tts") or P.scene_plain_text(first)
             log(f"Tạo giọng theo mô tả: “{instruct or 'tự động'}”")
-            gen = model.generate(text=text, language="ja", instruct=instruct or None,
+            gen = model.generate(text=text, language=lang, instruct=instruct or None,
                                  speed=speed, num_step=num_step)
             sf.write(anchor, _trim(np.asarray(gen[0], dtype=np.float32)), SR)
             anchor_txt.write_text(text, encoding="utf-8")
@@ -153,7 +155,7 @@ def synth(pid: str, log, only: list[str] | None = None) -> None:
     for i, s in enumerate(todo):
         text = s.get("tts") or P.scene_plain_text(s)
         log(f"Đọc cảnh {s['id']} ({i + 1}/{len(todo)}): {text[:30]}...", i / len(todo))
-        gen = model.generate(text=text, language="ja", speed=speed, num_step=num_step, **kwargs)
+        gen = model.generate(text=text, language=lang, speed=speed, num_step=num_step, **kwargs)
         audio = _trim(np.asarray(gen[0], dtype=np.float32))
         peak = float(np.abs(audio).max() or 1)
         audio = audio * min(1.0, 0.95 / peak)

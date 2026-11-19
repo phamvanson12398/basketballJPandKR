@@ -27,7 +27,8 @@ def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]
     tl = {"day": "d", "week": "w", "month": "m"}.get(recent or "")  # mã ddgs: d / w / m / y
     # backend="duckduckgo": chế độ "auto" của ddgs gọi kèm engine Bing nội bộ, mà engine đó cần mã
     # thời gian khác ("week" thay vì "w") → luôn lỗi. Bing đã có nguồn riêng ở dưới.
-    for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide", timelimit=tl,
+    region = "kr-kr" if re.search(r"[\uac00-\ud7a3]", query) else "jp-jp"
+    for it in DDGS().images(query, region=region, safesearch="off", layout="Wide", timelimit=tl,
                             backend="duckduckgo", max_results=n):
         out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
                     "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"})
@@ -40,7 +41,8 @@ def bing(query: str, n: int = 70, recent: str | None = None) -> list[dict]:
            "month": "+filterui:age-lt43200"}.get(recent or "", "")
     for first in (0, 35):
         r = requests.get("https://www.bing.com/images/async", headers=HEADERS, timeout=20, params={
-            "q": query, "first": first, "count": 35, "mmasync": 1, "setlang": "ja", "cc": "JP",
+            "q": query, "first": first, "count": 35, "mmasync": 1,
+            **({"setlang": "ko", "cc": "KR"} if re.search(r"[\uac00-\ud7a3]", query) else {"setlang": "ja", "cc": "JP"}),
             "qft": "+filterui:aspect-wide+filterui:imagesize-large" + age})
         for m in re.findall(r'\sm="([^"]+)"', r.text):
             try:

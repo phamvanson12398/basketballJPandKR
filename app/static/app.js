@@ -20,7 +20,11 @@ async function api(url, opt = {}) {
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f = path => `/files/${P.id}/${path}?v=${Date.now() % 1e7}`;
 const plain = sc => (sc.chunks || []).join('').replace(/\n/g, '');
-const est = sc => sc.duration || Math.max(1, (plain(sc) || sc.tts || '').length / 6.5);
+const est = sc => {
+  if (sc.duration) return sc.duration;
+  const t = plain(sc) || sc.tts || '';
+  return Math.max(1, /[\uac00-\ud7a3]/.test(t) ? t.replace(/ /g, '').length / 7.0 : t.length / 6.5);
+};
 
 // ------------------------------------------------------------- dự án
 async function loadList() {
@@ -89,6 +93,7 @@ function renderScript() {
   const tv = P.video_pct ?? 30;
   $('#pRatio').value = tv; $('#pVidPct').textContent = tv; $('#pImgPct').textContent = 100 - tv;
   $('#pGenre').value = P.genre || 'sports';
+  if ($('#pLang').options.length) $('#pLang').value = P.lang || 'ja';
   $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
@@ -150,6 +155,11 @@ $('#pRatio').onchange = async () => {
   P.video_pct = +$('#pRatio').value;
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {video_pct: P.video_pct}});
   $('#btnRebalance').click();   // chia lại ngay theo tỉ lệ mới
+};
+$('#pLang').onchange = async () => {
+  P.lang = $('#pLang').value;
+  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {lang: P.lang}});
+  if (P.scenes.length && confirm('Đã đổi ngôn ngữ. Viết lại content bằng ngôn ngữ mới luôn không?')) runJob(`/api/projects/${P.id}/script`, {});
 };
 $('#pGenre').onchange = async () => {
   P.genre = $('#pGenre').value;
@@ -414,7 +424,7 @@ function startPoll() {
 // ---- tin tức
 function newsParams() {
   return {region: $('#newsRegion').value, custom_region: $('#newsCustom').value.trim(),
-          days: +$('#newsDays').value, category: $('#newsCat').value};
+          days: +$('#newsDays').value, category: $('#newsCat').value, lang: $('#newLang').value};
 }
 function toggleNewsBox() {
   const isNews = $('#newGenre').value === 'news';
@@ -426,6 +436,10 @@ async function initNews() {
   const d = await api('/api/news/regions');
   $('#newsRegion').innerHTML = d.regions.map(r => `<option value="${r.id}">${r.vi}</option>`).join('');
   $('#newsCat').innerHTML = d.categories.map(c => `<option value="${c.id}">${c.vi}</option>`).join('');
+  const langOpts = d.langs.map(l => `<option value="${l.id}">${l.vi}</option>`).join('');
+  $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts;
+  try { const dl = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').lang; if (dl) $('#newLang').value = dl; } catch {}
+  if (P) $('#pLang').value = P.lang || 'ja';
   try {
     const n = (JSON.parse(localStorage.getItem('shorts_defaults') || '{}')).news;
     if (n) { $('#newsRegion').value = n.region; $('#newsDays').value = n.days; $('#newsCat').value = n.category; $('#newsCustom').value = n.custom_region || ''; }
@@ -440,12 +454,12 @@ $('#btnScan').onclick = async () => {
   try {
     const items = await api('/api/news/suggest', {method: 'POST', json: newsParams()});
     $('#newsList').innerHTML = items.map((n, i) => `<div class="news" data-i="${i}">
-      <b>${esc(n.headline_vi)}</b>${esc(n.headline_ja)}<br><small>${esc(n.date || '')} · ${esc(n.source || '')} · 🔥${n.score ?? ''}</small>
+      <b>${esc(n.headline_vi)}</b>${esc(n.headline || n.headline_ja)}<br><small>${esc(n.date || '')} · ${esc(n.source || '')} · 🔥${n.score ?? ''}</small>
       <div>${esc(n.summary_vi || '')}</div></div>`).join('') || '<small>Không tìm thấy tin nào.</small>';
     $$('#newsList .news').forEach(el => el.onclick = () => {
       $$('#newsList .news').forEach(x => x.classList.toggle('sel', x === el));
       const n = items[+el.dataset.i];
-      $('#newTopic').value = `${n.headline_ja}\n${n.date || ''} ${n.source || ''}\n${n.url || ''}`;
+      $('#newTopic').value = `${n.headline || n.headline_ja}\n${n.date || ''} ${n.source || ''}\n${n.url || ''}`;
     });
   } finally { b.disabled = false; b.textContent = '🔎 Quét tin mới nhất'; }
 };
@@ -463,10 +477,10 @@ $('#newDur').onchange = () => $('#newDurCustom').classList.toggle('hidden', $('#
 $('#btnCreate').onclick = async () => {
   const dur = $('#newDur').value === 'custom' ? +$('#newDurCustom').value : +$('#newDur').value;
   if (!dur) return alert('Nhập thời lượng');
-  const video_pct = +$('#newRatio').value, genre = $('#newGenre').value;
+  const video_pct = +$('#newRatio').value, genre = $('#newGenre').value, lang = $('#newLang').value;
   const news = genre === 'news' ? newsParams() : null;
-  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news})); } catch {}
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news}});
+  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news, lang})); } catch {}
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang}});
   $('#newsList').innerHTML = '';
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);

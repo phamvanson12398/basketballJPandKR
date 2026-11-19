@@ -129,8 +129,22 @@ def ass_escape(s: str) -> str:
 
 
 def auto_wrap(chunk: str, maxlen: int = 11) -> str:
+    """Tự xuống dòng nếu chunk chưa có dấu xuống dòng.
+    Tiếng Hàn (có dấu cách): ngắt giữa các từ. Tiếng Nhật: ngắt theo số ký tự."""
     if "\n" in chunk or len(chunk) <= maxlen:
         return chunk
+    if " " in chunk.strip():
+        maxlen = 12
+        lines, cur = [], ""
+        for word in chunk.split():
+            if cur and len(cur) + 1 + len(word) > maxlen:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = f"{cur} {word}".strip()
+        if cur:
+            lines.append(cur)
+        return "\n".join(lines)
     lines, cur = [], ""
     for ch in chunk:
         cur += ch
@@ -167,11 +181,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
     for sc, t0 in zip(scenes, starts):
-        chunks = [auto_wrap(c) for c in sc.get("chunks", []) if c.strip()]
+        chunks = [auto_wrap(c.strip()) for c in sc.get("chunks", []) if c.strip()]
         if not chunks:
             continue
         speech = max(0.3, float(sc["duration"]) - 0.18)
-        weights = [max(1, len(c.replace("\n", ""))) for c in chunks]
+        weights = [max(1, len(c.replace("\n", "").replace(" ", ""))) for c in chunks]
         tot = sum(weights)
         bounds, acc = [], t0
         for wgt in weights:
