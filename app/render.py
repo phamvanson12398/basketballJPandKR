@@ -14,8 +14,8 @@ import numpy as np
 from PIL import Image
 
 from . import project as P
-from .config import (FONTS, FPS, H, MEDIA_H, MEDIA_W, MEDIA_Y, ROOT, SUB_BOTTOM_TOP_Y,
-                     SUB_TOP_BOTTOM_Y, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin, load_settings, BGM)
+from .config import (FONTS, FPS, H, MEDIA_W, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin,
+                     layout, load_settings, BGM)
 from .media import n_images_for
 
 ZOOM_SCALE = 3  # ảnh chuẩn bị ở 3x để zoom mượt, không giật
@@ -50,7 +50,7 @@ def prepare_image(src: Path, dst: Path) -> Path:
     """Đưa ảnh vào khung (không làm mờ).
     Ảnh ngang (16:9...) được phóng cho kín khung, chỉ hụt chút ít ở mép trái/phải.
     Ảnh dọc/vuông (do bạn tự upload) được đặt giữa, phần thừa để nền trắng."""
-    tw, th = MEDIA_W * ZOOM_SCALE, MEDIA_H * ZOOM_SCALE
+    tw, th = MEDIA_W * ZOOM_SCALE, layout()["media_h"] * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
     ar = im.width / im.height
     if ar >= (tw / th) * 0.97:
@@ -81,9 +81,10 @@ def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
     ][variant % 6]
     if not load_settings().get("image_zoom"):
         z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
-    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={MEDIA_W}x{MEDIA_H}:fps={FPS},setsar=1[m];"
+    L = layout()
+    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={MEDIA_W}x{L['media_h']}:fps={FPS},setsar=1[m];"
           f"color=white:s={W}x{H}:r={FPS}:d={n / FPS:.3f}[bg];"
-          f"[bg][m]overlay=0:{MEDIA_Y}:shortest=1,format=yuv420p[v]")
+          f"[bg][m]overlay=0:{L['media_y']}:shortest=1,format=yuv420p[v]")
     run([ffmpeg_bin(), "-v", "error", "-y", "-i", str(img), "-filter_complex", fc, "-map", "[v]",
          "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an", str(out)])
 
@@ -95,8 +96,9 @@ def video_part(src: Path, start: float, dur: float, out: Path) -> None:
     w, h = video_size(src)
     if not w:
         w, h = 1920, 1080
-    box = f"{MEDIA_W}:{MEDIA_H}"
-    if w / max(h, 1) >= (MEDIA_W / MEDIA_H) * 0.8:
+    L = layout()
+    box = f"{MEDIA_W}:{L['media_h']}"
+    if w / max(h, 1) >= (MEDIA_W / L['media_h']) * 0.8:
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
                  f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
     else:  # video dọc (link TikTok bạn dán) → đặt giữa khung, nền trắng, không làm mờ
@@ -104,7 +106,7 @@ def video_part(src: Path, start: float, dur: float, out: Path) -> None:
                  f"pad={box}:(ow-iw)/2:(oh-ih)/2:white,setsar=1,"
                  f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
     fc = (media + f"color=white:s={W}x{H}:r={FPS}[bg];"
-          f"[bg][m]overlay=0:{MEDIA_Y}:shortest=1,format=yuv420p[v]")
+          f"[bg][m]overlay=0:{L['media_y']}:shortest=1,format=yuv420p[v]")
     run([ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{start:.3f}", "-t", f"{dur + 0.5:.3f}", "-i", str(src),
          "-filter_complex", fc, "-map", "[v]", "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an",
          str(out)])
@@ -147,6 +149,7 @@ def build_ass(scenes: list[dict], starts: list[float], out: Path) -> None:
     st = load_settings()
     font, size = st.get("subtitle_font"), int(st.get("subtitle_size", 124))
     lh = size * SUB_LINE_SPACING
+    L = layout()
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -183,12 +186,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # mỗi dòng là 1 sự kiện riêng để tự kiểm soát khoảng cách dòng
             lines = chunks[i].split("\n")
             for k, line in enumerate(lines):
-                y = SUB_TOP_BOTTOM_Y - (len(lines) - 1 - k) * lh
+                y = L['sub_top'] - (len(lines) - 1 - k) * lh
                 ev.append(f"Dialogue: 0,{ass_time(a0)},{ass_time(a1)},Top,,0,0,0,,"
                           f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
             if i + 1 < len(chunks):
                 for k, line in enumerate(chunks[i + 1].split("\n")):
-                    y = SUB_BOTTOM_TOP_Y + k * lh
+                    y = L['sub_bottom'] + k * lh
                     ev.append(f"Dialogue: 0,{ass_time(bounds[i + 1][0])},{ass_time(a1)},Bottom,,0,0,0,,"
                               f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
     out.write_text(head + "\n".join(ev) + "\n", encoding="utf-8")

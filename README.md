@@ -72,6 +72,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN (đều miễn phí).
 - **Bộ mã hóa**: mặc định tự dùng card NVIDIA (NVENC) cho nhanh.
+- **Chiều cao khung ảnh & video** (dùng chung cho cả ảnh và video; 608 = đúng 16:9) và **khoảng cách chữ ↔ khung**.
 - **Cỡ chữ / font sub**, số bước tạo giọng (16 = nhanh, 32 = hay).
 - **Zoom nhẹ ảnh**: mặc định tắt (bật thì ảnh sẽ bị che mất một chút mép).
 

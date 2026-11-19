@@ -18,11 +18,7 @@ for d in (PROJECTS, VOICES, BGM, FONTS):
 # Khung hình giống video mẫu
 W, H = 1080, 1920
 FPS = 30
-MEDIA_W, MEDIA_H = 1080, 680   # khung cao hơn 16:9 một chút (ảnh 16:9 chỉ hụt ~5% mỗi mép trái/phải)
-MEDIA_Y = (H - MEDIA_H) // 2 - 80   # mép trên của khung (giữa màn hình, hơi lệch lên)
-SUB_GAP = 40                         # khoảng cách giữa chữ và khung ảnh (px)
-SUB_TOP_BOTTOM_Y = MEDIA_Y + 4 - SUB_GAP             # chân của dòng sub phía trên khung
-SUB_BOTTOM_TOP_Y = MEDIA_Y + MEDIA_H - 18 + SUB_GAP  # đỉnh của dòng sub phía dưới khung
+MEDIA_W = 1080   # khung ảnh/video rộng hết màn hình; CHIỀU CAO chỉnh trong Cài đặt (media_height)
 IMAGE_RATIO = 16 / 9
 IMAGE_RATIO_TOL = 0.04   # chấp nhận lệch ±4% so với 16:9 (co giãn không nhận ra)
 SUB_LINE_SPACING = 0.76  # khoảng cách dòng (x cỡ chữ), sát nhau giống mẫu
@@ -39,6 +35,8 @@ DEFAULT_SETTINGS = {
     "tts_num_step": 32,
     "subtitle_font": "Noto Sans CJK JP Black",
     "subtitle_size": 124,
+    "media_height": 680,         # chiều cao khung ảnh/video (px). 608 = đúng 16:9; lớn hơn = cao hơn
+    "sub_gap": 40,               # khoảng cách giữa chữ và khung ảnh/video (px)
     "use_claude_for_highlight": True,
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }
@@ -59,6 +57,17 @@ def save_settings(data: dict) -> dict:
     s.update({k: v for k, v in data.items() if k in DEFAULT_SETTINGS})
     SETTINGS_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
     return s
+
+
+def layout() -> dict:
+    """Vị trí khung ảnh/video và sub — dùng CHUNG cho cả ảnh và video."""
+    s = load_settings()
+    mh = max(400, min(1400, int(s.get("media_height") or 680))) // 2 * 2
+    gap = max(0, min(300, int(s.get("sub_gap") if s.get("sub_gap") is not None else 40)))
+    my = (H - mh) // 2 - 80          # mép trên khung (giữa màn hình, hơi lệch lên)
+    return {"media_h": mh, "media_y": my,
+            "sub_top": my + 4 - gap,          # chân dòng sub phía trên khung
+            "sub_bottom": my + mh - 18 + gap}  # đỉnh dòng sub phía dưới khung
 
 
 def ffmpeg_bin() -> str:
