@@ -20,7 +20,7 @@ async function api(url, opt = {}) {
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f = path => `/files/${P.id}/${path}?v=${Date.now() % 1e7}`;
 const plain = sc => (sc.chunks || []).join('').replace(/\n/g, '');
-const est = sc => sc.duration || Math.max(1, (sc.tts || plain(sc)).length / 6.5);
+const est = sc => sc.duration || Math.max(1, (plain(sc) || sc.tts || '').length / 6.5);
 
 // ------------------------------------------------------------- dự án
 async function loadList() {
@@ -71,11 +71,16 @@ function ratioBar(el) {
   if (!tot) { el.innerHTML = ''; return; }
   const vp = Math.round(100 * vid / tot);
   el.innerHTML = `<div class="i" style="width:${100 - vp}%">Ảnh ${100 - vp}%</div><div class="v" style="width:${vp}%">${vp ? 'Video ' + vp + '%' : ''}</div>`;
-  el.title = `Tổng ~${tot.toFixed(1)} giây (mục tiêu ${P.duration}s) · Mục tiêu: ảnh 70% / video 30%`;
+  const tv = P.video_pct ?? 30;
+  el.title = `Tổng ~${tot.toFixed(1)} giây (mục tiêu ${P.duration}s) · Mục tiêu: ảnh ${100 - tv}% / video ${tv}%`;
 }
 
 // ------------------------------------------------------------- 1. CONTENT
 function renderScript() {
+  const tv = P.video_pct ?? 30;
+  $('#pRatio').value = tv; $('#pVidPct').textContent = tv; $('#pImgPct').textContent = 100 - tv;
+  $('#pGenre').value = P.genre || 'sports';
+  $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
   $('#scenes').innerHTML = P.scenes.map((s, i) => `
@@ -131,6 +136,16 @@ async function saveScript(extra = {}) {
 $('#btnSaveScript').onclick = () => saveScript();
 $('#btnApprove').onclick = async () => { await saveScript({script_approved: true}); setTab('voice'); };
 $('#btnAddScene').onclick = () => { P.scenes.push({id: '', chunks: [], tts: '', kind: 'image', action: 0}); renderScript(); };
+$('#pRatio').oninput = () => { const v = +$('#pRatio').value; $('#pVidPct').textContent = v; $('#pImgPct').textContent = 100 - v; };
+$('#pRatio').onchange = async () => {
+  P.video_pct = +$('#pRatio').value;
+  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {video_pct: P.video_pct}});
+  $('#btnRebalance').click();   // chia lại ngay theo tỉ lệ mới
+};
+$('#pGenre').onchange = async () => {
+  P.genre = $('#pGenre').value;
+  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {genre: P.genre}});
+};
 $('#btnRebalance').onclick = async () => {
   P.scenes.forEach(s => delete s.locked_kind);
   await saveScript(); P = Object.assign(await api(`/api/projects/${P.id}/rebalance`, {method: 'POST'}), {job: P.job}); renderAll();
@@ -342,11 +357,21 @@ function startPoll() {
 }
 
 // ------------------------------------------------------------- tạo mới, cài đặt
+function newRatioLabel() { const v = +$('#newRatio').value; $('#newVidPct').textContent = v; $('#newImgPct').textContent = 100 - v; }
+$('#newRatio').oninput = newRatioLabel;
+try {  // nhớ lựa chọn lần trước
+  const d = JSON.parse(localStorage.getItem('shorts_defaults') || '{}');
+  if (d.video_pct !== undefined) $('#newRatio').value = d.video_pct;
+  if (d.genre) $('#newGenre').value = d.genre;
+} catch {}
+newRatioLabel();
 $('#newDur').onchange = () => $('#newDurCustom').classList.toggle('hidden', $('#newDur').value !== 'custom');
 $('#btnCreate').onclick = async () => {
   const dur = $('#newDur').value === 'custom' ? +$('#newDurCustom').value : +$('#newDur').value;
   if (!dur) return alert('Nhập thời lượng');
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur}});
+  const video_pct = +$('#newRatio').value, genre = $('#newGenre').value;
+  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre})); } catch {}
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct}});
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);
   setTab('script');

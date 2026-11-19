@@ -80,4 +80,6 @@ button.ghost{background:none}button.danger{color:var(--bad)}
 #output video{max-height:70vh;border-radius:12px;background:#000;display:block;margin-bottom:8px}
 code{background:#eef2ff;padding:0 4px;border-radius:4px}
 @media (max-width:900px){body{flex-direction:column}#side{width:auto;height:auto;position:static}.scene{grid-template-columns:1fr}main{padding:12px}}
+.ratiorow label{margin:0;color:var(--fg);font-size:14px}.ratiorow input[type=range]{flex:0 0 220px;min-width:0}
 .srcs{display:flex;gap:16px}.srcs label{display:flex;gap:6px;align-items:center;color:var(--fg);font-size:14px}.srcs input{width:auto}
+#side select{width:100%}

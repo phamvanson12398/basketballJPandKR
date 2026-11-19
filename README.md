@@ -1,5 +1,7 @@
 # 🎬 Shorts Maker – Tool làm video Shorts tự động (tiếng Nhật)
 
+Làm được 3 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **📰 Chủ đề chung** (tin tức, kiến thức...).
+
 Tool tự làm video dọc kiểu “kể chuyện thể thao” giống video mẫu:
 **nền trắng, ảnh/video 16:9 ở giữa, sub chữ đen đậm ở trên và dưới khung**, có giọng đọc AI.
 Content viết bằng **tiếng Nhật chuẩn (標準語)** để người Nhật ở vùng nào cũng hiểu.
@@ -38,13 +40,14 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1:7860`.
 
 ### Bước 1 – Content
-- Ở cột trái, nhập **Title** (nếu có) và/hoặc **Chủ đề**, chọn **thời lượng**, rồi bấm **Tạo & viết content**.
+- Ở cột trái, chọn **Thể loại**, nhập **Title** (nếu có) và/hoặc **Chủ đề**, chọn **thời lượng** và **tỉ lệ ảnh/video**
+  (kéo thanh trượt, mặc định 70% ảnh / 30% video; tool nhớ lựa chọn lần trước), rồi bấm **Tạo & viết content**.
 - Claude sẽ tra cứu web và viết kịch bản tiếng Nhật, chia sẵn từng cảnh.
 - Bạn sửa trực tiếp nội dung:
   - **Ô Sub**: mỗi dòng là một lần hiện chữ, dấu `/` là xuống dòng.
     Lần hiện thứ 1, 3, 5… nằm *trên* khung, lần 2, 4, 6… hiện thêm *dưới* khung (giống video mẫu).
   - **Câu để đọc**: câu OmniVoice sẽ đọc. Tên người và số nên viết bằng hiragana để đọc chuẩn.
-  - Bấm nhãn **🖼 Ảnh / 🎞 Video** để đổi loại cảnh. Nút **⚖️** tự chia lại tỉ lệ 70/30.
+  - Bấm nhãn **🖼 Ảnh / 🎞 Video** để đổi loại cảnh. Kéo thanh **Mục tiêu** để đổi tỉ lệ ảnh/video, tool tự chia lại ngay.
   - Nếu chưa ưng, nhập góp ý (tiếng Việt cũng được) rồi bấm **Viết lại theo góp ý**.
 - Bấm **✅ Duyệt content**.
 

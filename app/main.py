@@ -36,7 +36,8 @@ def create_project(data: dict = Body(...)):
     title, topic = data.get("title", ""), data.get("topic", "")
     if not title.strip() and not topic.strip():
         _err(ValueError("Nhập title hoặc chủ đề nhé"))
-    return P.create(title, topic, int(data.get("duration") or 60))
+    return P.create(title, topic, int(data.get("duration") or 60), data.get("genre") or "sports",
+                    int(data.get("video_pct") if data.get("video_pct") is not None else 30))
 
 
 @app.get("/api/projects/{pid}")
@@ -51,7 +52,7 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -87,7 +88,7 @@ def delete_project(pid: str):
 
 @app.post("/api/projects/{pid}/rebalance")
 def rebalance(pid: str):
-    return P.update(pid, lambda p: P.rebalance(p["scenes"]))
+    return P.update(pid, lambda p: P.rebalance(p["scenes"], P.video_ratio(p)))
 
 
 @app.get("/api/projects/{pid}/job")

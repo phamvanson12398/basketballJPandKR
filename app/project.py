@@ -22,7 +22,7 @@ def pdir(pid: str) -> Path:
     return PROJECTS / pid
 
 
-def create(title: str, topic: str, duration: int) -> dict:
+def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30) -> dict:
     pid = new_id(title)
     d = pdir(pid)
     for sub in ("audio", "media", "sources", "render"):
@@ -32,6 +32,8 @@ def create(title: str, topic: str, duration: int) -> dict:
         "title": title.strip(),
         "topic": topic.strip(),
         "duration": int(duration),
+        "genre": genre if genre in ("sports", "biography", "general") else "sports",
+        "video_pct": max(0, min(100, int(video_pct))),
         "created": time.time(),
         "script_approved": False,
         "scenes": [],
@@ -84,12 +86,19 @@ def scene_plain_text(scene: dict) -> str:
 def scene_est_sec(scene: dict) -> float:
     if scene.get("duration"):
         return float(scene["duration"])
-    text = scene.get("tts") or scene_plain_text(scene)
+    # đếm theo chữ hiển thị (kanji + kana), không theo câu đọc (hiragana dài hơn nhiều)
+    text = scene_plain_text(scene) or scene.get("tts") or ""
     return max(1.0, len(text) / JA_CHARS_PER_SEC)
 
 
+def video_ratio(p: dict) -> float:
+    """Tỉ lệ video mong muốn của dự án (0.0–1.0)."""
+    v = p.get("video_pct")
+    return VIDEO_RATIO if v is None else max(0, min(100, int(v))) / 100
+
+
 def rebalance(scenes: list[dict], ratio: float = VIDEO_RATIO) -> None:
-    """Chọn cảnh nào dùng video để video chiếm ~30% thời lượng.
+    """Chọn cảnh nào dùng video để video chiếm đúng tỉ lệ mong muốn (mặc định 30%).
 
     Ưu tiên cảnh có điểm hành động (action) cao. Cảnh bị khóa (locked_kind)
     thì giữ nguyên lựa chọn của người dùng.
@@ -103,7 +112,8 @@ def rebalance(scenes: list[dict], ratio: float = VIDEO_RATIO) -> None:
         s["kind"] = "image"
     acc = locked_video
     # Không dùng video cho cảnh đầu (hook) để mở đầu bằng ảnh rõ ràng giống mẫu
-    order = sorted((s for s in free if s is not scenes[0]),
+    # cảnh đầu (hook) giữ là ảnh, trừ khi bạn muốn gần như toàn video
+    order = sorted((s for s in free if ratio >= 0.9 or s is not scenes[0]),
                    key=lambda s: (-(s.get("action") or 0), scenes.index(s)))
     for s in order:
         d = scene_est_sec(s)

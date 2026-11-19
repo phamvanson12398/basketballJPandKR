@@ -11,6 +11,12 @@
   <h1>🎬 Shorts Maker</h1>
   <div class="card">
     <h3>Tạo video mới</h3>
+    <label>Thể loại</label>
+    <select id="newGenre">
+      <option value="sports">⚾ Thể thao</option>
+      <option value="biography">👤 Tiểu sử người nổi tiếng</option>
+      <option value="general">📰 Chủ đề chung (tin tức, kiến thức...)</option>
+    </select>
     <label>Title (nếu có)</label>
     <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
     <label>Chủ đề / ghi chú cho AI (không bắt buộc)</label>
@@ -23,6 +29,8 @@
       <option value="custom">Tự nhập...</option>
     </select>
     <input id="newDurCustom" type="number" min="10" max="600" placeholder="số giây" class="hidden">
+    <label>Tỉ lệ: Ảnh <b id="newImgPct">70</b>% / Video <b id="newVidPct">30</b>%</label>
+    <input id="newRatio" type="range" min="0" max="100" step="5" value="30">
     <button class="primary" id="btnCreate">＋ Tạo &amp; viết content</button>
   </div>
   <h3>Video đã làm</h3>
@@ -37,7 +45,7 @@
     <ol>
       <li>AI viết content → <b>bạn duyệt</b></li>
       <li>OmniVoice đọc content (giọng mẫu / mô tả giọng / tự động)</li>
-      <li>Tự tìm ảnh 16:9 (70%) + video (30%) → bạn xem lại, đổi được</li>
+      <li>Tự tìm ảnh + video theo tỉ lệ bạn chọn (mặc định 70/30) → bạn xem lại, đổi được</li>
       <li>Chọn nhạc nền → xuất video</li>
     </ol>
   </div>
@@ -67,13 +75,20 @@
         <input id="feedback" placeholder="Góp ý để AI viết lại (VD: hook mạnh hơn, thêm chi tiết...)">
         <button id="btnRegen">🔁 Viết lại theo góp ý</button>
       </div>
+      <div class="toolbar ratiorow">
+        <label>Mục tiêu: Ảnh <b id="pImgPct">70</b>% / Video <b id="pVidPct">30</b>%</label>
+        <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
+        <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
+          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="general">📰 Chủ đề chung</option>
+        </select>
+      </div>
       <div id="ratio" class="ratio"></div>
       <p class="hint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
         Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung hình, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).</p>
       <div id="scenes"></div>
       <div class="toolbar sticky">
         <button id="btnAddScene">＋ Thêm cảnh</button>
-        <button id="btnRebalance">⚖️ Tự chia lại 70% ảnh / 30% video</button>
+        <button id="btnRebalance">⚖️ Tự chia lại theo tỉ lệ</button>
         <span class="grow"></span>
         <button id="btnSaveScript">💾 Lưu</button>
         <button class="primary" id="btnApprove">✅ Duyệt content</button>
