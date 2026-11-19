@@ -11,6 +11,8 @@ kiểm tra lại tỉ lệ 16:9 thật.
 import html
 import json
 import re
+import threading
+import time
 
 import requests
 
@@ -93,6 +95,22 @@ def yahoo_japan(query: str, n: int = 60, recent: str | None = None) -> list[dict
 SOURCES = {"duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan}
 
 
+# Nguồn nào lỗi (bị chặn tạm thời, mất mạng...) thì nghỉ một lúc, không gọi lại ở các cảnh sau
+COOLDOWN_SEC = 15 * 60
+MIN_GAP_SEC = {"duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5}   # giãn cách giữa 2 lượt tìm
+_paused_until: dict[str, float] = {}
+_last_call: dict[str, float] = {}
+_lock = threading.Lock()
+NAMES = {"duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN"}
+
+
+def _short_error(e: Exception) -> str:
+    msg = str(e)
+    m = re.search(r"\)\s*>\s*(.+?)(?:\'|\)|$)", msg)   # phần lý do thật sau "error sending request for url (...) >"
+    reason = m.group(1).strip() if m else msg
+    return reason[:200]
+
+
 def search_all(query: str, sources: list[str], log=None, recent: str | None = None) -> list[dict]:
     """Gọi các nguồn rồi trộn xen kẽ để ảnh đa dạng."""
     results = []
@@ -100,12 +118,24 @@ def search_all(query: str, sources: list[str], log=None, recent: str | None = No
         fn = SOURCES.get(name)
         if not fn:
             continue
+        with _lock:
+            if time.time() < _paused_until.get(name, 0):
+                continue   # đang tạm nghỉ
+            wait = _last_call.get(name, 0) + MIN_GAP_SEC.get(name, 0) - time.time()
+        if wait > 0:
+            time.sleep(wait)
         try:
             res = fn(query, recent=recent)
         except Exception as e:  # noqa: BLE001
             res = []
+            with _lock:
+                _paused_until[name] = time.time() + COOLDOWN_SEC
             if log:
-                log(f"    nguồn {name} lỗi: {str(e)[:80]}")
+                log(f"    ⚠️ {NAMES.get(name, name)} đang lỗi ({_short_error(e)}) → tạm bỏ qua "
+                    f"{COOLDOWN_SEC // 60} phút, các nguồn khác vẫn tìm bình thường.")
+        finally:
+            with _lock:
+                _last_call[name] = time.time()
         results.append(res)
     merged, i = [], 0
     while any(i < len(r) for r in results):
@@ -114,5 +144,3 @@ def search_all(query: str, sources: list[str], log=None, recent: str | None = No
                 merged.append(r[i])
         i += 1
     return merged
-
-
