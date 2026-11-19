@@ -1,13 +1,14 @@
 # 🎬 Shorts Maker – Tool làm video Shorts tự động (tiếng Nhật)
 
 Tool tự làm video dọc kiểu “kể chuyện thể thao” giống video mẫu:
-**nền trắng, ảnh/video ở giữa, sub chữ đen đậm ở trên và dưới khung**, có giọng đọc AI.
+**nền trắng, ảnh/video 16:9 ở giữa, sub chữ đen đậm ở trên và dưới khung**, có giọng đọc AI.
+Content viết bằng **tiếng Nhật chuẩn (標準語)** để người Nhật ở vùng nào cũng hiểu.
 
 ```
 Nhập title + thời lượng
-  → Claude CLI viết content (tiếng Nhật)  → BẠN DUYỆT / sửa
+  → Claude CLI viết content (tiếng Nhật chuẩn 標準語)  → BẠN DUYỆT / sửa
   → OmniVoice đọc content (giọng mẫu / mô tả giọng / ủy quyền cho tool)
-  → Tự tìm ảnh (70%, mỗi ảnh 4–5 giây) + video (30%, tự cắt đoạn hay)  → BẠN XEM LẠI / đổi
+  → Tự tìm ảnh 16:9 (70%, mỗi ảnh 4–5 giây) + video (30%, tự cắt đoạn hay)  → BẠN XEM LẠI / đổi
   → Chọn nhạc nền → Xuất video 1080x1920
 ```
 
@@ -55,7 +56,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ### Bước 3 – Ảnh & video
 - Bấm **🔎 Tự tìm…**. Tool sẽ:
-  - Tìm ảnh (DuckDuckGo, hoặc Google nếu bạn nhập key trong Cài đặt). Mỗi ảnh hiện 4–5 giây và có zoom nhẹ.
+  - Tìm ảnh (DuckDuckGo, hoặc Google nếu bạn nhập key trong Cài đặt). **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
+    không cắt, không làm mờ. Mỗi ảnh hiện 4–5 giây.
   - Tìm video trên YouTube, tải về, tự chấm điểm **chuyển động + tiếng khán giả + độ nét**,
     nhờ Claude xem các đoạn tốt nhất rồi chọn đoạn **hợp với câu đang đọc**.
 - Click ảnh ứng viên để thêm hoặc bỏ. Với video, click khung hình để đổi sang đoạn khác.
@@ -70,12 +72,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Google API key + cx**: tìm ảnh qua Google (tùy chọn).
 - **Bộ mã hóa**: mặc định tự dùng card NVIDIA (NVENC) cho nhanh.
 - **Cỡ chữ / font sub**, số bước tạo giọng (16 = nhanh, 32 = hay).
+- **Zoom nhẹ ảnh**: mặc định tắt (bật thì ảnh sẽ bị che mất một chút mép).
 
 ## 4. Lỗi thường gặp
 | Lỗi | Cách sửa |
 |---|---|
 | “Không thấy GPU” | Cập nhật driver NVIDIA. Nếu card đời cũ (GTX 10xx), sửa `cu128` thành `cu126` trong `install.bat` rồi cài lại |
 | “Không tìm thấy Claude CLI” | Làm lại bước 3 phần cài đặt, rồi mở lại `run.bat` |
+| Không tìm được ảnh 16:9 | Đổi từ khóa rộng hơn (VD: chỉ tên cầu thủ + đội), hoặc nhập Google API key trong Cài đặt để có thêm nguồn |
 | Không tìm được video | Sửa từ khóa ngắn gọn hơn, hoặc dán link trực tiếp. Có thể chạy `.venv\Scripts\pip install -U yt-dlp` để cập nhật |
 | Đọc sai tên người | Sửa ô “Câu để đọc” thành hiragana rồi bấm Đọc lại |
 

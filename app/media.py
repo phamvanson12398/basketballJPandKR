@@ -13,7 +13,7 @@ from PIL import Image
 
 from . import highlight as HL
 from . import project as P
-from .config import IMAGE_SEC, load_settings
+from .config import IMAGE_RATIO, IMAGE_RATIO_TOL, IMAGE_SEC, load_settings
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
@@ -21,7 +21,11 @@ N_CANDIDATES = 8
 
 
 # ---------------------------------------------------------------- ẢNH
-def search_images(query: str, n: int = 20) -> list[dict]:
+def is_16_9(w: int, h: int) -> bool:
+    return h > 0 and abs((w / h) / IMAGE_RATIO - 1) <= IMAGE_RATIO_TOL
+
+
+def search_images(query: str, n: int = 80) -> list[dict]:
     s = load_settings()
     out: list[dict] = []
     if s.get("google_api_key") and s.get("google_cx"):
@@ -29,34 +33,33 @@ def search_images(query: str, n: int = 20) -> list[dict]:
             for start in (1, 11):
                 r = requests.get("https://www.googleapis.com/customsearch/v1", timeout=20, params={
                     "key": s["google_api_key"], "cx": s["google_cx"], "q": query,
-                    "searchType": "image", "num": 10, "start": start, "gl": "jp", "hl": "ja"})
+                    "searchType": "image", "num": 10, "start": start, "gl": "jp", "hl": "ja",
+                    "imgSize": "xlarge"})
                 for it in r.json().get("items", []):
                     im = it.get("image", {})
                     out.append({"url": it["link"], "w": im.get("width", 0), "h": im.get("height", 0),
                                 "title": it.get("title", ""), "page": im.get("contextLink", "")})
         except Exception:
             pass
-    if len(out) < 6:
+    if sum(is_16_9(x["w"], x["h"]) for x in out) < 6:
         from ddgs import DDGS
         try:
-            for it in DDGS().images(query, region="jp-jp", safesearch="off", max_results=n):
+            for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide",
+                                    max_results=n):
                 out.append({"url": it.get("image"), "w": int(it.get("width") or 0),
                             "h": int(it.get("height") or 0), "title": it.get("title", ""),
                             "page": it.get("url", "")})
         except Exception:
             pass
 
-    def rank(x):
-        w, h = x["w"] or 800, x["h"] or 600
-        ar = w / max(h, 1)
-        # ưu tiên ảnh ngang (khung 1080x800) và đủ lớn
-        return (abs(ar - 1.4) > 0.6, -min(w, 2000))
     seen, uniq = set(), []
     for x in out:
-        if x["url"] and x["url"] not in seen:
+        # chỉ giữ ảnh 16:9 (theo thông tin kích thước của kết quả tìm kiếm; tải về sẽ kiểm tra lại)
+        if x["url"] and x["url"] not in seen and (not x["w"] or is_16_9(x["w"], x["h"])):
             seen.add(x["url"])
             uniq.append(x)
-    return sorted(uniq, key=rank)
+    # ưu tiên ảnh có kích thước rõ ràng và lớn
+    return sorted(uniq, key=lambda x: (not x["w"], -min(x["w"] or 0, 2560)))
 
 
 def download_image(url: str, dest: Path) -> bool:
@@ -65,8 +68,8 @@ def download_image(url: str, dest: Path) -> bool:
         r.raise_for_status()
         im = Image.open(io.BytesIO(r.content))
         im = im.convert("RGB")
-        if min(im.size) < 300:
-            return False
+        if im.width < 640 or not is_16_9(*im.size):
+            return False   # chỉ nhận ảnh 16:9, đủ nét
         dest.parent.mkdir(parents=True, exist_ok=True)
         im.save(dest, "JPEG", quality=92)
         return True
@@ -97,7 +100,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None)
         if len(cands) >= N_CANDIDATES:
             break
     if not cands:
-        raise RuntimeError(f"Không tìm được ảnh cho “{q}”")
+        raise RuntimeError(f"Không tìm được ảnh 16:9 cho “{q}” – thử từ khóa khác")
     k = n_images_for(P.scene_est_sec(scene))
     scene["candidates"] = cands
     scene["items"] = cands[:k]
@@ -117,6 +120,8 @@ def search_videos(query: str, n: int = 8) -> list[dict]:
             continue
         if dur and not (15 <= dur <= 1800):
             continue
+        if "/shorts/" in (e.get("url") or ""):
+            continue   # bỏ YouTube Shorts (video dọc)
         out.append({"id": e.get("id"), "title": e.get("title", ""), "duration": dur,
                     "url": e.get("url") or f"https://www.youtube.com/watch?v={e.get('id')}"})
     return out

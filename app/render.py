@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
 
 from . import project as P
 from .config import (FONTS, FPS, H, MEDIA_H, MEDIA_W, MEDIA_Y, ROOT, SUB_BOTTOM_TOP_Y,
@@ -47,29 +47,18 @@ def venc(final: bool) -> list[str]:
 
 # ------------------------------------------------------------------ ảnh
 def prepare_image(src: Path, dst: Path) -> Path:
-    """Đưa ảnh về khung 1080x800 (x2). Ảnh ngang: cắt lấp đầy, lệch lên trên để giữ mặt.
-    Ảnh dọc/vuông: đặt giữa, nền là chính ảnh làm mờ."""
+    """Đưa ảnh vào khung 16:9 nguyên vẹn: KHÔNG cắt, KHÔNG làm mờ.
+    Ảnh 16:9 (lệch ≤4%) được co giãn vừa khít khung; ảnh khác tỉ lệ (do bạn tự upload)
+    được đặt giữa, phần thừa để nền trắng."""
     tw, th = MEDIA_W * ZOOM_SCALE, MEDIA_H * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
-    ar = im.width / im.height
-    target = tw / th
-
-    def cover(img, bias_y=0.35):
-        s = max(tw / img.width, th / img.height)
-        r = img.resize((max(tw, round(img.width * s)), max(th, round(img.height * s))), Image.LANCZOS)
-        x = (r.width - tw) // 2
-        y = int((r.height - th) * bias_y)
-        return r.crop((x, y, x + tw, y + th))
-
-    if ar >= target * 0.8:
-        out = cover(im)
+    if abs((im.width / im.height) / (tw / th) - 1) <= 0.04:
+        out = im.resize((tw, th), Image.LANCZOS)
     else:
-        bg = cover(im, 0.5).filter(ImageFilter.GaussianBlur(40))
-        bg = Image.blend(bg, Image.new("RGB", bg.size, "white"), 0.25)
-        s = th / im.height
-        fg = im.resize((round(im.width * s), th), Image.LANCZOS)
-        bg.paste(fg, ((tw - fg.width) // 2, 0))
-        out = bg
+        s = min(tw / im.width, th / im.height)
+        fg = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
+        out = Image.new("RGB", (tw, th), "white")
+        out.paste(fg, ((tw - fg.width) // 2, (th - fg.height) // 2))
     out.save(dst, "JPEG", quality=93)
     return dst
 
@@ -84,6 +73,8 @@ def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
         ("1.08", f"(iw-iw/zoom)*on/{N}", cy),       # lia trái → phải
         ("1.08", f"(iw-iw/zoom)*(1-on/{N})", cy),   # lia phải → trái
     ][variant % 4]
+    if not load_settings().get("image_zoom"):
+        z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
     fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={MEDIA_W}x{MEDIA_H}:fps={FPS},setsar=1[m];"
           f"color=white:s={W}x{H}:r={FPS}:d={n / FPS:.3f}[bg];"
           f"[bg][m]overlay=0:{MEDIA_Y}:shortest=1,format=yuv420p[v]")
@@ -109,10 +100,9 @@ def video_part(src: Path, start: float, dur: float, out: Path) -> None:
     if w / max(h, 1) >= (MEDIA_W / MEDIA_H) * 0.8:
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
                  f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
-    else:  # video dọc (TikTok...) → nền mờ
-        media = (f"[0:v]fps={FPS},split[a][b];"
-                 f"[a]scale={box}:force_original_aspect_ratio=increase,crop={box},boxblur=30:2[bgm];"
-                 f"[b]scale=-2:{MEDIA_H}[fg];[bgm][fg]overlay=(W-w)/2:0,setsar=1,"
+    else:  # video dọc (link TikTok bạn dán) → đặt giữa khung, nền trắng, không làm mờ
+        media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=decrease,"
+                 f"pad={box}:(ow-iw)/2:(oh-ih)/2:white,setsar=1,"
                  f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
     fc = (media + f"color=white:s={W}x{H}:r={FPS}[bg];"
           f"[bg][m]overlay=0:{MEDIA_Y}:shortest=1,format=yuv420p[v]")
