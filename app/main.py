@@ -34,10 +34,12 @@ def projects():
 @app.post("/api/projects")
 def create_project(data: dict = Body(...)):
     title, topic = data.get("title", ""), data.get("topic", "")
-    if not title.strip() and not topic.strip():
+    genre = data.get("genre") or "sports"
+    if genre != "news" and not title.strip() and not topic.strip():
         _err(ValueError("Nhập title hoặc chủ đề nhé"))
-    return P.create(title, topic, int(data.get("duration") or 60), data.get("genre") or "sports",
-                    int(data.get("video_pct") if data.get("video_pct") is not None else 30))
+    return P.create(title, topic, int(data.get("duration") or 60), genre,
+                    int(data.get("video_pct") if data.get("video_pct") is not None else 30),
+                    data.get("news") if genre == "news" else None)
 
 
 @app.get("/api/projects/{pid}")
@@ -52,7 +54,7 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -103,6 +105,23 @@ def gen_script(pid: str, data: dict = Body(default={})):
     try:
         return jobs.start(pid, "script", generate, feedback=data.get("feedback", ""))
     except RuntimeError as e:
+        _err(e)
+
+
+@app.get("/api/news/regions")
+def news_regions():
+    from .script_gen import NEWS_REGIONS, NEWS_CATEGORIES
+    return {"regions": NEWS_REGIONS, "categories": NEWS_CATEGORIES}
+
+
+@app.post("/api/news/suggest")
+def news_suggest(data: dict = Body(...)):
+    """Quét tin mới nhất của quốc gia / thế giới (mất khoảng 1–2 phút)."""
+    from .script_gen import suggest_news
+    try:
+        return suggest_news(data.get("region") or "world", int(data.get("days") or 3),
+                            data.get("category") or "all", data.get("custom_region") or "")
+    except Exception as e:  # noqa: BLE001
         _err(e)
 
 

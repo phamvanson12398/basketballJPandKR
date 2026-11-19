@@ -19,21 +19,25 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 HEADERS = {"User-Agent": UA, "Accept-Language": "ja,en;q=0.8"}
 
 
-def duckduckgo(query: str, n: int = 80) -> list[dict]:
+def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
     from ddgs import DDGS
     out = []
-    for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide", max_results=n):
+    tl = {"day": "Day", "week": "Week", "month": "Month"}.get(recent or "")
+    for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide", timelimit=tl,
+                            max_results=n):
         out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
                     "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"})
     return out
 
 
-def bing(query: str, n: int = 70) -> list[dict]:
+def bing(query: str, n: int = 70, recent: str | None = None) -> list[dict]:
     out = []
+    age = {"day": "+filterui:age-lt1440", "week": "+filterui:age-lt10080",
+           "month": "+filterui:age-lt43200"}.get(recent or "", "")
     for first in (0, 35):
         r = requests.get("https://www.bing.com/images/async", headers=HEADERS, timeout=20, params={
             "q": query, "first": first, "count": 35, "mmasync": 1, "setlang": "ja", "cc": "JP",
-            "qft": "+filterui:aspect-wide+filterui:imagesize-large"})
+            "qft": "+filterui:aspect-wide+filterui:imagesize-large" + age})
         for m in re.findall(r'\sm="([^"]+)"', r.text):
             try:
                 d = json.loads(html.unescape(m))
@@ -60,7 +64,7 @@ def _find_images(obj, acc: list):
             _find_images(v, acc)
 
 
-def yahoo_japan(query: str, n: int = 60) -> list[dict]:
+def yahoo_japan(query: str, n: int = 60, recent: str | None = None) -> list[dict]:
     out = []
     for b in (1, 21, 41):
         r = requests.get("https://search.yahoo.co.jp/image/search", headers=HEADERS, timeout=20,
@@ -87,7 +91,7 @@ def yahoo_japan(query: str, n: int = 60) -> list[dict]:
 SOURCES = {"duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan}
 
 
-def search_all(query: str, sources: list[str], log=None) -> list[dict]:
+def search_all(query: str, sources: list[str], log=None, recent: str | None = None) -> list[dict]:
     """Gọi các nguồn rồi trộn xen kẽ để ảnh đa dạng."""
     results = []
     for name in sources:
@@ -95,7 +99,7 @@ def search_all(query: str, sources: list[str], log=None) -> list[dict]:
         if not fn:
             continue
         try:
-            res = fn(query)
+            res = fn(query, recent=recent)
         except Exception as e:  # noqa: BLE001
             res = []
             if log:

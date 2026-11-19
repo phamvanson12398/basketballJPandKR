@@ -1,4 +1,6 @@
 """Viết content (kịch bản) tiếng Nhật bằng Claude CLI."""
+import datetime
+
 from . import project as P
 from .claude_cli import ask, extract_json
 from .config import JA_CHARS_PER_SEC, IMAGE_SEC
@@ -23,6 +25,13 @@ GENRES = {
         "image": "人物名+年代/出来事/場所など具体的に（例: 大谷翔平 花巻東 高校時代、宮崎駿 アカデミー賞 授賞式）",
         "video": "人物名+インタビュー/ライブ/会見/ドキュメンタリー/名場面 など",
     },
+    "news": {
+        "role": "日本のニュース解説系ショート動画（TikTok / YouTube Shorts）",
+        "style": "",   # news_context() で動的に作る
+        "action": "現場映像・抗議・災害・試合・会見の様子など=高、数字・背景説明・解説・地図=低",
+        "image": "出来事+場所+人物など具体的に（例: 能登半島地震 輪島 朝市）",
+        "video": "出来事+ニュース/現場/会見 など（例: 〇〇 ニュース 現場映像）",
+    },
     "general": {
         "role": "日本の雑学・ニュース解説系ショート動画（TikTok / YouTube Shorts）",
         "style": """- 1文目で「えっ？」と思わせるフック。
@@ -33,6 +42,93 @@ GENRES = {
     },
 }
 
+# ---------------------------------------------------------------- TIN TỨC
+NEWS_REGIONS = [
+    {"id": "world", "vi": "🌍 Thế giới", "ja": "世界（国際ニュース）", "lang": "英語・日本語"},
+    {"id": "jp", "vi": "🇯🇵 Nhật Bản", "ja": "日本", "lang": "日本語"},
+    {"id": "kr", "vi": "🇰🇷 Hàn Quốc", "ja": "韓国", "lang": "韓国語"},
+    {"id": "vn", "vi": "🇻🇳 Việt Nam", "ja": "ベトナム", "lang": "ベトナム語"},
+    {"id": "us", "vi": "🇺🇸 Mỹ", "ja": "アメリカ", "lang": "英語"},
+    {"id": "cn", "vi": "🇨🇳 Trung Quốc", "ja": "中国", "lang": "中国語"},
+    {"id": "tw", "vi": "🇹🇼 Đài Loan", "ja": "台湾", "lang": "中国語（繁体字）"},
+    {"id": "th", "vi": "🇹🇭 Thái Lan", "ja": "タイ", "lang": "タイ語"},
+    {"id": "ph", "vi": "🇵🇭 Philippines", "ja": "フィリピン", "lang": "英語・タガログ語"},
+    {"id": "in", "vi": "🇮🇳 Ấn Độ", "ja": "インド", "lang": "英語・ヒンディー語"},
+    {"id": "gb", "vi": "🇬🇧 Anh", "ja": "イギリス", "lang": "英語"},
+    {"id": "fr", "vi": "🇫🇷 Pháp", "ja": "フランス", "lang": "フランス語"},
+    {"id": "de", "vi": "🇩🇪 Đức", "ja": "ドイツ", "lang": "ドイツ語"},
+    {"id": "ru", "vi": "🇷🇺 Nga", "ja": "ロシア", "lang": "ロシア語"},
+    {"id": "ua", "vi": "🇺🇦 Ukraine", "ja": "ウクライナ", "lang": "ウクライナ語・英語"},
+    {"id": "au", "vi": "🇦🇺 Úc", "ja": "オーストラリア", "lang": "英語"},
+    {"id": "br", "vi": "🇧🇷 Brazil", "ja": "ブラジル", "lang": "ポルトガル語"},
+    {"id": "custom", "vi": "✏️ Quốc gia khác (tự nhập)", "ja": "", "lang": "現地語"},
+]
+NEWS_CATEGORIES = [
+    {"id": "all", "vi": "Tất cả", "ja": ""},
+    {"id": "politics", "vi": "Chính trị", "ja": "政治"},
+    {"id": "economy", "vi": "Kinh tế", "ja": "経済"},
+    {"id": "society", "vi": "Xã hội / sự kiện", "ja": "社会・事件・事故"},
+    {"id": "disaster", "vi": "Thiên tai / thời tiết", "ja": "災害・気象"},
+    {"id": "sports", "vi": "Thể thao", "ja": "スポーツ"},
+    {"id": "entertainment", "vi": "Giải trí / showbiz", "ja": "エンタメ・芸能"},
+    {"id": "tech", "vi": "Công nghệ / khoa học", "ja": "科学・IT"},
+]
+
+
+def _region(region: str, custom: str = "") -> dict:
+    r = next((x for x in NEWS_REGIONS if x["id"] == region), NEWS_REGIONS[0])
+    if r["id"] == "custom":
+        r = dict(r, ja=custom or "世界", vi=custom or "Khác")
+    return r
+
+
+def _category(cat: str) -> dict:
+    return next((x for x in NEWS_CATEGORIES if x["id"] == cat), NEWS_CATEGORIES[0])
+
+
+def today_ja() -> str:
+    d = datetime.date.today()
+    return f"{d.year}年{d.month}月{d.day}日"
+
+
+def news_context(news: dict) -> str:
+    r = _region(news.get("region", "world"), news.get("custom_region", ""))
+    c = _category(news.get("category", "all"))
+    days = int(news.get("days") or 3)
+    cat = f"（ジャンル: {c['ja']}）" if c["ja"] else ""
+    return f"""- 今日は{today_ja()}。扱うのは「{r['ja']}」の最新ニュース{cat}で、過去{days}日以内に報じられたもの。
+- 必ず WebSearch / WebFetch で最新の報道を調べること。{r['lang']}の現地報道と、日本語・英語の報道の両方を確認し、
+  日時・場所・人数・金額・固有名詞は複数の信頼できる報道機関で一致するものだけを使う。
+- テーマ・メモが空なら、その中で最も注目度が高く、ショート動画向きのニュースを1件選ぶ。
+- 1文目で「何が起きたか」を端的に伝えるフック → 経緯 → 背景 → 影響・今後の見通し、の順で伝える。
+- 中立・客観的に。推測・未確認情報・断定的な評価は書かない。必要に応じて「〜と報じられています」と表現する。
+- 日付は「〇月〇日」と具体的に書く（「昨日」「今日」は使わない）。"""
+
+
+def suggest_news(region: str, days: int, category: str, custom_region: str = "") -> list[dict]:
+    """Quét tin nóng → danh sách để người dùng chọn."""
+    r = _region(region, custom_region)
+    c = _category(category)
+    cat = f"ジャンルは「{c['ja']}」に限定。" if c["ja"] else ""
+    prompt = f"""今日は{today_ja()}です。WebSearch を使って、「{r['ja']}」で過去{days}日以内に報じられた
+主要ニュースを調べてください。{cat}{r['lang']}の現地メディアと、日本語・英語メディアの両方を確認してください。
+日本の視聴者向けショート動画にしやすい（話題性が高く、映像・写真が多い）ニュースを8件選び、
+次のJSONだけを出力してください（説明文は不要）。
+
+```json
+[{{"headline_ja": "日本語の見出し", "headline_vi": "Tiêu đề tiếng Việt",
+  "summary_vi": "Tóm tắt 1–2 câu tiếng Việt", "date": "YYYY-MM-DD",
+  "source": "報道機関名", "url": "記事URL", "score": 8}}]
+```
+score は話題性（1〜10）。新しい順ではなく、話題性の高い順に並べてください。"""
+    text = ask(prompt, tools=["WebSearch", "WebFetch"], timeout=600)
+    data = extract_json(text)
+    if isinstance(data, dict):
+        data = data.get("news") or data.get("items") or []
+    return [x for x in data if isinstance(x, dict) and x.get("headline_ja")]
+
+
+# ---------------------------------------------------------------- PROMPT
 PROMPT = """あなたは{role}の人気ナレーション作家です。
 以下の条件で、縦型ショート動画のナレーション台本を書いてください。
 
@@ -63,11 +159,13 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 - voice: このテーマに合うナレーターの声。次の候補からそれぞれ1つ選ぶ:
   gender {genders} / age {ages} / pitch {pitches}
 
+{extra}
 ## 出力形式（JSONのみ。説明文は不要。下の例は形式の見本で、内容は無関係）
 ```json
 {{
   "title": "動画タイトル（入力タイトルがあればそれを使う）",
   "voice": {{"gender": "male", "age": "middle-aged", "pitch": "low pitch"}},
+  "sources": [{{"title": "参考にした記事の見出し", "url": "https://...", "date": "YYYY-MM-DD"}}],
   "scenes": [
     {{
       "chunks": ["日ハムから\\n返品不可の刻印を\\n押された男"],
@@ -92,8 +190,11 @@ def generate(pid: str, log, feedback: str = "") -> None:
         old = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
         feedback = f"\n## 前回の台本\n{old}\n\n## 修正リクエスト（ベトナム語の場合あり。内容を理解して反映）\n{feedback}\n"
     gen = GENRES.get(p.get("genre") or "sports", GENRES["sports"])
+    style = news_context(p.get("news") or {}) if p.get("genre") == "news" else gen["style"]
+    extra = ("\n## 出典\n- sources に、事実確認に使った記事（見出し・URL・日付）を3件以上必ず入れる。\n"
+             if p.get("genre") == "news" else "")
     prompt = PROMPT.format(
-        role=gen["role"], style=gen["style"], action_rule=gen["action"],
+        role=gen["role"], style=style, extra=extra, action_rule=gen["action"],
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
@@ -102,7 +203,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
         genders=VOICE_DESIGN_OPTIONS["gender"], ages=VOICE_DESIGN_OPTIONS["age"],
         pitches=VOICE_DESIGN_OPTIONS["pitch"],
     )
-    log("Đang nhờ Claude viết content (có thể tra cứu web, mất 1–3 phút)...", 0.1)
+    log("Đang nhờ Claude viết content (có thể tra cứu web, mất 1–3 phút)..."
+        + (" Tin tức: đang quét báo mới nhất." if p.get("genre") == "news" else ""), 0.1)
     text = ask(prompt, tools=["WebSearch", "WebFetch"], timeout=900)
     data = extract_json(text)
     scenes = []
@@ -128,6 +230,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
             pp["title"] = data.get("title", "")
         pp["scenes"] = scenes
         pp["script_approved"] = False
+        pp["sources"] = [x for x in (data.get("sources") or []) if isinstance(x, dict)]
         v = data.get("voice") or {}
         pp["voice"]["auto_instruct"] = ", ".join(
             x for x in (v.get("gender"), v.get("age"), v.get("pitch")) if x)

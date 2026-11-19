@@ -22,7 +22,8 @@ def pdir(pid: str) -> Path:
     return PROJECTS / pid
 
 
-def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30) -> dict:
+def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30,
+           news: dict | None = None) -> dict:
     pid = new_id(title)
     d = pdir(pid)
     for sub in ("audio", "media", "sources", "render"):
@@ -32,7 +33,8 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "title": title.strip(),
         "topic": topic.strip(),
         "duration": int(duration),
-        "genre": genre if genre in ("sports", "biography", "general") else "sports",
+        "genre": genre if genre in ("sports", "biography", "general", "news") else "sports",
+        "news": news or {},       # tin tức: {region, days, category}
         "video_pct": max(0, min(100, int(video_pct))),
         "created": time.time(),
         "script_approved": False,

@@ -26,10 +26,12 @@ def is_16_9(w: int, h: int) -> bool:
     return h > 0 and abs((w / h) / IMAGE_RATIO - 1) <= IMAGE_RATIO_TOL
 
 
-def search_images(query: str, log=None) -> list[dict]:
+def search_images(query: str, log=None, recent: str | None = None) -> list[dict]:
     from .image_sources import search_all
     sources = load_settings().get("image_sources") or ["duckduckgo", "bing", "yahoo"]
-    out = search_all(query, sources, log)
+    out = search_all(query, sources, log, recent)
+    if recent and len(out) < 15:   # tin mới mà ít ảnh → lấy thêm ảnh không lọc thời gian
+        out += search_all(query, sources, log)
 
     seen, uniq = set(), []
     for x in out:
@@ -60,7 +62,8 @@ def n_images_for(dur: float) -> int:
     return max(1, round(dur / IMAGE_SEC))
 
 
-def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None) -> None:
+def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
+                recent: str | None = None) -> None:
     q = query or scene.get("image_query") or P.scene_plain_text(scene)
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
@@ -72,7 +75,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None)
     k = n_images_for(P.scene_est_sec(scene))
     want = max(N_CANDIDATES, k + 2)
     tried = 0
-    for res in search_images(q, log):
+    for res in search_images(q, log, recent):
         if res["url"] in used:
             continue
         tried += 1
@@ -88,7 +91,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None)
     if len(cands) < k + 2:
         # Thiếu ảnh 16:9 → chụp khung hình nét từ video liên quan (luôn đúng 16:9)
         try:
-            cands += stills_from_video(pid, scene, k + 2 - len(cands) + 2, log)
+            cands += stills_from_video(pid, scene, k + 2 - len(cands) + 2, log, recent)
         except Exception as e:  # noqa: BLE001
             log(f"    không lấy được ảnh từ video: {str(e)[:100]}")
     if not cands:
@@ -98,13 +101,13 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None)
     log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh")
 
 
-def stills_from_video(pid: str, scene: dict, count: int, log) -> list[dict]:
+def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None = None) -> list[dict]:
     q = scene.get("image_query") or scene.get("video_query") or P.scene_plain_text(scene)
     sources = P.pdir(pid) / "sources"
     sources.mkdir(exist_ok=True)
     d = P.pdir(pid) / "media" / scene["id"]
     log(f"    ảnh 16:9 chưa đủ → chụp khung hình từ video YouTube “{q}”")
-    for r in search_videos(q, 5)[:2]:
+    for r in search_videos(q, 5, recent)[:2]:
         try:
             v = download_video(r["url"], sources, log)
         except Exception:
@@ -124,11 +127,13 @@ def stills_from_video(pid: str, scene: dict, count: int, log) -> list[dict]:
 
 
 # ---------------------------------------------------------------- VIDEO
-def search_videos(query: str, n: int = 8) -> list[dict]:
+def search_videos(query: str, n: int = 8, recent: str | None = None) -> list[dict]:
+    """recent != None (tin tức) → tìm theo video MỚI NHẤT."""
     import yt_dlp
     opts = {"quiet": True, "skip_download": True, "extract_flat": True, "noplaylist": True}
+    prefix = "ytsearchdate" if recent else "ytsearch"
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(f"ytsearch{n}:{query}", download=False)
+        info = ydl.extract_info(f"{prefix}{n}:{query}", download=False)
     out = []
     for e in info.get("entries", []) or []:
         dur = e.get("duration") or 0
@@ -191,14 +196,14 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
 
 
 def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
-               query: str | None = None, url: str | None = None) -> None:
+               query: str | None = None, url: str | None = None, recent: str | None = None) -> None:
     sources = P.pdir(pid) / "sources"
     sources.mkdir(exist_ok=True)
     if url:
         results = [{"url": url, "title": url}]
     else:
         q = query or scene.get("video_query") or scene.get("image_query")
-        results = search_videos(q)
+        results = search_videos(q, recent=recent)
         scene["video_results"] = results
         # tránh dùng lại cùng một video quá nhiều lần
         results = sorted(results, key=lambda r: r["url"] in used_urls)
@@ -218,10 +223,18 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
 
 
 # ---------------------------------------------------------------- JOB
+def news_recency(p: dict) -> str | None:
+    """Với tin tức: chỉ ưu tiên ảnh/video mới theo khoảng thời gian của tin."""
+    if p.get("genre") != "news":
+        return None
+    days = int((p.get("news") or {}).get("days") or 3)
+    return "week" if days <= 7 else "month"
+
 def fill_all(pid: str, log, only: list[str] | None = None, query: str | None = None,
              url: str | None = None) -> None:
     p = P.load(pid)
     scenes = p["scenes"]
+    recent = news_recency(p)
     used = {it.get("url") for s in scenes for it in s.get("items", []) if it.get("kind") == "image"}
     used_urls: set = set()
     used_windows: dict = {}
@@ -237,14 +250,14 @@ def fill_all(pid: str, log, only: list[str] | None = None, query: str | None = N
         try:
             if s["kind"] == "video":
                 try:
-                    fill_video(pid, s, used_urls, used_windows, log, query=query, url=url)
+                    fill_video(pid, s, used_urls, used_windows, log, query=query, url=url, recent=recent)
                 except Exception as e:  # noqa: BLE001
                     if url:
                         raise
                     log(f"  ⚠️ {e} → dùng ảnh thay thế")
-                    fill_images(pid, s, used, log)
+                    fill_images(pid, s, used, log, recent=recent)
             else:
-                fill_images(pid, s, used, log, query=query)
+                fill_images(pid, s, used, log, query=query, recent=recent)
         except Exception as e:  # noqa: BLE001
             log(f"  ⚠️ {s['id']}: {e}")
         # lưu sau mỗi cảnh để giao diện thấy tiến độ

@@ -15,8 +15,23 @@
     <select id="newGenre">
       <option value="sports">⚾ Thể thao</option>
       <option value="biography">👤 Tiểu sử người nổi tiếng</option>
-      <option value="general">📰 Chủ đề chung (tin tức, kiến thức...)</option>
+      <option value="news">📰 Tin tức (mới nhất)</option>
+      <option value="general">💡 Chủ đề chung (kiến thức, chuyện lạ...)</option>
     </select>
+    <div id="newsBox" class="hidden">
+      <label>Tin của quốc gia nào?</label>
+      <select id="newsRegion"></select>
+      <input id="newsCustom" class="hidden" placeholder="Tên quốc gia, VD: Indonesia">
+      <div class="grid2">
+        <div><label>Trong vòng</label>
+          <select id="newsDays"><option value="1">24 giờ</option><option value="3" selected>3 ngày</option>
+            <option value="7">1 tuần</option><option value="30">1 tháng</option></select></div>
+        <div><label>Lĩnh vực</label><select id="newsCat"></select></div>
+      </div>
+      <button id="btnScan">🔎 Quét tin mới nhất</button>
+      <div id="newsList"></div>
+      <p class="hint" style="color:#9ca3af">Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.</p>
+    </div>
     <label>Title (nếu có)</label>
     <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
     <label>Chủ đề / ghi chú cho AI (không bắt buộc)</label>
@@ -79,10 +94,11 @@
         <label>Mục tiêu: Ảnh <b id="pImgPct">70</b>% / Video <b id="pVidPct">30</b>%</label>
         <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
         <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
-          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="general">📰 Chủ đề chung</option>
+          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="general">💡 Chủ đề chung</option>
         </select>
       </div>
       <div id="ratio" class="ratio"></div>
+      <div id="sources" class="sources hidden"></div>
       <p class="hint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
         Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung hình, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).</p>
       <div id="scenes"></div>

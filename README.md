@@ -1,6 +1,6 @@
 # 🎬 Shorts Maker – Tool làm video Shorts tự động (tiếng Nhật)
 
-Làm được 3 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **📰 Chủ đề chung** (tin tức, kiến thức...).
+Làm được 4 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **📰 Tin tức mới nhất** (theo quốc gia hoặc thế giới), **💡 Chủ đề chung** (kiến thức, chuyện lạ...).
 
 Tool tự làm video dọc kiểu “kể chuyện thể thao” giống video mẫu:
 **nền trắng, ảnh/video 16:9 ở giữa, sub chữ đen đậm ở trên và dưới khung**, có giọng đọc AI.
@@ -43,6 +43,11 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Ở cột trái, chọn **Thể loại**, nhập **Title** (nếu có) và/hoặc **Chủ đề**, chọn **thời lượng** và **tỉ lệ ảnh/video**
   (kéo thanh trượt, mặc định 70% ảnh / 30% video; tool nhớ lựa chọn lần trước), rồi bấm **Tạo & viết content**.
 - Claude sẽ tra cứu web và viết kịch bản tiếng Nhật, chia sẵn từng cảnh.
+- **Tin tức**: chọn **quốc gia** (hoặc 🌍 Thế giới, hoặc tự nhập tên nước), **trong vòng** (24 giờ / 3 ngày / 1 tuần / 1 tháng)
+  và **lĩnh vực**. Bấm **🔎 Quét tin mới nhất** để Claude đọc báo (cả báo tiếng địa phương lẫn Nhật/Anh) và đưa ra 8 tin nóng
+  kèm tóm tắt tiếng Việt → bấm chọn 1 tin. Hoặc để trống chủ đề, AI tự chọn tin nóng nhất.
+  Sau khi viết, mục **📎 Nguồn tin** hiện các bài báo AI đã dùng để bạn bấm vào kiểm tra.
+  Ảnh/video cho tin tức được ưu tiên tìm loại **mới đăng gần đây**.
 - Bạn sửa trực tiếp nội dung:
   - **Ô Sub**: mỗi dòng là một lần hiện chữ, dấu `/` là xuống dòng.
     Lần hiện thứ 1, 3, 5… nằm *trên* khung, lần 2, 4, 6… hiện thêm *dưới* khung (giống video mẫu).

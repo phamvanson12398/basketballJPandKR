@@ -76,7 +76,14 @@ function ratioBar(el) {
 }
 
 // ------------------------------------------------------------- 1. CONTENT
+function renderSources() {
+  const el = $('#sources'), src = P.sources || [];
+  el.classList.toggle('hidden', !src.length);
+  el.innerHTML = '<b>📎 Nguồn tin AI đã dùng (bấm để kiểm tra):</b>' + src.map(s =>
+    `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.date || '')} · ${esc(s.title || s.url)}</a>`).join('');
+}
 function renderScript() {
+  renderSources();
   const tv = P.video_pct ?? 30;
   $('#pRatio').value = tv; $('#pVidPct').textContent = tv; $('#pImgPct').textContent = 100 - tv;
   $('#pGenre').value = P.genre || 'sports';
@@ -357,6 +364,46 @@ function startPoll() {
 }
 
 // ------------------------------------------------------------- tạo mới, cài đặt
+// ---- tin tức
+function newsParams() {
+  return {region: $('#newsRegion').value, custom_region: $('#newsCustom').value.trim(),
+          days: +$('#newsDays').value, category: $('#newsCat').value};
+}
+function toggleNewsBox() {
+  const isNews = $('#newGenre').value === 'news';
+  $('#newsBox').classList.toggle('hidden', !isNews);
+  $('#newTopic').placeholder = isNews ? 'Để trống = AI tự chọn tin nóng nhất. Hoặc chọn tin đã quét / gõ chủ đề tin.'
+    : 'VD: kể chuyện Kawamura Yuki được Grizzlies ký hợp đồng...';
+}
+async function initNews() {
+  const d = await api('/api/news/regions');
+  $('#newsRegion').innerHTML = d.regions.map(r => `<option value="${r.id}">${r.vi}</option>`).join('');
+  $('#newsCat').innerHTML = d.categories.map(c => `<option value="${c.id}">${c.vi}</option>`).join('');
+  try {
+    const n = (JSON.parse(localStorage.getItem('shorts_defaults') || '{}')).news;
+    if (n) { $('#newsRegion').value = n.region; $('#newsDays').value = n.days; $('#newsCat').value = n.category; $('#newsCustom').value = n.custom_region || ''; }
+  } catch {}
+  $('#newsCustom').classList.toggle('hidden', $('#newsRegion').value !== 'custom');
+}
+$('#newGenre').onchange = toggleNewsBox;
+$('#newsRegion').onchange = () => $('#newsCustom').classList.toggle('hidden', $('#newsRegion').value !== 'custom');
+$('#btnScan').onclick = async () => {
+  const b = $('#btnScan'); b.disabled = true; b.textContent = '⏳ Đang quét báo (1–2 phút)...';
+  $('#newsList').innerHTML = '';
+  try {
+    const items = await api('/api/news/suggest', {method: 'POST', json: newsParams()});
+    $('#newsList').innerHTML = items.map((n, i) => `<div class="news" data-i="${i}">
+      <b>${esc(n.headline_vi)}</b>${esc(n.headline_ja)}<br><small>${esc(n.date || '')} · ${esc(n.source || '')} · 🔥${n.score ?? ''}</small>
+      <div>${esc(n.summary_vi || '')}</div></div>`).join('') || '<small>Không tìm thấy tin nào.</small>';
+    $$('#newsList .news').forEach(el => el.onclick = () => {
+      $$('#newsList .news').forEach(x => x.classList.toggle('sel', x === el));
+      const n = items[+el.dataset.i];
+      $('#newTopic').value = `${n.headline_ja}\n${n.date || ''} ${n.source || ''}\n${n.url || ''}`;
+    });
+  } finally { b.disabled = false; b.textContent = '🔎 Quét tin mới nhất'; }
+};
+initNews().then(toggleNewsBox);
+
 function newRatioLabel() { const v = +$('#newRatio').value; $('#newVidPct').textContent = v; $('#newImgPct').textContent = 100 - v; }
 $('#newRatio').oninput = newRatioLabel;
 try {  // nhớ lựa chọn lần trước
@@ -370,8 +417,10 @@ $('#btnCreate').onclick = async () => {
   const dur = $('#newDur').value === 'custom' ? +$('#newDurCustom').value : +$('#newDur').value;
   if (!dur) return alert('Nhập thời lượng');
   const video_pct = +$('#newRatio').value, genre = $('#newGenre').value;
-  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre})); } catch {}
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct}});
+  const news = genre === 'news' ? newsParams() : null;
+  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news})); } catch {}
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news}});
+  $('#newsList').innerHTML = '';
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);
   setTab('script');
