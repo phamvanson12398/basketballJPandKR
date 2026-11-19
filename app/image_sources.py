@@ -22,7 +22,7 @@ HEADERS = {"User-Agent": UA, "Accept-Language": "ja,en;q=0.8"}
 def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
     from ddgs import DDGS
     out = []
-    tl = {"day": "Day", "week": "Week", "month": "Month"}.get(recent or "")
+    tl = {"day": "d", "week": "w", "month": "m"}.get(recent or "")  # mã ddgs: d / w / m / y
     for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide", timelimit=tl,
                             max_results=n):
         out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
