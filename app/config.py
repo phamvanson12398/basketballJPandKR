@@ -33,8 +33,7 @@ VIDEO_RATIO = 0.30       # 70% ảnh / 30% video
 
 DEFAULT_SETTINGS = {
     "claude_model": "",          # để trống = model mặc định của Claude CLI
-    "google_api_key": "",        # tùy chọn: Google Custom Search
-    "google_cx": "",
+    "image_sources": ["duckduckgo", "bing", "yahoo"],   # nguồn ảnh miễn phí, không cần key
     "video_encoder": "auto",     # auto | libx264 | h264_nvenc
     "tts_num_step": 32,
     "subtitle_font": "Noto Sans CJK JP Black",

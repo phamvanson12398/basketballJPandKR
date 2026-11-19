@@ -360,7 +360,8 @@ $('#btnDelete').onclick = async () => {
 $('#lnkSettings').onclick = async e => {
   e.preventDefault();
   const s = await api('/api/settings');
-  $('#sModel').value = s.claude_model; $('#sGKey').value = s.google_api_key; $('#sGCx').value = s.google_cx;
+  $('#sModel').value = s.claude_model;
+  $$('.src').forEach(c => c.checked = (s.image_sources || []).includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sFont').value = s.subtitle_font;
   $('#sHL').checked = s.use_claude_for_highlight; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   $('#proj').classList.add('hidden'); $('#empty').classList.add('hidden'); $('#settings').classList.remove('hidden');
@@ -372,8 +373,8 @@ $('#lnkSettings').onclick = async e => {
     `GPU NVIDIA: ${c.cuda ? '✅ ' + c.gpu : '❌ không thấy (giọng đọc sẽ rất chậm)'}`].join('\n');
 };
 $('#btnSaveSettings').onclick = async () => {
-  await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(), google_api_key: $('#sGKey').value.trim(),
-    google_cx: $('#sGCx').value.trim(), video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value,
+  await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
+    image_sources: $$('.src').filter(c => c.checked).map(c => c.value), video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value,
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };

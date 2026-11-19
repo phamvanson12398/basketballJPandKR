@@ -1,6 +1,7 @@
 """Tìm và tải ảnh / video cho từng cảnh.
 
-Ảnh : DuckDuckGo Images (không cần key) hoặc Google Custom Search (nếu có key)
+Ảnh : DuckDuckGo + Bing + Yahoo! JAPAN (miễn phí, không cần key). Nếu vẫn thiếu ảnh 16:9,
+       tool chụp khung hình nét nhất từ video YouTube liên quan (luôn đúng 16:9).
 Video: YouTube (yt-dlp tìm kiếm). Bạn cũng có thể dán link YouTube / X / TikTok /
        Instagram / Facebook... cho từng cảnh, yt-dlp tải được hầu hết các nền tảng.
 """
@@ -25,32 +26,10 @@ def is_16_9(w: int, h: int) -> bool:
     return h > 0 and abs((w / h) / IMAGE_RATIO - 1) <= IMAGE_RATIO_TOL
 
 
-def search_images(query: str, n: int = 80) -> list[dict]:
-    s = load_settings()
-    out: list[dict] = []
-    if s.get("google_api_key") and s.get("google_cx"):
-        try:
-            for start in (1, 11):
-                r = requests.get("https://www.googleapis.com/customsearch/v1", timeout=20, params={
-                    "key": s["google_api_key"], "cx": s["google_cx"], "q": query,
-                    "searchType": "image", "num": 10, "start": start, "gl": "jp", "hl": "ja",
-                    "imgSize": "xlarge"})
-                for it in r.json().get("items", []):
-                    im = it.get("image", {})
-                    out.append({"url": it["link"], "w": im.get("width", 0), "h": im.get("height", 0),
-                                "title": it.get("title", ""), "page": im.get("contextLink", "")})
-        except Exception:
-            pass
-    if sum(is_16_9(x["w"], x["h"]) for x in out) < 6:
-        from ddgs import DDGS
-        try:
-            for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide",
-                                    max_results=n):
-                out.append({"url": it.get("image"), "w": int(it.get("width") or 0),
-                            "h": int(it.get("height") or 0), "title": it.get("title", ""),
-                            "page": it.get("url", "")})
-        except Exception:
-            pass
+def search_images(query: str, log=None) -> list[dict]:
+    from .image_sources import search_all
+    sources = load_settings().get("image_sources") or ["duckduckgo", "bing", "yahoo"]
+    out = search_all(query, sources, log)
 
     seen, uniq = set(), []
     for x in out:
@@ -58,8 +37,8 @@ def search_images(query: str, n: int = 80) -> list[dict]:
         if x["url"] and x["url"] not in seen and (not x["w"] or is_16_9(x["w"], x["h"])):
             seen.add(x["url"])
             uniq.append(x)
-    # ưu tiên ảnh có kích thước rõ ràng và lớn
-    return sorted(uniq, key=lambda x: (not x["w"], -min(x["w"] or 0, 2560)))
+    # ưu tiên ảnh đã biết chắc là 16:9 (giữ thứ tự xen kẽ giữa các nguồn)
+    return sorted(uniq, key=lambda x: not x["w"])
 
 
 def download_image(url: str, dest: Path) -> bool:
@@ -85,26 +64,63 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None)
     q = query or scene.get("image_query") or P.scene_plain_text(scene)
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
-        for f in d.glob("c*.jpg"):
-            f.unlink()
+        for pat in ("c*.jpg", "f*.jpg"):
+            for f in d.glob(pat):
+                f.unlink()
     d.mkdir(parents=True, exist_ok=True)
     cands = []
-    for res in search_images(q):
+    k = n_images_for(P.scene_est_sec(scene))
+    want = max(N_CANDIDATES, k + 2)
+    tried = 0
+    for res in search_images(q, log):
         if res["url"] in used:
             continue
+        tried += 1
+        if tried > 40:
+            break
         f = d / f"c{len(cands) + 1}.jpg"
         if download_image(res["url"], f):
             cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
-                          "page": res.get("page", "")})
+                          "page": res.get("page", ""), "src": res.get("src", "")})
             used.add(res["url"])
-        if len(cands) >= N_CANDIDATES:
+        if len(cands) >= want:
             break
+    if len(cands) < k + 2:
+        # Thiếu ảnh 16:9 → chụp khung hình nét từ video liên quan (luôn đúng 16:9)
+        try:
+            cands += stills_from_video(pid, scene, k + 2 - len(cands) + 2, log)
+        except Exception as e:  # noqa: BLE001
+            log(f"    không lấy được ảnh từ video: {str(e)[:100]}")
     if not cands:
         raise RuntimeError(f"Không tìm được ảnh 16:9 cho “{q}” – thử từ khóa khác")
-    k = n_images_for(P.scene_est_sec(scene))
     scene["candidates"] = cands
     scene["items"] = cands[:k]
     log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh")
+
+
+def stills_from_video(pid: str, scene: dict, count: int, log) -> list[dict]:
+    q = scene.get("image_query") or scene.get("video_query") or P.scene_plain_text(scene)
+    sources = P.pdir(pid) / "sources"
+    sources.mkdir(exist_ok=True)
+    d = P.pdir(pid) / "media" / scene["id"]
+    log(f"    ảnh 16:9 chưa đủ → chụp khung hình từ video YouTube “{q}”")
+    for r in search_videos(q, 5)[:2]:
+        try:
+            v = download_video(r["url"], sources, log)
+        except Exception:
+            continue
+        w, h = HL.video_size(v)
+        if not is_16_9(w, h):
+            continue
+        out = []
+        for i, t in enumerate(HL.best_stills(HL.analyze(v), count)):
+            f = HL.frame_at(v, t, d / f"f{len(out) + 1}_{int(t)}.jpg", width=1920)
+            if f.exists():
+                out.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}",
+                            "url": f"{r['url']}&t={int(t)}", "page": r["url"], "src": "video-frame"})
+        if out:
+            return out
+    return []
 
 
 # ---------------------------------------------------------------- VIDEO

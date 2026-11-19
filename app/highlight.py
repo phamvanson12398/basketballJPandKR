@@ -108,6 +108,40 @@ def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = Non
     return chosen
 
 
+def video_size(path: Path) -> tuple[int, int]:
+    r = subprocess.run([ffprobe_bin(), "-v", "error", "-select_streams", "v:0", "-show_entries",
+                        "stream=width,height", "-of", "csv=p=0", str(path)], capture_output=True, text=True)
+    try:
+        w, h = r.stdout.strip().split(",")[:2]
+        return int(w), int(h)
+    except Exception:
+        return 0, 0
+
+
+def best_stills(an: dict, count: int, min_gap: float = 6.0) -> list[float]:
+    """Chọn các thời điểm có khung hình NÉT và ĐỨNG YÊN (không nhòe) để làm ảnh."""
+    sps, n = an["sps"], an["n"]
+    motion, sharp = np.array(an["motion"]), np.array(an["sharp"])
+    cuts, bright = np.array(an["cuts"]), np.array(an["bright"])
+    score = _z(np.log1p(sharp)) - 0.8 * _z(motion)
+    near_cut = np.convolve(cuts, np.ones(2 * sps + 1), mode="same") > 0   # tránh ±1s quanh cú chuyển cảnh
+    score[near_cut] -= 5
+    score[(bright < 30) | (bright > 230)] -= 5
+    head, tail = int(min(8 * sps, n * 0.05)), int(min(15 * sps, n * 0.08))
+    score[:head] -= 10
+    if tail:
+        score[-tail:] -= 10
+    picks: list[int] = []
+    for i in np.argsort(-score):
+        if score[i] < -4:
+            break
+        if all(abs(i - j) >= min_gap * sps for j in picks):
+            picks.append(int(i))
+        if len(picks) >= count:
+            break
+    return [round(i / sps, 2) for i in sorted(picks)]
+
+
 def frame_at(video: Path, t: float, out: Path, width: int = 480) -> Path:
     subprocess.run([ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(video),
                     "-frames:v", "1", "-vf", f"scale={width}:-2", str(out)], check=False)

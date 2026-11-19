@@ -142,8 +142,13 @@
   <div id="settings" class="hidden card">
     <h3>Cài đặt</h3>
     <label>Model Claude (để trống = mặc định của Claude CLI, VD: opus, sonnet)</label><input id="sModel">
-    <label>Google API key (tùy chọn, để tìm ảnh qua Google; không có thì dùng DuckDuckGo)</label><input id="sGKey">
-    <label>Google Search Engine ID (cx)</label><input id="sGCx">
+    <label>Nguồn tìm ảnh (miễn phí, không cần key)</label>
+    <div class="srcs">
+      <label><input type="checkbox" class="src" value="duckduckgo"> DuckDuckGo</label>
+      <label><input type="checkbox" class="src" value="bing"> Bing</label>
+      <label><input type="checkbox" class="src" value="yahoo"> Yahoo! JAPAN</label>
+    </div>
+    <p class="hint">Nếu vẫn thiếu ảnh 16:9, tool tự chụp khung hình nét nhất từ video YouTube liên quan.</p>
     <label>Bộ mã hóa video</label>
     <select id="sEnc"><option value="auto">Tự động (ưu tiên card NVIDIA)</option><option value="h264_nvenc">NVIDIA NVENC</option><option value="libx264">CPU (libx264)</option></select>
     <label>Cỡ chữ sub</label><input id="sSize" type="number">

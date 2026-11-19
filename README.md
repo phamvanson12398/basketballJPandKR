@@ -56,8 +56,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ### Bước 3 – Ảnh & video
 - Bấm **🔎 Tự tìm…**. Tool sẽ:
-  - Tìm ảnh (DuckDuckGo, hoặc Google nếu bạn nhập key trong Cài đặt). **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
+  - Tìm ảnh **miễn phí, không cần key** từ DuckDuckGo + Bing + Yahoo! JAPAN. **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
     không cắt, không làm mờ. Mỗi ảnh hiện 4–5 giây.
+  - Nếu vẫn thiếu ảnh 16:9, tool tự chụp **khung hình nét nhất** từ video YouTube liên quan (luôn đúng 16:9).
   - Tìm video trên YouTube, tải về, tự chấm điểm **chuyển động + tiếng khán giả + độ nét**,
     nhờ Claude xem các đoạn tốt nhất rồi chọn đoạn **hợp với câu đang đọc**.
 - Click ảnh ứng viên để thêm hoặc bỏ. Với video, click khung hình để đổi sang đoạn khác.
@@ -69,7 +70,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
-- **Google API key + cx**: tìm ảnh qua Google (tùy chọn).
+- **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN (đều miễn phí).
 - **Bộ mã hóa**: mặc định tự dùng card NVIDIA (NVENC) cho nhanh.
 - **Cỡ chữ / font sub**, số bước tạo giọng (16 = nhanh, 32 = hay).
 - **Zoom nhẹ ảnh**: mặc định tắt (bật thì ảnh sẽ bị che mất một chút mép).
@@ -79,7 +80,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 |---|---|
 | “Không thấy GPU” | Cập nhật driver NVIDIA. Nếu card đời cũ (GTX 10xx), sửa `cu128` thành `cu126` trong `install.bat` rồi cài lại |
 | “Không tìm thấy Claude CLI” | Làm lại bước 3 phần cài đặt, rồi mở lại `run.bat` |
-| Không tìm được ảnh 16:9 | Đổi từ khóa rộng hơn (VD: chỉ tên cầu thủ + đội), hoặc nhập Google API key trong Cài đặt để có thêm nguồn |
+| Không tìm được ảnh 16:9 | Đổi từ khóa rộng hơn (VD: chỉ tên cầu thủ + đội), tool cũng sẽ tự chụp ảnh từ video YouTube |
 | Không tìm được video | Sửa từ khóa ngắn gọn hơn, hoặc dán link trực tiếp. Có thể chạy `.venv\Scripts\pip install -U yt-dlp` để cập nhật |
 | Đọc sai tên người | Sửa ô “Câu để đọc” thành hiragana rồi bấm Đọc lại |
 

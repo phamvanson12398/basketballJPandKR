@@ -83,19 +83,12 @@ def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
 
 
 # ------------------------------------------------------------------ video
-def video_size(path: Path) -> tuple[int, int]:
-    r = subprocess.run([ffprobe_bin(), "-v", "error", "-select_streams", "v:0", "-show_entries",
-                        "stream=width,height", "-of", "csv=p=0", str(path)], capture_output=True, text=True)
-    try:
-        w, h = r.stdout.strip().split(",")[:2]
-        return int(w), int(h)
-    except Exception:
-        return 1920, 1080
-
-
 def video_part(src: Path, start: float, dur: float, out: Path) -> None:
     n = max(2, round(dur * FPS))
+    from .highlight import video_size
     w, h = video_size(src)
+    if not w:
+        w, h = 1920, 1080
     box = f"{MEDIA_W}:{MEDIA_H}"
     if w / max(h, 1) >= (MEDIA_W / MEDIA_H) * 0.8:
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
