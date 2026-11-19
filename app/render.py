@@ -15,7 +15,7 @@ from PIL import Image, ImageFilter
 
 from . import project as P
 from .config import (FONTS, FPS, H, MEDIA_H, MEDIA_W, MEDIA_Y, ROOT, SUB_BOTTOM_TOP_Y,
-                     SUB_TOP_BOTTOM_Y, W, ffmpeg_bin, ffprobe_bin, load_settings, BGM)
+                     SUB_TOP_BOTTOM_Y, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin, load_settings, BGM)
 from .media import n_images_for
 
 ZOOM_SCALE = 2  # ảnh chuẩn bị ở 2x để zoom mượt
@@ -137,7 +137,7 @@ def ass_escape(s: str) -> str:
     return s.replace("\\", "＼").replace("{", "｛").replace("}", "｝").replace("\n", "\\N")
 
 
-def auto_wrap(chunk: str, maxlen: int = 10) -> str:
+def auto_wrap(chunk: str, maxlen: int = 11) -> str:
     if "\n" in chunk or len(chunk) <= maxlen:
         return chunk
     lines, cur = [], ""
@@ -156,7 +156,8 @@ def auto_wrap(chunk: str, maxlen: int = 10) -> str:
 
 def build_ass(scenes: list[dict], starts: list[float], out: Path) -> None:
     st = load_settings()
-    font, size = st.get("subtitle_font"), int(st.get("subtitle_size", 80))
+    font, size = st.get("subtitle_font"), int(st.get("subtitle_size", 124))
+    lh = size * SUB_LINE_SPACING
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -190,11 +191,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             a0 = bounds[i][0]
             last = min(i + 1, len(chunks) - 1)
             a1 = bounds[last][1] if last < len(chunks) - 1 else end_scene
-            ev.append(f"Dialogue: 0,{ass_time(a0)},{ass_time(a1)},Top,,0,0,0,,"
-                      f"{{\\pos({W // 2},{SUB_TOP_BOTTOM_Y})}}{ass_escape(chunks[i])}")
+            # mỗi dòng là 1 sự kiện riêng để tự kiểm soát khoảng cách dòng
+            lines = chunks[i].split("\n")
+            for k, line in enumerate(lines):
+                y = SUB_TOP_BOTTOM_Y - (len(lines) - 1 - k) * lh
+                ev.append(f"Dialogue: 0,{ass_time(a0)},{ass_time(a1)},Top,,0,0,0,,"
+                          f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
             if i + 1 < len(chunks):
-                ev.append(f"Dialogue: 0,{ass_time(bounds[i + 1][0])},{ass_time(a1)},Bottom,,0,0,0,,"
-                          f"{{\\pos({W // 2},{SUB_BOTTOM_TOP_Y})}}{ass_escape(chunks[i + 1])}")
+                for k, line in enumerate(chunks[i + 1].split("\n")):
+                    y = SUB_BOTTOM_TOP_Y + k * lh
+                    ev.append(f"Dialogue: 0,{ass_time(bounds[i + 1][0])},{ass_time(a1)},Bottom,,0,0,0,,"
+                              f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
     out.write_text(head + "\n".join(ev) + "\n", encoding="utf-8")
 
 

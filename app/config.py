@@ -20,8 +20,9 @@ W, H = 1080, 1920
 FPS = 30
 MEDIA_Y = 480          # mép trên của khung ảnh/video
 MEDIA_W, MEDIA_H = 1080, 800
-SUB_TOP_BOTTOM_Y = 455   # chân của dòng sub phía trên khung
-SUB_BOTTOM_TOP_Y = 1310  # đỉnh của dòng sub phía dưới khung
+SUB_TOP_BOTTOM_Y = 484   # chân của dòng sub phía trên khung
+SUB_BOTTOM_TOP_Y = 1262  # đỉnh của dòng sub phía dưới khung
+SUB_LINE_SPACING = 0.76  # khoảng cách dòng (x cỡ chữ), sát nhau giống mẫu
 
 # Tốc độ đọc tiếng Nhật ước tính (ký tự / giây) để ước lượng thời lượng
 JA_CHARS_PER_SEC = 6.5
@@ -35,7 +36,7 @@ DEFAULT_SETTINGS = {
     "video_encoder": "auto",     # auto | libx264 | h264_nvenc
     "tts_num_step": 32,
     "subtitle_font": "Noto Sans CJK JP Black",
-    "subtitle_size": 80,
+    "subtitle_size": 124,
     "use_claude_for_highlight": True,
 }
 
