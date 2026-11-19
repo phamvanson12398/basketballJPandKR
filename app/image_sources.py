@@ -23,8 +23,10 @@ def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]
     from ddgs import DDGS
     out = []
     tl = {"day": "d", "week": "w", "month": "m"}.get(recent or "")  # mã ddgs: d / w / m / y
+    # backend="duckduckgo": chế độ "auto" của ddgs gọi kèm engine Bing nội bộ, mà engine đó cần mã
+    # thời gian khác ("week" thay vì "w") → luôn lỗi. Bing đã có nguồn riêng ở dưới.
     for it in DDGS().images(query, region="jp-jp", safesearch="off", layout="Wide", timelimit=tl,
-                            max_results=n):
+                            backend="duckduckgo", max_results=n):
         out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
                     "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"})
     return out
