@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+projects/
+library/voices/*
+library/bgm/*
+!library/voices/.gitkeep
+!library/bgm/.gitkeep
+fonts/*.otf
+fonts/*.ttf
+settings.json

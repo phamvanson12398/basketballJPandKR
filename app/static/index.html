@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shorts Maker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside id="side">
+  <h1>🎬 Shorts Maker</h1>
+  <div class="card">
+    <h3>Tạo video mới</h3>
+    <label>Title (nếu có)</label>
+    <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
+    <label>Chủ đề / ghi chú cho AI (không bắt buộc)</label>
+    <textarea id="newTopic" rows="3" placeholder="VD: kể chuyện Kawamura Yuki được Grizzlies ký hợp đồng..."></textarea>
+    <label>Thời lượng video</label>
+    <select id="newDur">
+      <option value="30">30 giây</option><option value="45">45 giây</option>
+      <option value="60" selected>60 giây</option><option value="90">90 giây</option>
+      <option value="120">2 phút</option><option value="180">3 phút</option>
+      <option value="custom">Tự nhập...</option>
+    </select>
+    <input id="newDurCustom" type="number" min="10" max="600" placeholder="số giây" class="hidden">
+    <button class="primary" id="btnCreate">＋ Tạo &amp; viết content</button>
+  </div>
+  <h3>Video đã làm</h3>
+  <ul id="projList"></ul>
+  <div class="foot"><a href="#" id="lnkSettings">⚙️ Cài đặt</a> · <span id="checkBadge"></span></div>
+</aside>
+
+<main id="main">
+  <div id="empty" class="empty">
+    <h2>Chào bạn 👋</h2>
+    <p>Nhập title hoặc chủ đề ở bên trái và chọn thời lượng để bắt đầu.</p>
+    <ol>
+      <li>AI viết content → <b>bạn duyệt</b></li>
+      <li>OmniVoice đọc content (giọng mẫu / mô tả giọng / tự động)</li>
+      <li>Tự tìm ảnh (70%) + video (30%) → bạn xem lại, đổi được</li>
+      <li>Chọn nhạc nền → xuất video</li>
+    </ol>
+  </div>
+
+  <div id="proj" class="hidden">
+    <header class="phead">
+      <input id="pTitle" class="title-input" placeholder="Title">
+      <span id="pMeta" class="muted"></span>
+      <button id="btnDelete" class="ghost danger">Xóa</button>
+    </header>
+    <nav class="tabs">
+      <button data-tab="script" class="active">1. Content</button>
+      <button data-tab="voice">2. Giọng đọc</button>
+      <button data-tab="media">3. Ảnh &amp; video</button>
+      <button data-tab="render">4. Xuất video</button>
+    </nav>
+
+    <div id="jobBox" class="job hidden">
+      <div class="bar"><div id="jobBar"></div></div>
+      <pre id="jobLog"></pre>
+    </div>
+
+    <!-- 1. CONTENT -->
+    <section data-pane="script">
+      <div class="toolbar">
+        <button class="primary" id="btnGen">✍️ Viết content</button>
+        <input id="feedback" placeholder="Góp ý để AI viết lại (VD: hook mạnh hơn, thêm chi tiết...)">
+        <button id="btnRegen">🔁 Viết lại theo góp ý</button>
+      </div>
+      <div id="ratio" class="ratio"></div>
+      <p class="hint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
+        Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung hình, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).</p>
+      <div id="scenes"></div>
+      <div class="toolbar sticky">
+        <button id="btnAddScene">＋ Thêm cảnh</button>
+        <button id="btnRebalance">⚖️ Tự chia lại 70% ảnh / 30% video</button>
+        <span class="grow"></span>
+        <button id="btnSaveScript">💾 Lưu</button>
+        <button class="primary" id="btnApprove">✅ Duyệt content</button>
+      </div>
+    </section>
+
+    <!-- 2. VOICE -->
+    <section data-pane="voice" class="hidden">
+      <div class="card">
+        <h3>Chọn kiểu giọng</h3>
+        <label class="radio"><input type="radio" name="vmode" value="clone"> <b>Giọng mẫu</b>: nhân bản giọng từ file bạn upload (ổn định nhất)</label>
+        <div class="sub" data-vmode="clone">
+          <select id="voiceSel"></select> <audio id="voicePrev" controls></audio>
+          <details><summary>＋ Upload giọng mẫu mới</summary>
+            <div class="grid2">
+              <div><label>Tên giọng</label><input id="vName" placeholder="VD: nam_tram"></div>
+              <div><label>File giọng (3–10 giây, tiếng Nhật, rõ, không nhạc nền)</label><input id="vFile" type="file" accept="audio/*,video/*"></div>
+            </div>
+            <label>Lời trong file giọng (không bắt buộc, để trống thì tool tự nghe)</label>
+            <input id="vText">
+            <button id="btnVoiceUp">Upload</button>
+          </details>
+        </div>
+        <label class="radio"><input type="radio" name="vmode" value="design"> <b>Mô tả giọng</b>: tự chọn đặc điểm giọng</label>
+        <div class="sub" data-vmode="design">
+          <select id="dGender"></select><select id="dAge"></select><select id="dPitch"></select><select id="dStyle"></select>
+        </div>
+        <label class="radio"><input type="radio" name="vmode" value="auto"> <b>Ủy quyền cho tool</b>: AI tự chọn giọng hợp với chủ đề</label>
+        <div class="sub" data-vmode="auto"><span class="muted">AI đề xuất: </span><b id="autoInstruct">—</b></div>
+        <p class="hint">Mô tả giọng / Ủy quyền: tool tạo giọng ở cảnh đầu rồi dùng đúng giọng đó cho cả video.
+          Nếu nghe chưa hay, bấm đọc lại để ra giọng khác.</p>
+        <label>Tốc độ đọc: <b id="speedVal">1.0</b>x</label>
+        <input id="speed" type="range" min="0.8" max="1.4" step="0.05" value="1.0">
+        <div class="toolbar">
+          <button class="primary" id="btnTTS">🎙️ Đọc toàn bộ</button>
+          <button id="btnTTSStale">Chỉ đọc lại cảnh đã sửa</button>
+        </div>
+      </div>
+      <div id="voiceScenes"></div>
+    </section>
+
+    <!-- 3. MEDIA -->
+    <section data-pane="media" class="hidden">
+      <div class="toolbar">
+        <button class="primary" id="btnMedia">🔎 Tự tìm ảnh &amp; video cho tất cả cảnh</button>
+        <span class="muted">Click vào ảnh ứng viên để thêm/bỏ. Với video, click để chọn đoạn khác.</span>
+      </div>
+      <div id="ratio2" class="ratio"></div>
+      <div id="mediaScenes"></div>
+    </section>
+
+    <!-- 4. RENDER -->
+    <section data-pane="render" class="hidden">
+      <div class="card">
+        <h3>Nhạc nền</h3>
+        <select id="bgmSel"></select> <audio id="bgmPrev" controls></audio>
+        <div><label>Upload nhạc nền mới</label><input id="bgmFile" type="file" accept="audio/*"></div>
+        <label>Âm lượng nhạc nền: <b id="bgmVolVal">15</b>%</label>
+        <input id="bgmVol" type="range" min="0" max="60" step="1" value="15">
+        <div class="toolbar"><button class="primary" id="btnRender">🎬 Xuất video</button></div>
+      </div>
+      <div id="output"></div>
+    </section>
+  </div>
+
+  <div id="settings" class="hidden card">
+    <h3>Cài đặt</h3>
+    <label>Model Claude (để trống = mặc định của Claude CLI, VD: opus, sonnet)</label><input id="sModel">
+    <label>Google API key (tùy chọn, để tìm ảnh qua Google; không có thì dùng DuckDuckGo)</label><input id="sGKey">
+    <label>Google Search Engine ID (cx)</label><input id="sGCx">
+    <label>Bộ mã hóa video</label>
+    <select id="sEnc"><option value="auto">Tự động (ưu tiên card NVIDIA)</option><option value="h264_nvenc">NVIDIA NVENC</option><option value="libx264">CPU (libx264)</option></select>
+    <label>Cỡ chữ sub</label><input id="sSize" type="number">
+    <label>Font sub</label><input id="sFont">
+    <label><input type="checkbox" id="sHL"> Nhờ Claude xem và chọn đoạn video hợp nội dung (chậm hơn, chuẩn hơn)</label>
+    <label>Số bước tạo giọng OmniVoice (32 = chất lượng, 16 = nhanh)</label><input id="sSteps" type="number">
+    <div class="toolbar"><button class="primary" id="btnSaveSettings">Lưu</button><button id="btnCloseSettings">Đóng</button></div>
+    <h3>Kiểm tra hệ thống</h3><pre id="checkOut"></pre>
+  </div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

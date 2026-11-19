@@ -1,0 +1,11 @@
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+ddgs>=9.0
+yt-dlp>=2025.1.1
+opencv-python-headless>=4.9
+numpy
+pillow>=10
+requests>=2.31
+soundfile>=0.12
+omnivoice>=0.2.1
