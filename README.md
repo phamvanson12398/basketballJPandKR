@@ -12,6 +12,7 @@ Nhập title + thời lượng
   → OmniVoice đọc content (giọng mẫu / mô tả giọng / ủy quyền cho tool)
   → Tự tìm ảnh 16:9 (70%, mỗi ảnh 4–5 giây) + video (30%, tự cắt đoạn hay)  → BẠN XEM LẠI / đổi
   → Chọn nhạc nền → Xuất video 1080x1920
+  → Tạo title + hashtag TikTok → copy đi đăng
 ```
 
 ---
@@ -75,6 +76,11 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 ### Bước 4 – Xuất video
 - Upload nhạc nền (được lưu lại để dùng cho video sau), chỉnh âm lượng, rồi bấm **🎬 Xuất video**.
 - Video nằm ở `projects\<mã video>\render\<title>.mp4`, hoặc tải trực tiếp trên trang.
+
+### Bước 5 – Đăng TikTok
+- Bấm **✨ Tạo title & hashtag**. Claude đọc content của video rồi đưa ra **5 title** (mỗi cái một kiểu: câu hỏi, con số,
+  sự thật bất ngờ…, có dịch tiếng Việt) và **10–12 hashtag** chia nhóm: rộng / chủ đề / cụ thể / đề xuất (#おすすめ #fyp).
+- Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.

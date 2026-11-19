@@ -253,3 +253,67 @@ def generate(pid: str, log, feedback: str = "") -> None:
     info = P.ratio_info(scenes)
     log(f"Đã viết {len(scenes)} cảnh, ước tính {info['total']}s "
         f"(ảnh {info['image_pct']}% / video {info['video_pct']}%).", 1.0)
+
+
+# ---------------------------------------------------------------- TIKTOK
+TIKTOK_PROMPT = """あなたは日本のTikTok運用のプロです。次のショート動画を投稿するための
+キャプション（タイトル）とハッシュタグを考えてください。視聴者は日本人です。
+
+## 動画情報
+- ジャンル: {genre}
+- 動画タイトル: {title}
+- ナレーション全文:
+{script}
+
+## キャプション（タイトル）のルール
+- 5案。それぞれ違う切り口にする（例: 疑問形 / 数字 / 意外な事実 / 感情に訴える / ストレートな要約）。
+- 1案は全角40文字以内が目安。最初の15文字で続きが気になるようにする。
+- 必ず標準語。誇張しすぎ・嘘・誤解を招く表現・誹謗中傷はNG。
+  ニュースの場合は事実に忠実に、落ち着いたトーンで。
+- 絵文字は0〜2個まで。
+- 各案にベトナム語訳（vi）を付ける。
+
+## ハッシュタグのルール
+- 合計10〜12個。# を付けた形で出力。重複なし、スペースなし。
+- big: ジャンル全体の大きなタグ（例: #バスケ #NBA #ニュース #偉人）3〜4個
+- mid: テーマ・チーム・出来事のタグ 3〜4個
+- niche: 人物名・固有名詞などの具体的なタグ 2〜3個
+- discover: 日本のTikTokでおすすめに載りやすい定番タグ 1〜2個（例: #おすすめ #fyp）
+- 各タグにベトナム語の意味（vi）を付ける。
+
+## 出力（JSONのみ）
+```json
+{{
+  "captions": [{{"ja": "キャプション", "vi": "Bản dịch"}}],
+  "hashtags": [{{"tag": "#タグ", "group": "big", "vi": "nghĩa"}}]
+}}
+```
+"""
+
+GENRE_NAMES_JA = {"sports": "スポーツ", "biography": "有名人の人生ストーリー", "news": "ニュース",
+                  "general": "雑学・解説"}
+
+
+def gen_tiktok(pid: str, log) -> None:
+    p = P.load(pid)
+    if not p.get("scenes"):
+        raise RuntimeError("Chưa có content.")
+    script = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
+    log("Đang nhờ Claude viết title và hashtag TikTok...", 0.2)
+    text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ"),
+                                    title=p.get("title", ""), script=script), timeout=300)
+    data = extract_json(text)
+    caps = [c for c in data.get("captions", []) if isinstance(c, dict) and c.get("ja")]
+    tags = []
+    for t in data.get("hashtags", []):
+        if isinstance(t, dict) and t.get("tag"):
+            tag = "#" + str(t["tag"]).strip().lstrip("#").replace(" ", "")
+            if tag != "#" and tag not in [x["tag"] for x in tags]:
+                tags.append({"tag": tag, "group": t.get("group", ""), "vi": t.get("vi", ""), "on": True})
+    if not caps:
+        raise RuntimeError("Claude không trả về title, thử lại nhé.")
+
+    def apply(pp):
+        pp["tiktok"] = {"captions": caps, "hashtags": tags, "caption": caps[0]["ja"]}
+    P.update(pid, apply)
+    log(f"Đã có {len(caps)} title và {len(tags)} hashtag.", 1.0)

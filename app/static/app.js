@@ -57,12 +57,14 @@ $$('.tabs button').forEach(b => b.onclick = () => {
 
 function renderAll() {
   const tabsDone = {script: P.script_approved, voice: P.scenes.length && P.scenes.every(s => s.audio && !s.audio_stale),
-    media: P.scenes.length && P.scenes.every(s => s.items?.length), render: !!P.output};
+    media: P.scenes.length && P.scenes.every(s => s.items?.length), render: !!P.output,
+    tiktok: !!P.tiktok?.caption};
   $$('.tabs button').forEach(b => b.classList.toggle('done', !!tabsDone[b.dataset.tab]));
   if (tab === 'script') renderScript();
   if (tab === 'voice') renderVoice();
   if (tab === 'media') renderMedia();
   if (tab === 'render') renderRender();
+  if (tab === 'tiktok') renderTiktok();
 }
 
 function ratioBar(el) {
@@ -309,6 +311,50 @@ async function loadBgm() {
   $('#bgmSel').innerHTML = '<option value="">— không dùng nhạc nền —</option>' + list.map(x => `<option ${x === P.bgm?.file ? 'selected' : ''}>${esc(x)}</option>`).join('');
   $('#bgmPrev').src = P.bgm?.file ? `/library/bgm/${encodeURIComponent(P.bgm.file)}` : '';
 }
+// ------------------------------------------------------------- 5. TIKTOK
+function tkTagsText() { return (P.tiktok?.hashtags || []).filter(t => t.on).map(t => t.tag).join(' '); }
+function tkCompose() {
+  const t = P.tiktok || {};
+  $('#tkFinal').value = (t.caption || '') + '\n\n' + tkTagsText();
+  tkCount();
+}
+function tkCount() {
+  const n = [...$('#tkFinal').value].length, tags = (P.tiktok?.hashtags || []).filter(t => t.on).length;
+  $('#tkCount').textContent = `${n} ký tự · ${tags} hashtag (TikTok cho tối đa 4000 ký tự)`;
+}
+function renderTiktok() {
+  const t = P.tiktok;
+  $('#btnTiktok').textContent = t ? '🔁 Tạo bộ khác' : '✨ Tạo title & hashtag';
+  $('#tkBody').classList.toggle('hidden', !t);
+  if (!t) return;
+  $('#tkCaps').innerHTML = (t.captions || []).map((c, i) => `<div class="cap ${c.ja === t.caption ? 'sel' : ''}" data-i="${i}">
+      <div><div class="ja">${esc(c.ja)}</div><div class="vi">${esc(c.vi || '')}</div></div></div>`).join('');
+  $$('#tkCaps .cap').forEach(el => el.onclick = () => { t.caption = t.captions[+el.dataset.i].ja; saveTiktok(); renderTiktok(); });
+  const groupVi = {big: 'rộng', mid: 'chủ đề', niche: 'cụ thể', discover: 'đề xuất'};
+  $('#tkTags').innerHTML = (t.hashtags || []).map((h, i) => `<span class="chip ${h.on ? 'on' : 'off'} ${h.group || ''}" data-i="${i}"
+      title="${esc((groupVi[h.group] || '') + (h.vi ? ' · ' + h.vi : ''))}">${esc(h.tag)}<small>${esc(h.vi || '')}</small></span>`).join('');
+  $$('#tkTags .chip').forEach(el => el.onclick = () => { const h = t.hashtags[+el.dataset.i]; h.on = !h.on; saveTiktok(); renderTiktok(); });
+  tkCompose();
+}
+async function saveTiktok() { await api(`/api/projects/${P.id}`, {method: 'PUT', json: {tiktok: P.tiktok}}); }
+$('#btnTiktok').onclick = () => runJob(`/api/projects/${P.id}/tiktok`, {});
+$('#btnAddTag').onclick = () => {
+  const v = $('#tkNewTag').value.trim().replace(/\s+/g, '');
+  if (!v) return;
+  const tag = '#' + v.replace(/^#+/, '');
+  if (!P.tiktok.hashtags.some(h => h.tag === tag)) P.tiktok.hashtags.push({tag, group: '', vi: '', on: true});
+  $('#tkNewTag').value = ''; saveTiktok(); renderTiktok();
+};
+$('#tkFinal').oninput = tkCount;
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  const old = btn.textContent; btn.textContent = '✅ Đã copy'; setTimeout(() => btn.textContent = old, 1200);
+}
+$('#btnCopyAll').onclick = e => copyText($('#tkFinal').value, e.target);
+$('#btnCopyCap').onclick = e => copyText($('#tkFinal').value.split('\n\n')[0], e.target);
+$('#btnCopyTags').onclick = e => copyText(tkTagsText(), e.target);
+
 function renderRender() {
   loadBgm();
   const vol = Math.round((P.bgm?.volume ?? 0.15) * 100);
@@ -359,6 +405,7 @@ function startPoll() {
       clearInterval(pollTimer);
       await openProject(id, true);
       if (j.status === 'done' && j.name === 'script') setTab('script');
+      if (j.status === 'done' && j.name === 'tiktok') setTab('tiktok');
     }
   }, 1500);
 }

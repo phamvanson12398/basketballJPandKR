@@ -54,7 +54,7 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -139,6 +139,15 @@ def gen_media(pid: str, data: dict = Body(default={})):
     try:
         return jobs.start(pid, "media", M.fill_all, only=data.get("only"),
                           query=data.get("query") or None, url=data.get("url") or None)
+    except RuntimeError as e:
+        _err(e)
+
+
+@app.post("/api/projects/{pid}/tiktok")
+def gen_tiktok(pid: str):
+    from .script_gen import gen_tiktok as fn
+    try:
+        return jobs.start(pid, "tiktok", fn)
     except RuntimeError as e:
         _err(e)
 

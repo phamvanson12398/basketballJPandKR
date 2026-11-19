@@ -76,6 +76,7 @@
       <button data-tab="voice">2. Giọng đọc</button>
       <button data-tab="media">3. Ảnh &amp; video</button>
       <button data-tab="render">4. Xuất video</button>
+      <button data-tab="tiktok">5. Đăng TikTok</button>
     </nav>
 
     <div id="jobBox" class="job hidden">
@@ -167,6 +168,35 @@
         <div class="toolbar"><button class="primary" id="btnRender">🎬 Xuất video</button></div>
       </div>
       <div id="output"></div>
+    </section>
+
+    <!-- 5. TIKTOK -->
+    <section data-pane="tiktok" class="hidden">
+      <div class="toolbar">
+        <button class="primary" id="btnTiktok">✨ Tạo title &amp; hashtag</button>
+        <span class="muted">Claude đọc content của video để viết. Bấm lại để ra bộ khác.</span>
+      </div>
+      <div id="tkBody" class="hidden">
+        <div class="card">
+          <h3>1. Chọn title (bấm để chọn, sửa được ở ô bên dưới)</h3>
+          <div id="tkCaps"></div>
+        </div>
+        <div class="card">
+          <h3>2. Hashtag (bấm để bật / tắt)</h3>
+          <div id="tkTags" class="tags"></div>
+          <div class="toolbar"><input id="tkNewTag" placeholder="Thêm hashtag, VD: #バスケ"><button id="btnAddTag">＋ Thêm</button></div>
+        </div>
+        <div class="card">
+          <h3>3. Nội dung đăng TikTok</h3>
+          <textarea id="tkFinal" rows="5"></textarea>
+          <div class="toolbar">
+            <button class="primary" id="btnCopyAll">📋 Copy tất cả</button>
+            <button id="btnCopyCap">Copy title</button>
+            <button id="btnCopyTags">Copy hashtag</button>
+            <span class="grow"></span><span id="tkCount" class="muted"></span>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 

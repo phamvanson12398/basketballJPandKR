@@ -90,3 +90,11 @@ code{background:#eef2ff;padding:0 4px;border-radius:4px}
 .sources a{display:block;color:var(--pri);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srcs{display:flex;gap:16px}.srcs label{display:flex;gap:6px;align-items:center;color:var(--fg);font-size:14px}.srcs input{width:auto}
 #side select{width:100%}
+.cap{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer}
+.cap:hover{border-color:#93c5fd}.cap.sel{border-color:var(--ok);background:#f0fdf4}
+.cap .ja{font-size:15px;font-weight:600}.cap .vi{font-size:12.5px;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:4px 10px;border-radius:99px;border:1px solid var(--line);cursor:pointer;font-size:13.5px;background:#fff;user-select:none}
+.chip small{color:var(--muted);margin-left:4px}
+.chip.on{background:#eff6ff;border-color:#93c5fd}.chip.off{opacity:.45;text-decoration:line-through}
+.chip.big{border-left:4px solid #2563eb}.chip.mid{border-left:4px solid #7c3aed}.chip.niche{border-left:4px solid #0891b2}.chip.discover{border-left:4px solid #f59e0b}
