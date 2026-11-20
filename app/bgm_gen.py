@@ -33,6 +33,8 @@ TRACKS = [
     ("Bóng đá - Hào hùng (tool).m4a",         "soccer",    "soccer_anthem"),
     ("Idol - J-pop sôi động (tool).m4a",      "idol",      "idol_pop"),
     ("Idol - Ballad (tool).m4a",              "idol",      "idol_ballad"),
+    ("K-pop - Dance (tool).m4a",              "kpop",      "kpop_dance"),
+    ("K-pop - Hip-hop (tool).m4a",            "kpop",      "kpop_hiphop"),
 ]
 
 
@@ -50,9 +52,10 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") in ("sumo", "soccer", "idol") and tracks_for(p["sport"]):
+    if p.get("sport") in ("sumo", "soccer", "idol", "kpop") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
-    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol")
+    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
+                                      "kpop")
                        else "sports")
     if not files:
         return ""
@@ -693,6 +696,68 @@ def idol_ballad():
             s.put("melody", piano(c[2] + 12, s.beat * 1.8, 0.4), b0)
             s.put("melody", piano(c[1] + 12, s.beat * 1.8, 0.35), b0 + 2)
     return s.mix({"piano": 1.0, "bass": 0.8, "strings": 0.9, "drums": 0.6, "hats": 0.4, "melody": 0.9}, reverb=0.45)
+
+
+def sub808(m, dur, vol=0.5):
+    """Bass 808: sine trầm trượt cao độ nhẹ, ngân dài."""
+    n = int((dur + 0.1) * SR)
+    t = np.arange(n) / SR
+    f = hz(m) * (1 + 0.5 * np.exp(-t * 40))
+    x = np.tanh(2.2 * np.sin(2 * np.pi * np.cumsum(f) / SR))
+    return vol * x * np.exp(-t * 1.2) * np.where(t < dur, 1, np.exp(-(t - dur) * 20))
+
+
+def kpop_dance():
+    """Dance-pop kiểu K-pop: kick 4/4, synth bass móc, stab hợp âm, đoạn "drop" giữa bài."""
+    s = Song(124, 48)
+    prog = ["Am", "F", "C", "G"]
+    hook = [0, 0, 3, 0, 5, 3, 0, -2]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 3)
+        b0 = bar * 4
+        sec = bar // 8
+        if sec != 3:
+            four_floor(s, bar, clap_=sec >= 1, open_hat=True)
+        for k in range(8):                       # synth bass nảy theo nốt móc
+            s.put("bass", bass(c[0] - 12 + (12 if k in (3, 6) else 0), s.beat / 2 * 0.6, cutoff=1100), b0 + k / 2)
+        if sec >= 2 and sec != 3:                # stab hợp âm
+            for k in (0.5, 1.5, 2.25, 3.5):
+                s.put("stab", sum(lead(m + 12, s.beat * 0.2, 0.035, "saw") for m in c), b0 + k)
+        if sec in (2, 4, 5):                     # giai điệu móc (hook)
+            for k, iv in enumerate(hook):
+                s.put("lead", lead(69 + iv, s.beat / 2 * 0.7, 0.07), b0 + k / 2)
+        if sec == 3:                             # break: chỉ còn pad + tiếng snare dồn
+            s.put("pad", pad(chord(prog[bar % 4], 4), s.beat * 4, 1200, 0.12), b0)
+            for k in range(4 * (1 + bar % 8 // 2)):
+                s.put("drums", snare(), b0 + k * 4 / (4 * (1 + bar % 8 // 2)), 0.5)
+    return s.mix({"drums": 1.0, "hats": 0.6, "bass": 1.0, "stab": 0.8, "lead": 0.9, "pad": 0.7}, reverb=0.2)
+
+
+def kpop_hiphop():
+    """Nhịp trap / hip-hop (girl-crush, boy group): 808, hi-hat rải 1/16 – 1/32, snare nửa nhịp."""
+    s = Song(140, 40)
+    prog = ["Dm", "A#", "Gm", "A"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 3)
+        b0 = bar * 4
+        sec = bar // 8
+        if sec >= 1:
+            for k in (0, 1.75, 2.5):
+                s.put("drums", kick(1.1), b0 + k)
+            s.put("drums", clap(), b0 + 2, 1.0)
+            s.put("drums", snare(), b0 + 2, 0.6)
+            for k in range(16):                  # hi-hat 1/16, cuối ô nhịp rải 1/32
+                s.put("hats", hat(), b0 + k / 4, 0.8 if k % 2 == 0 else 0.5)
+            if bar % 2 == 1:
+                for k in range(8):
+                    s.put("hats", hat(), b0 + 3 + k / 8, 0.4)
+        s.put("bass", sub808(c[0] - 24, s.beat * 1.6), b0)
+        s.put("bass", sub808(c[0] - 24, s.beat * 1.2), b0 + 2.5)
+        if sec >= 2:                             # giai điệu tối, nốt kéo dài
+            for k, m in enumerate([c[2] + 12, c[1] + 12, c[0] + 12, c[1] + 12]):
+                s.put("lead", lead(m, s.beat * 0.8, 0.05, "saw"), b0 + k)
+        s.put("pad", pad(chord(prog[bar % 4], 4), s.beat * 4, 1000, 0.09), b0)
+    return s.mix({"drums": 1.0, "hats": 0.6, "bass": 1.0, "lead": 0.8, "pad": 0.7}, reverb=0.2)
 
 
 # ---------------------------------------------------------------- xuất file
