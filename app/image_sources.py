@@ -21,18 +21,58 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 HEADERS = {"User-Agent": UA, "Accept-Language": "ja,en;q=0.8"}
 
 
-def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
+def _duckduckgo_direct(query: str, n: int, recent: str | None, region: str) -> list[dict]:
+    """Gọi thẳng API ảnh của DuckDuckGo bằng requests (HTTP/1.1).
+    B1: lấy mã vqd từ trang tìm kiếm.  B2: gọi i.js lấy kết quả (có lọc ảnh ngang + thời gian)."""
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": UA, "Accept-Language": "ja,ko;q=0.9,en;q=0.8"})
+    r = sess.get("https://duckduckgo.com/", params={"q": query, "iax": "images", "ia": "images"}, timeout=20)
+    r.raise_for_status()
+    m = re.search(r"vqd=[\"']?([\d-]+)", r.text)
+    if not m:
+        raise RuntimeError("không lấy được mã vqd")
+    tl = {"day": "time:Day", "week": "time:Week", "month": "time:Month"}.get(recent or "", "")
+    params = {"l": region, "o": "json", "q": query, "vqd": m.group(1), "f": f"{tl},,,,layout:Wide,", "p": "-1"}
+    headers = {"Referer": "https://duckduckgo.com/", "Accept": "application/json, text/javascript, */*; q=0.01",
+               "X-Requested-With": "XMLHttpRequest"}
+    out, url = [], "https://duckduckgo.com/i.js"
+    for _ in range(4):
+        r = sess.get(url, params=params, headers=headers, timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        for it in data.get("results", []):
+            out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
+                        "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"})
+        nxt = data.get("next")
+        if len(out) >= n or not nxt:
+            break
+        url, params = "https://duckduckgo.com/" + nxt.lstrip("/"), {"vqd": m.group(1)}
+    return out[:n]
+
+
+def _duckduckgo_ddgs(query: str, n: int, recent: str | None, region: str) -> list[dict]:
+    """Dự phòng: thư viện ddgs. backend="duckduckgo" vì chế độ "auto" gọi kèm engine Bing nội bộ
+    cần mã thời gian khác ("week" thay vì "w") → luôn lỗi."""
     from ddgs import DDGS
-    out = []
-    tl = {"day": "d", "week": "w", "month": "m"}.get(recent or "")  # mã ddgs: d / w / m / y
-    # backend="duckduckgo": chế độ "auto" của ddgs gọi kèm engine Bing nội bộ, mà engine đó cần mã
-    # thời gian khác ("week" thay vì "w") → luôn lỗi. Bing đã có nguồn riêng ở dưới.
+    tl = {"day": "d", "week": "w", "month": "m"}.get(recent or "")
+    return [{"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
+             "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"}
+            for it in DDGS().images(query, region=region, safesearch="off", layout="Wide", timelimit=tl,
+                                    backend="duckduckgo", max_results=n)]
+
+
+def duckduckgo(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
+    # Gọi trực tiếp trước. Thư viện ddgs có lỗi "malformed headers": nó luôn gửi header
+    # "Connection: keep-alive", mà khi giả lập ngẫu nhiên trúng trình duyệt dùng HTTP/2 thì header này
+    # bị cấm → lỗi. requests dùng HTTP/1.1 nên không gặp.
     region = "kr-kr" if re.search(r"[\uac00-\ud7a3]", query) else "jp-jp"
-    for it in DDGS().images(query, region=region, safesearch="off", layout="Wide", timelimit=tl,
-                            backend="duckduckgo", max_results=n):
-        out.append({"url": it.get("image"), "w": int(it.get("width") or 0), "h": int(it.get("height") or 0),
-                    "title": it.get("title", ""), "page": it.get("url", ""), "src": "duckduckgo"})
-    return out
+    try:
+        return _duckduckgo_direct(query, n, recent, region)
+    except Exception as first:  # noqa: BLE001
+        try:
+            return _duckduckgo_ddgs(query, n, recent, region)
+        except Exception as second:  # noqa: BLE001
+            raise RuntimeError(f"{first} | ddgs: {second}") from second
 
 
 def bing(query: str, n: int = 70, recent: str | None = None) -> list[dict]:
