@@ -108,13 +108,22 @@
         <label>Mục tiêu: Ảnh <b id="pImgPct">70</b>% / Video <b id="pVidPct">30</b>%</label>
         <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
         <select id="pLang" title="Ngôn ngữ video (áp dụng khi viết lại content)"></select>
+        <select id="pLayout" title="Bố cục video">
+          <option value="auto">🎨 Bố cục: tự động theo thể loại</option>
+          <option value="sports">Bố cục bóng chày (nền trắng, sub trên/dưới)</option>
+          <option value="news">Bố cục tin tức (nền navy)</option>
+          <option value="ranking">Bố cục Top (nền đen)</option>
+          <option value="biography">Bố cục tiểu sử (nền kem)</option>
+          <option value="general">Bố cục chủ đề chung (nền trắng)</option>
+        </select>
         <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
           <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
         </select>
       </div>
       <div id="ratio" class="ratio"></div>
       <div id="sources" class="sources hidden"></div>
-      <p class="hint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
+      <div id="screenBox" class="card hidden"></div>
+      <p class="hint" id="subHint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
         Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung hình, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).</p>
       <div id="scenes"></div>
       <div class="toolbar sticky">

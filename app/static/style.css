@@ -107,3 +107,8 @@ code{background:#eef2ff;padding:0 4px;border-radius:4px}
 .badge.hot{background:#fee2e2;color:#991b1b}
 #twinBtns button{margin-right:4px}
 @media (max-width:900px){.grid3{grid-template-columns:1fr}}
+#screenBox .row{display:grid;grid-template-columns:2fr 2fr 1.3fr auto;gap:8px;align-items:end;margin-bottom:6px}
+#screenBox .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#screenBox label.chk{display:flex;gap:6px;align-items:center;color:var(--fg);font-size:14px}
+#screenBox label.chk input{width:auto}
+.scene .lbl{display:grid;grid-template-columns:90px 1fr;gap:6px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}

@@ -164,6 +164,31 @@ score は話題性（1〜10）。新しい順ではなく、話題性の高い�
     return out
 
 
+# ---------------------------------------------------------------- CHỮ TRÊN MÀN HÌNH (bố cục)
+SCREEN_RULES = {
+    "news": """## 画面表示用テキスト（JSON の "screen" と各シーンに入れる）
+- screen.band: 赤い帯に出す「国名 ・ 日付」（例: 「韓国 ・ 11月19日」）。出力言語で書く。
+- screen.breaking: 24時間以内に起きた出来事なら true（「速報」マークを出す）、それ以外は false。
+- screen.stories: ニュースごとに1つ。headline（最大14文字の見出し）、subhead（最大16文字の補足）、
+  source（報道機関名、例: "SBS / 聯合ニュース"）。ダイジェストでなければ1つだけ。
+- 各シーンに "story": そのシーンが扱うニュースの番号（1から）。""",
+    "ranking": """## 画面表示用テキスト（JSON の "screen" と各シーンに入れる）
+- screen.title1: 上段の小見出し（最大12文字、例: 「日本人NBA選手」）。
+- screen.title2: 下段の大見出し（最大10文字、例: 「通算得点 TOP5」）。
+- 各シーンに "rank": そのシーンの順位（数字）。オープニング・締めのシーンは null。
+- 各シーンに "rank_label": その順位の名前＋決め手の数字（最大14文字、例: 「渡邊雄太 875得点」）。
+- 第1位は他の順位より長く、2〜3シーン使う。""",
+    "biography": """## 画面表示用テキスト（JSON の "screen" と各シーンに入れる）
+- screen.title: 上部に常に出すタイトル（最大10文字、例: 「大谷翔平の人生」）。
+- 各シーンに "year": その場面の西暦4桁（例: "2010"）。分からなければ直前のシーンと同じ。
+- 各シーンに "chapter": 人生の章（最大12文字、例: 「第2章・高校時代」）。同じ章のシーンは同じ文字列。""",
+    "general": """## 画面表示用テキスト（JSON の "screen" に入れる）
+- screen.title1: 上段（最大12文字、例: 「韓国人NBA選手は」）。
+- screen.title2: 下段の一番気になる部分（最大10文字、例: 「たった1人？」）。""",
+}
+SCENE_LABELS = ("story", "rank", "rank_label", "year", "chapter")
+
+
 # ---------------------------------------------------------------- PROMPT
 PROMPT = """あなたは{role}の人気ナレーション作家です。
 以下の条件で、縦型ショート動画のナレーション台本を書いてください。
@@ -193,6 +218,7 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 - voice: このテーマに合うナレーターの声。次の候補からそれぞれ1つ選ぶ:
   gender {genders} / age {ages} / pitch {pitches}
 
+{screen_rule}
 {extra}
 ## 出力形式（JSONのみ。説明文は不要。下の例は形式の見本で、内容は無関係）
 ```json
@@ -236,6 +262,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
         lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
+        screen_rule=SCREEN_RULES.get(p.get("genre"), ""),
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
@@ -261,6 +288,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
             "image_query": s.get("image_query", ""),
             "video_query": s.get("video_query", ""),
             "kind": "image",
+            **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "")},
         })
     if not scenes:
         raise RuntimeError("Claude không trả về cảnh nào, thử lại nhé.")
@@ -272,6 +300,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         pp["scenes"] = scenes
         pp["script_approved"] = False
         pp["sources"] = [x for x in (data.get("sources") or []) if isinstance(x, dict)]
+        pp["screen"] = data.get("screen") if isinstance(data.get("screen"), dict) else {}
         v = data.get("voice") or {}
         pp["voice"]["auto_instruct"] = ", ".join(
             x for x in (v.get("gender"), v.get("age"), v.get("pitch")) if x)

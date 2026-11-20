@@ -55,7 +55,8 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang", "ranking_n"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang", "ranking_n",
+                  "screen", "layout"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -66,7 +67,8 @@ def put_project(pid: str, data: dict = Body(...)):
                 base = dict(old.get(sid, {}))
                 text_changed = (base.get("chunks") != s.get("chunks") or base.get("tts") != s.get("tts"))
                 base.update({k: s[k] for k in ("chunks", "tts", "kind", "image_query", "video_query",
-                                               "action", "locked_kind") if k in s})
+                                               "action", "locked_kind", "story", "rank", "rank_label",
+                                               "year", "chapter") if k in s})
                 base["id"] = sid
                 if text_changed and base.get("audio"):
                     base["audio_stale"] = True  # cần đọc lại

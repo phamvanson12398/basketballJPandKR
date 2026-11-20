@@ -56,6 +56,19 @@ và giữ lại hạng 1 tới cuối video.
 Ở thể loại Tin tức, chọn **Số tin trong 1 video: 3 hoặc 5**. Sau khi quét tin, bấm chọn nhiều tin (hoặc để trống → AI tự chọn).
 Video có lời mở đầu, câu chuyển tin ("Tiếp theo là…", "Cuối cùng là…"), mỗi tin 2–3 cảnh.
 
+### 🎨 Bố cục chuyển động theo thể loại
+| Thể loại | Bố cục |
+|---|---|
+| ⚾ Thể thao | Bố cục gốc giống video mẫu (nền trắng, sub đen trên/dưới khung) |
+| 📰 Tin tức | Nền navy, dải đỏ NEWS · quốc gia · ngày trượt vào, nhãn 速報 nhấp nháy, ô tiêu đề trắng, nguồn ở góc ảnh, phụ đề trong hộp trắng bật ra, thanh tiến độ điểm tin |
+| 🏆 Top | Nền đen, tiêu đề TOP vàng, chữ "第N位" nảy ra giữa khung rồi thành huy hiệu vàng/bạc/đồng, dải tên vàng trượt vào, hạng 1 chớp vàng |
+| 👤 Tiểu sử | Nền kem, ảnh viền trắng rơi nhẹ vào khung, năm chạy số, chương hiện từng chữ, dòng thời gian |
+| 💡 Chủ đề chung | Câu hỏi có vệt bút dạ vàng quét, phụ đề trong hộp tối bật ra |
+
+Chữ trên màn hình (tiêu đề tin, tên từng hạng, năm, chương…) do Claude viết, sửa được ở khung **🖥️ Chữ trên màn hình**
+và ô nhãn của từng cảnh. Ô **🎨 Bố cục** ở bước Content cho phép đổi bố cục bằng tay. Mọi chữ đều nằm ngoài vùng bị
+nút TikTok che.
+
 ### 🌐 Làm 1 lần ra 2 bản Nhật + Hàn
 Mở một video đã có content, bấm **🌐 Tạo bản Tiếng Hàn** (hoặc Tiếng Nhật) ở góc trên.
 Tool tạo video mới **dùng lại y nguyên ảnh/video** (không tốn thêm dung lượng), Claude viết lại content cho khán giả

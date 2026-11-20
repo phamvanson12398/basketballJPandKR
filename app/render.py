@@ -1,7 +1,8 @@
 """Ghép video cuối cùng bằng FFmpeg.
 
-Bố cục giống video mẫu: nền trắng 1080x1920, khung ảnh/video 1080x800 ở giữa,
-sub chữ đen đậm: câu đang đọc ở TRÊN khung, câu nối tiếp ở DƯỚI khung.
+Bố cục "sports" (giống video mẫu): nền trắng, khung ảnh/video ở giữa, sub chữ đen đậm
+TRÊN/DƯỚI khung. Các thể loại khác dùng bố cục chuyển động trong layouts.py.
+Mọi phần dựng (ảnh, video, khung trống) nhận "g" = vị trí/màu nền của bố cục.
 """
 import functools
 import random
@@ -14,8 +15,9 @@ import numpy as np
 from PIL import Image
 
 from . import project as P
-from .config import (FONTS, FPS, H, MEDIA_W, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin,
+from .config import (FONTS, FPS, H, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin,
                      layout, load_settings, BGM)
+from . import layouts as LAY
 from .media import n_images_for
 
 ZOOM_SCALE = 3  # ảnh chuẩn bị ở 3x để zoom mượt, không giật
@@ -46,11 +48,11 @@ def venc(final: bool) -> list[str]:
 
 
 # ------------------------------------------------------------------ ảnh
-def prepare_image(src: Path, dst: Path) -> Path:
+def prepare_image(src: Path, dst: Path, g: dict) -> Path:
     """Đưa ảnh vào khung (không làm mờ).
     Ảnh ngang (16:9...) được phóng cho kín khung, chỉ hụt chút ít ở mép trái/phải.
     Ảnh dọc/vuông (do bạn tự upload) được đặt giữa, phần thừa để nền trắng."""
-    tw, th = MEDIA_W * ZOOM_SCALE, layout()["media_h"] * ZOOM_SCALE
+    tw, th = g["w"] * ZOOM_SCALE, g["h"] * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
     ar = im.width / im.height
     if ar >= (tw / th) * 0.97:
@@ -67,7 +69,25 @@ def prepare_image(src: Path, dst: Path) -> Path:
     return dst
 
 
-def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
+def compose(g: dict, n: int) -> str:
+    """[m] (khung media) → đặt lên nền màu của bố cục → [v]. Tiểu sử: viền trắng + rơi nhẹ, nghiêng."""
+    f = g["frame"]
+    pre, lab = "", "m"
+    x, y = g["x"] - f, g["y"] - f
+    if f:
+        pre += f"[{lab}]pad=iw+{2 * f}:ih+{2 * f}:{f}:{f}:white[mf];"
+        lab = "mf"
+    if g["drop"]:
+        pre += f"[{lab}]rotate=a='-0.035*max(0,1-t/0.35)':c={g['bg']}:ow=iw:oh=ih[mr];"
+        lab = "mr"
+        ypos = f"'{y}-28*max(0,1-t/0.35)'"
+    else:
+        ypos = str(y)
+    return (pre + f"color={g['bg']}:s={W}x{H}:r={FPS}:d={n / FPS + 1:.3f}[bg];"
+            f"[bg][{lab}]overlay={x}:{ypos}:shortest=1:eval=frame,format=yuv420p[v]")
+
+
+def image_part(img: Path, dur: float, out: Path, variant: int, g: dict) -> None:
     n = max(2, round(dur * FPS))
     N = n - 1
     cx, cy = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
@@ -81,40 +101,37 @@ def image_part(img: Path, dur: float, out: Path, variant: int) -> None:
     ][variant % 6]
     if not load_settings().get("image_zoom"):
         z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
-    L = layout()
-    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={MEDIA_W}x{L['media_h']}:fps={FPS},setsar=1[m];"
-          f"color=white:s={W}x{H}:r={FPS}:d={n / FPS:.3f}[bg];"
-          f"[bg][m]overlay=0:{L['media_y']}:shortest=1,format=yuv420p[v]")
+    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={g['w']}x{g['h']}:fps={FPS},setsar=1[m];"
+          + compose(g, n))
     run([ffmpeg_bin(), "-v", "error", "-y", "-i", str(img), "-filter_complex", fc, "-map", "[v]",
          "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an", str(out)])
 
 
 # ------------------------------------------------------------------ video
-def video_part(src: Path, start: float, dur: float, out: Path) -> None:
+def video_part(src: Path, start: float, dur: float, out: Path, g: dict) -> None:
     n = max(2, round(dur * FPS))
     from .highlight import video_size
     w, h = video_size(src)
     if not w:
         w, h = 1920, 1080
-    L = layout()
-    box = f"{MEDIA_W}:{L['media_h']}"
-    if w / max(h, 1) >= (MEDIA_W / L['media_h']) * 0.8:
+    box = f"{g['w']}:{g['h']}"
+    if w / max(h, 1) >= (g['w'] / g['h']) * 0.8:
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
                  f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
     else:  # video dọc (link TikTok bạn dán) → đặt giữa khung, nền trắng, không làm mờ
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=decrease,"
-                 f"pad={box}:(ow-iw)/2:(oh-ih)/2:white,setsar=1,"
+                 f"pad={box}:(ow-iw)/2:(oh-ih)/2:{g['bg']},setsar=1,"
                  f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
-    fc = (media + f"color=white:s={W}x{H}:r={FPS}[bg];"
-          f"[bg][m]overlay=0:{L['media_y']}:shortest=1,format=yuv420p[v]")
+    fc = media + compose(g, n)
     run([ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{start:.3f}", "-t", f"{dur + 0.5:.3f}", "-i", str(src),
          "-filter_complex", fc, "-map", "[v]", "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an",
          str(out)])
 
 
-def blank_part(dur: float, out: Path) -> None:
+def blank_part(dur: float, out: Path, g: dict | None = None) -> None:
     n = max(2, round(dur * FPS))
-    run([ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", f"color=white:s={W}x{H}:r={FPS}",
+    bg = (g or {}).get("bg", "white")
+    run([ffmpeg_bin(), "-v", "error", "-y", "-f", "lavfi", "-i", f"color={bg}:s={W}x{H}:r={FPS}",
          "-frames:v", str(n), *venc(False), str(out)])
 
 
@@ -225,7 +242,9 @@ def render(pid: str, log) -> None:
     missing = [s["id"] for s in scenes if not s.get("audio") or not (base / s["audio"]).exists()]
     if missing:
         raise RuntimeError(f"Các cảnh chưa có giọng đọc: {', '.join(missing)}")
-    log(f"Bộ mã hóa video: {encoder()}")
+    lay = LAY.resolve(p)
+    g = LAY.geometry(lay)
+    log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 
     # 1) ghép giọng đọc
     audios = []
@@ -259,16 +278,16 @@ def render(pid: str, log) -> None:
             out = rdir / f"part_{len(parts):03d}.mp4"
             try:
                 if kind == "image":
-                    prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg")
-                    image_part(prep, d, out, variant)
+                    prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
+                    image_part(prep, d, out, variant, g)
                     variant += 1
                 elif kind == "video":
-                    video_part(base / it["file"], float(it.get("start", 0)), d, out)
+                    video_part(base / it["file"], float(it.get("start", 0)), d, out, g)
                 else:
-                    blank_part(d, out)
+                    blank_part(d, out, g)
             except Exception as e:  # noqa: BLE001
                 log(f"  ⚠️ lỗi dựng {s['id']}: {e} → để trống")
-                blank_part(d, out)
+                blank_part(d, out, g)
             parts.append(out)
         t += float(s["duration"])
 
@@ -277,8 +296,11 @@ def render(pid: str, log) -> None:
     run([ffmpeg_bin(), "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", "parts.txt",
          "-c", "copy", "video.mp4"], cwd=rdir)
 
-    # 3) sub
-    build_ass(scenes, starts, rdir / "subs.ass")
+    # 3) sub + chữ/hiệu ứng của bố cục
+    if lay == "sports":
+        build_ass(scenes, starts, rdir / "subs.ass")
+    else:
+        LAY.build_ass(lay, p, scenes, starts, total, rdir / "subs.ass")
 
     # 4) trộn nhạc nền + chèn sub + xuất
     log("Chèn sub, trộn nhạc nền và xuất video cuối...", 0.85)

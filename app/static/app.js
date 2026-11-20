@@ -100,8 +100,63 @@ function renderSources() {
   el.innerHTML = '<b>📎 Nguồn tin AI đã dùng (bấm để kiểm tra):</b>' + src.map(s =>
     `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.date || '')} · ${esc(s.title || s.url)}</a>`).join('');
 }
+// ---- bố cục & chữ trên màn hình
+const LAYOUT_NAMES = ['sports', 'news', 'ranking', 'biography', 'general'];
+function effLayout() {
+  if (P.layout && P.layout !== 'auto') return P.layout;
+  return LAYOUT_NAMES.includes(P.genre) ? P.genre : 'sports';
+}
+function renderScreenBox() {
+  const lay = effLayout(), box = $('#screenBox');
+  P.screen = P.screen || {};
+  const S = P.screen;
+  box.classList.toggle('hidden', lay === 'sports');
+  if (lay === 'sports') return;
+  const inp = (k, label, ph = '') => `<div><label>${label}</label><input data-s="${k}" value="${esc(S[k] || '')}" placeholder="${esc(ph)}"></div>`;
+  let html = '<h3>🖥️ Chữ trên màn hình (tiêu đề cố định, nhãn…)</h3>';
+  if (lay === 'news') {
+    S.stories = S.stories && S.stories.length ? S.stories : [{headline: P.title || '', subhead: '', source: ''}];
+    html += `<div class="two">${inp('band', 'Dải đỏ: quốc gia · ngày', '韓国 ・ 11月19日')}
+      <label class="chk" style="margin-top:22px"><input type="checkbox" data-s="breaking" ${S.breaking ? 'checked' : ''}> Hiện nhãn 速報 / 속보 (tin nóng)</label></div>
+      <label>Tiêu đề từng tin (điểm tin nhiều tin thì mỗi tin 1 dòng; cảnh nào thuộc tin số mấy chỉnh ở ô "Tin số" của cảnh)</label>`;
+    html += S.stories.map((st, i) => `<div class="row" data-st="${i}">
+      <div><label>Tin ${i + 1}: tiêu đề</label><input data-f="headline" value="${esc(st.headline || '')}"></div>
+      <div><label>Dòng phụ</label><input data-f="subhead" value="${esc(st.subhead || '')}"></div>
+      <div><label>Nguồn</label><input data-f="source" value="${esc(st.source || '')}"></div>
+      <button data-del="${i}" title="Xóa tin">✕</button></div>`).join('');
+    html += '<button id="btnAddStory">＋ Thêm tin</button>';
+  } else if (lay === 'ranking' || lay === 'general') {
+    html += `<div class="two">${inp('title1', 'Tiêu đề dòng trên (nhỏ)')}${inp('title2', lay === 'ranking' ? 'Tiêu đề dòng dưới (to, vàng)' : 'Dòng dưới (đỏ, có vệt bút dạ vàng)')}</div>`;
+  } else if (lay === 'biography') {
+    html += inp('title', 'Tiêu đề cố định (VD: 大谷翔平の人生)');
+  }
+  box.innerHTML = html;
+  box.querySelectorAll('[data-s]').forEach(el => el.oninput = el.onchange = () => {
+    S[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  box.querySelectorAll('.row[data-st]').forEach(row => row.querySelectorAll('[data-f]').forEach(el =>
+    el.oninput = () => { S.stories[+row.dataset.st][el.dataset.f] = el.value; }));
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { S.stories.splice(+b.dataset.del, 1); renderScreenBox(); });
+  const add = $('#btnAddStory');
+  if (add) add.onclick = () => { S.stories.push({headline: '', subhead: '', source: ''}); renderScreenBox(); };
+}
+function sceneLabelFields(s) {
+  const lay = effLayout();
+  const f = (k, label, type = 'text', ph = '') => `<div class="lbl"><label>${label}</label>
+    <input data-k="${k}" type="${type}" value="${esc(s[k] ?? '')}" placeholder="${esc(ph)}"></div>`;
+  if (lay === 'news') return f('story', 'Tin số', 'number', '1');
+  if (lay === 'ranking') return f('rank', 'Hạng', 'number', 'trống = mở đầu/kết') + f('rank_label', 'Dải tên', 'text', '渡邊雄太 875得点');
+  if (lay === 'biography') return f('year', 'Năm', 'text', '2010') + f('chapter', 'Chương', 'text', '第2章・高校時代');
+  return '';
+}
+
 function renderScript() {
   renderSources();
+  renderScreenBox();
+  $('#pLayout').value = P.layout || 'auto';
+  $('#subHint').innerHTML = effLayout() === 'sports'
+    ? 'Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng. Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).'
+    : 'Mỗi dòng trong ô sub = 1 lần hiện chữ (bật ra dưới khung ảnh, tối đa 2 dòng). Dùng dấu <code>/</code> để gợi ý chỗ xuống dòng.';
   const tv = P.video_pct ?? 30;
   $('#pRatio').value = tv; $('#pVidPct').textContent = tv; $('#pImgPct').textContent = 100 - tv;
   $('#pGenre').value = P.genre || 'sports';
@@ -130,6 +185,7 @@ function renderScript() {
         <label>Từ khóa tìm ảnh</label><input data-k="image_query" value="${esc(s.image_query)}">
         <label>Từ khóa tìm video</label><input data-k="video_query" value="${esc(s.video_query)}">
         <label>Độ "hành động" (0–10, cao → ưu tiên video)</label><input data-k="action" type="number" min="0" max="10" value="${s.action ?? 0}">
+        ${sceneLabelFields(s)}
       </div>
     </div>`).join('') || '<p class="muted">Chưa có content. Bấm “Viết content”.</p>';
   $$('#scenes .scene').forEach(el => {
@@ -152,11 +208,13 @@ function readScene(el, i) {
     const k = inp.dataset.k;
     if (k === 'chunks') s.chunks = inp.value.split('\n').map(x => x.trim()).filter(Boolean).map(x => x.replace(/\s*\/\s*/g, '\n'));
     else if (k === 'action') s.action = +inp.value || 0;
+    else if (k === 'story') s.story = inp.value === '' ? null : +inp.value;
+    else if (k === 'rank') s.rank = inp.value === '' ? null : +inp.value;
     else s[k] = inp.value;
   });
 }
 async function saveScript(extra = {}) {
-  P = Object.assign(await api(`/api/projects/${P.id}`, {method: 'PUT', json: {title: $('#pTitle').value, scenes: P.scenes, ...extra}}), {job: P.job});
+  P = Object.assign(await api(`/api/projects/${P.id}`, {method: 'PUT', json: {title: $('#pTitle').value, scenes: P.scenes, screen: P.screen || {}, ...extra}}), {job: P.job});
   renderAll(); loadList();
 }
 $('#btnSaveScript').onclick = () => saveScript();
@@ -172,6 +230,10 @@ $('#pLang').onchange = async () => {
   P.lang = $('#pLang').value;
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {lang: P.lang}});
   if (P.scenes.length && confirm('Đã đổi ngôn ngữ. Viết lại content bằng ngôn ngữ mới luôn không?')) runJob(`/api/projects/${P.id}/script`, {});
+};
+$('#pLayout').onchange = async () => {
+  P.layout = $('#pLayout').value;
+  await saveScript({layout: P.layout});
 };
 $('#pGenre').onchange = async () => {
   P.genre = $('#pGenre').value;
