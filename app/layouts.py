@@ -40,11 +40,21 @@ def sport_variant(p: dict, lay: str) -> str | None:
     return None
 
 
-def geometry(name: str, sport: str | None = None) -> dict:
-    """Màu nền + vị trí khung ảnh/video cho từng bố cục (dùng chung chiều cao khung trong Cài đặt)."""
+LIGHT_FIELDS = ("idol", "kpop")   # lĩnh vực luôn dùng nền trắng (idol Nhật, K-pop)
+LIGHT_PANEL = "&HF6F4F3&"          # xám rất nhạt (#f3f4f6) cho ô tiêu đề / hộp phụ đề trên nền trắng
+
+
+def is_light(p: dict) -> bool:
+    return p.get("sport") in LIGHT_FIELDS
+
+
+def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
+    """Màu nền + vị trí khung ảnh/video cho từng bố cục (dùng chung chiều cao khung trong Cài đặt).
+    light=True: idol / K-pop → mọi bố cục đều nền trắng."""
     L = frame_layout()
     my, mh = L["media_y"], L["media_h"]
-    g = {"bg": "white", "x": 0, "y": my, "w": W, "h": mh, "frame": 0, "drop": False}
+    g = {"bg": "white", "x": 0, "y": my, "w": W, "h": mh, "frame": 0, "drop": False,
+         "frame_color": "white", "light": light}
     if sport == "sumo":
         g["bg"] = "0xf4efe4"     # màu giấy washi
     if name == "news":
@@ -54,6 +64,10 @@ def geometry(name: str, sport: str | None = None) -> dict:
     elif name == "biography":
         # ảnh nhỏ lại, viền trắng 20px như ảnh in, rơi nhẹ + nghiêng khi vào cảnh
         g.update(bg="0xf4ecdf", x=60, y=my + 20, w=960, h=mh - 40, frame=20, drop=True)
+    if light:
+        g["bg"] = "white"
+        if g["frame"]:
+            g["frame_color"] = "0xe5e7eb"   # viền ảnh xám nhạt để vẫn thấy khung trên nền trắng
     return g
 
 
@@ -230,7 +244,8 @@ def news(e: Ev, p, scenes, starts, total, g):
             e.add(a + 0.3, total, f"\\an5\\pos(940,{yb + 36})\\fs{38 * K:.0f}\\c{RED}{blink}",
                   "速報" if (p.get("lang") or "ja") == "ja" else "속보", 3)
         # ô tiêu đề trắng mở xuống, chữ trồi lên
-        e.shape(a, b, 0, ybox, rect(1080, 220), WHITE, layer=1, extra="\\fscy0\\t(0,250,\\fscy100)" if idx == 0 else "")
+        e.shape(a, b, 0, ybox, rect(1080, 220), LIGHT_PANEL if g.get("light") else WHITE, layer=1,
+                extra="\\fscy0\\t(0,250,\\fscy100)" if idx == 0 else "")
         e.add(a + 0.2, b, f"\\an8\\fs{74 * K:.0f}\\c{NAVY}{fit(story.get('headline', ''), 74)}\\fad(150,0)"
                           f"\\move(540,{ybox + 40},540,{ybox + 16},0,220)", esc(story.get("headline", p.get("title", ""))), 2)
         if story.get("subhead"):
@@ -244,11 +259,13 @@ def news(e: Ev, p, scenes, starts, total, g):
             for k in range(n_st):
                 x = x0 + k * (bw + gap)
                 done = k < si - 1
-                e.shape(a, b, x, mb + 290, rrect(bw, 14, 7), WHITE if done else "&H69554A&", layer=1)
-            e.shape(a, b, x0 + (si - 1) * (bw + gap), mb + 290, rrect(bw, 14, 7), WHITE, layer=2,
+                on = NAVY if g.get("light") else WHITE
+                off = "&HDBD5D1&" if g.get("light") else "&H69554A&"
+                e.shape(a, b, x, mb + 290, rrect(bw, 14, 7), on if done else off, layer=1)
+            e.shape(a, b, x0 + (si - 1) * (bw + gap), mb + 290, rrect(bw, 14, 7), NAVY if g.get("light") else WHITE, layer=2,
                     extra=f"\\fscx0\\t(0,{int((b - a) * 1000)},\\fscx100)")
-            e.text(a, b, 540, mb + 312, f"{si} / {n_st}", 34, "&HE1D5CB&", layer=2)
-    captions(e, scenes, starts, mb + 40, BLACK, box=WHITE)
+            e.text(a, b, 540, mb + 312, f"{si} / {n_st}", 34, "&H69554A&" if g.get("light") else "&HE1D5CB&", layer=2)
+    captions(e, scenes, starts, mb + 40, BLACK, box=LIGHT_PANEL if g.get("light") else WHITE)
 
 
 # ------------------------------------------------------------------ 🏆 TOP
@@ -264,7 +281,8 @@ def ranking(e: Ev, p, scenes, starts, total, g):
     scr = p.get("screen") or {}
     lang = p.get("lang") or "ja"
     my, mb = g["y"], g["y"] + g["h"]
-    e.text(0, total, 540, my - 290, scr.get("title1", ""), 70, WHITE, layer=2, extra="\\fad(250,0)")
+    ink = "&H111111&" if g.get("light") else WHITE
+    e.text(0, total, 540, my - 290, scr.get("title1", ""), 70, ink, layer=2, extra="\\fad(250,0)")
     e.add(0, total, f"\\an8\\fs{96 * K:.0f}\\c{YELLOW}\\bord4\\3c{BLACK}{fit(scr.get('title2', ''), 96)}"
                     f"\\fscx40\\fscy40\\t(100,280,\\fscx108\\fscy108)\\t(280,380,\\fscx100\\fscy100)"
                     f"\\pos(540,{my - 205})", esc(scr.get("title2", p.get("title", ""))), 2)
@@ -293,7 +311,7 @@ def ranking(e: Ev, p, scenes, starts, total, g):
             e.shape(a + 0.75, b, 0, mb, rect(1080, 90), YELLOW, layer=4, extra=f"\\move(-1080,{mb},0,{mb},0,250)")
             e.add(a + 0.85, b, f"\\an8\\fs{64 * K:.0f}\\c&H111111&{fit(label, 64)}\\move(-500,{mb + 6},540,{mb + 6},0,250)",
                   esc(label), 5)
-    captions(e, scenes, starts, mb + 120, WHITE)
+    captions(e, scenes, starts, mb + 120, ink)
 
 
 # ------------------------------------------------------------------ 👤 TIỂU SỬ
@@ -380,7 +398,7 @@ BUILDERS = {"news": news, "ranking": ranking, "biography": biography, "general":
 
 
 def build_ass(name: str, p: dict, scenes: list, starts: list, total: float, out: Path) -> None:
-    g = geometry(name)
+    g = geometry(name, light=is_light(p))
     e = Ev()
     scene_flash(e, starts, g)
     BUILDERS[name](e, p, scenes, starts, total, g)

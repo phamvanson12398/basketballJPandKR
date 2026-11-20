@@ -54,7 +54,8 @@ số lần center / tuyển chọn / tổng tuyển cử / phát ngôn chính th
 **J-pop sôi động / Ballad**. Top có thêm Top 4, 6, 8.
 **🎶 K-pop**: tên nhóm/thành viên đúng (hangul cho video tiếng Hàn, katakana cho video tiếng Nhật), số liệu từ
 chương trình âm nhạc / Circle / Hanteo / MelOn / Billboard, không tin đồn hẹn hò hay suy đoán tranh chấp công ty;
-nhạc nền riêng **Dance / Hip-hop**. Mỗi môn có hướng dẫn riêng cho AI (thuật ngữ, cách tra số liệu,
+nhạc nền riêng **Dance / Hip-hop**.
+**Idol Nhật và K-pop luôn dùng nền trắng** ở mọi thể loại (Top, Tiểu sử, Tin tức… đều đổi sang bản nền trắng, chữ tối). Mỗi môn có hướng dẫn riêng cho AI (thuật ngữ, cách tra số liệu,
 từ khóa tìm ảnh/video). Riêng **Sumo**: dùng đúng thuật ngữ (横綱・大関・場所・決まり手…), tên võ sĩ (四股名) luôn được
 viết cách đọc bằng hiragana / hangul để giọng đọc chuẩn, và có nhạc nền riêng **trống Taiko / Truyền thống** (shamisen, sáo).
 Riêng **Bóng đá**: thuật ngữ chuẩn (ハットトリック・VAR・移籍金…), tin chuyển nhượng chưa chốt luôn ghi là "theo báo chí",

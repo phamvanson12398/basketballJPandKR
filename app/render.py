@@ -75,7 +75,7 @@ def compose(g: dict, n: int) -> str:
     pre, lab = "", "m"
     x, y = g["x"] - f, g["y"] - f
     if f:
-        pre += f"[{lab}]pad=iw+{2 * f}:ih+{2 * f}:{f}:{f}:white[mf];"
+        pre += f"[{lab}]pad=iw+{2 * f}:ih+{2 * f}:{f}:{f}:{g.get('frame_color', 'white')}[mf];"
         lab = "mf"
     if g["drop"]:
         pre += f"[{lab}]rotate=a='-0.035*max(0,1-t/0.35)':c={g['bg']}:ow=iw:oh=ih[mr];"
@@ -245,7 +245,9 @@ def render(pid: str, log) -> None:
         raise RuntimeError(f"Các cảnh chưa có giọng đọc: {', '.join(missing)}")
     lay = LAY.resolve(p)
     sport = LAY.sport_variant(p, lay)
-    g = LAY.geometry(lay, sport)
+    if LAY.is_light(p):
+        log("Idol / K-pop → dùng nền trắng")
+    g = LAY.geometry(lay, sport, light=LAY.is_light(p))
     log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 
     # 1) ghép giọng đọc
