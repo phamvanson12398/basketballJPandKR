@@ -89,7 +89,7 @@ Video có lời mở đầu, câu chuyển tin ("Tiếp theo là…", "Cuối c�
 | Thể loại | Bố cục |
 |---|---|
 | ⚾ Thể thao | Bố cục gốc giống video mẫu (nền trắng, sub đen trên/dưới khung) |
-| 📰 Tin tức | Nền navy, dải đỏ NEWS · quốc gia · ngày trượt vào, nhãn 速報 nhấp nháy, ô tiêu đề trắng, nguồn ở góc ảnh, phụ đề trong hộp trắng bật ra, thanh tiến độ điểm tin |
+| 📰 Tin tức | Nền navy, dải đỏ NEWS · quốc gia · ngày trượt vào, nhãn 速報 nhấp nháy, ô tiêu đề trắng, nguồn ở góc ảnh, phụ đề trong hộp trắng bật ra |
 | 🏆 Top | Nền đen, tiêu đề TOP vàng, chữ "第N位" nảy ra giữa khung rồi thành huy hiệu vàng/bạc/đồng, dải tên vàng trượt vào, hạng 1 chớp vàng |
 | 👤 Tiểu sử | Nền kem, ảnh viền trắng rơi nhẹ vào khung, năm chạy số, chương hiện từng chữ |
 | 💡 Chủ đề chung | Câu hỏi có vệt bút dạ vàng quét, phụ đề trong hộp tối bật ra |

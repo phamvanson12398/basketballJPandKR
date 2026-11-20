@@ -1,7 +1,7 @@
 """Bố cục (layout) theo thể loại — phần chữ, khối màu và hiệu ứng chuyển động đều vẽ bằng ASS.
 
   sports    – bố cục gốc (nền trắng, sub đen trên/dưới khung) — GIỮ NGUYÊN, vẽ trong render.build_ass
-  news      – nền navy, dải đỏ NEWS + 速報, ô tiêu đề trắng, hộp phụ đề trắng, thanh tiến độ điểm tin
+  news      – nền navy, dải đỏ NEWS + 速報, ô tiêu đề trắng, hộp phụ đề trắng
   ranking   – nền đen, tiêu đề TOP vàng, màn "第N位" nảy ra → huy hiệu vàng/bạc/đồng, dải tên vàng
   biography – nền kem, ảnh viền trắng rơi vào khung, năm chạy số, chương gõ chữ, dòng thời gian
   general   – nền trắng, câu hỏi có vệt bút dạ vàng quét, hộp phụ đề tối
@@ -253,18 +253,6 @@ def news(e: Ev, p, scenes, starts, total, g):
         if story.get("source"):
             e.add(a + 0.6, b, f"\\an3\\pos(1060,{mb - 12})\\fs{28 * K:.0f}\\c{WHITE}\\bord8\\3c{BLACK}\\3a&H60&\\fad(200,0)",
                   esc(("出典: " if (p.get("lang") or "ja") == "ja" else "출처: ") + story["source"]), 3)
-        if n_st > 1:   # thanh tiến độ điểm tin
-            bw, gap = 130, 20
-            x0 = (W - (n_st * bw + (n_st - 1) * gap)) // 2
-            for k in range(n_st):
-                x = x0 + k * (bw + gap)
-                done = k < si - 1
-                on = NAVY if g.get("light") else WHITE
-                off = "&HDBD5D1&" if g.get("light") else "&H69554A&"
-                e.shape(a, b, x, mb + 290, rrect(bw, 14, 7), on if done else off, layer=1)
-            e.shape(a, b, x0 + (si - 1) * (bw + gap), mb + 290, rrect(bw, 14, 7), NAVY if g.get("light") else WHITE, layer=2,
-                    extra=f"\\fscx0\\t(0,{int((b - a) * 1000)},\\fscx100)")
-            e.text(a, b, 540, mb + 312, f"{si} / {n_st}", 34, "&H69554A&" if g.get("light") else "&HE1D5CB&", layer=2)
     captions(e, scenes, starts, mb + 40, BLACK, box=LIGHT_PANEL if g.get("light") else WHITE)
 
 
