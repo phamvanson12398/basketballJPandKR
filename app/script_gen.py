@@ -33,6 +33,19 @@ GENRES = {
         "image": "出来事+場所+人物など具体的に（例: 能登半島地震 輪島 朝市）",
         "video": "出来事+ニュース/現場/会見 など（例: 〇〇 ニュース 現場映像）",
     },
+    "ranking": {
+        "role": "{country}のランキング（TOP N）系ショート動画（TikTok / YouTube Shorts）",
+        "style": """- テーマに沿った TOP{n} を、第{n}位から第1位へのカウントダウン形式で紹介する。
+- 1文目は「〇〇 TOP{n}」と意外性のあるフック。各順位は「第〇位、〇〇。」のように順位から始め、
+  根拠となる数字・記録・エピソードを短く添える（{country}の言語での自然な言い方にする）。
+- 順位の根拠は WebSearch で確認した記録・統計・報道にもとづく。主観的なランキングの場合は
+  「独自に選んだ」ことが分かる言い方にする。
+- 第1位の直前で「そして第1位は…」と一拍おいて引っ張る。最後に一言で締める。
+- 1つの順位につき1〜2シーン。各シーンの image_query / video_query はその順位の対象専用にする。""",
+        "action": "決定的なプレー・パフォーマンス・名場面=高、記録や数字の説明=低",
+        "image": "その順位の人物・チーム・対象の名前+具体的な場面（例: 八村塁 レイカーズ ダンク）",
+        "video": "その順位の対象の名前+ハイライト/名場面",
+    },
     "general": {
         "role": "{country}の雑学・ニュース解説系ショート動画（TikTok / YouTube Shorts）",
         "style": """- 1文目で「えっ？」と思わせるフック。
@@ -97,7 +110,16 @@ def news_context(news: dict, lang: str = "ja") -> str:
     r = _region(news.get("region", "world"), news.get("custom_region", ""))
     c = _category(news.get("category", "all"))
     days = int(news.get("days") or 3)
+    count = max(1, min(5, int(news.get("count") or 1)))
     cat = f"（ジャンル: {c['ja']}）" if c["ja"] else ""
+    digest = "" if count == 1 else f"""
+## ダイジェスト形式（{count}本）
+- この動画では {count}本のニュースを伝える。テーマ・メモに複数の見出しがあればそれを使い、空なら注目度の高い順に{count}本選ぶ。
+- 冒頭で「{{日付}}の主なニュースを{count}本お伝えします」に相当する短い一言、各ニュースの切り替えで
+  「続いては」「最後は」に相当するつなぎ言葉を入れる（言語に合わせて自然に）。
+- 1本あたり2〜3シーン。各シーンの image_query / video_query は、そのシーンが扱うニュース専用にする。
+- 冒頭の「テーマ・メモが空なら1件選ぶ」というルールより、このダイジェスト形式を優先する。
+"""
     return f"""- 今日は{today_ja()}。扱うのは「{r['ja']}」の最新ニュース{cat}で、過去{days}日以内に報じられたもの。
 - 必ず WebSearch / WebFetch で最新の報道を調べること。{r['lang']}の現地報道と、{L['name']}・英語の報道の両方を確認し、
   日時・場所・人数・金額・固有名詞は複数の信頼できる報道機関で一致するものだけを使う。
@@ -108,7 +130,8 @@ def news_context(news: dict, lang: str = "ja") -> str:
 
 ## 構成と正確さ
 - 1文目で「何が起きたか」を端的に伝える → 経緯 → 背景 → 影響・今後の見通し、の順で伝える。
-- 中立・客観的に。推測・未確認情報・断定的な評価は書かない。必要に応じて伝聞の表現を使う。"""
+- 中立・客観的に。推測・未確認情報・断定的な評価は書かない。必要に応じて伝聞の表現を使う。
+{digest}"""
 
 
 def suggest_news(region: str, days: int, category: str, custom_region: str = "",
@@ -202,7 +225,12 @@ def generate(pid: str, log, feedback: str = "") -> None:
         old = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
         feedback = f"\n## 前回の台本\n{old}\n\n## 修正リクエスト（ベトナム語の場合あり。内容を理解して反映）\n{feedback}\n"
     gen = GENRES.get(p.get("genre") or "sports", GENRES["sports"])
-    style = news_context(p.get("news") or {}, p.get("lang")) if p.get("genre") == "news" else gen["style"]
+    if p.get("genre") == "news":
+        style = news_context(p.get("news") or {}, p.get("lang"))
+    elif p.get("genre") == "ranking":
+        style = gen["style"].format(n=int(p.get("ranking_n") or 5), country=L["country"])
+    else:
+        style = gen["style"]
     extra = ("\n## 出典\n- sources に、事実確認に使った記事（見出し・URL・日付）を3件以上必ず入れる。\n"
              if p.get("genre") == "news" else "")
     prompt = PROMPT.format(

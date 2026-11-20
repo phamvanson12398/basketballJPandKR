@@ -5,7 +5,7 @@ nước đó, nói với khán giả nước đó: content, giọng đọc, sub,
 Với tin tức: tiếng Nhật → phát thanh viên Nhật (quy đổi yên, giờ Nhật, liên hệ Nhật Bản);
 tiếng Hàn → phát thanh viên Hàn kiểu KBS/MBC (합니다체, quy đổi won, giờ Hàn, liên hệ Hàn Quốc).
 
-Làm được 4 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **📰 Tin tức mới nhất** (theo quốc gia hoặc thế giới), **💡 Chủ đề chung** (kiến thức, chuyện lạ...).
+Làm được 5 thể loại: **⚾ Thể thao**, **👤 Tiểu sử người nổi tiếng**, **🏆 Top / Xếp hạng**, **📰 Tin tức mới nhất** (theo quốc gia hoặc thế giới), **💡 Chủ đề chung** (kiến thức, chuyện lạ...).
 
 Tool tự làm video dọc kiểu “kể chuyện thể thao” giống video mẫu:
 **nền trắng, ảnh/video 16:9 ở giữa, sub chữ đen đậm ở trên và dưới khung**, có giọng đọc AI.
@@ -42,6 +42,25 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 > Lần đầu đọc giọng, tool sẽ tự tải model OmniVoice (vài GB) nên sẽ chờ lâu hơn một chút.
 
 ## 2. Sử dụng
+
+### 💡 Chưa biết làm gì? Bấm "Gợi ý ý tưởng video"
+Nút vàng ở góc trên bên trái. Chọn ngôn ngữ, thể loại, gõ ngách kênh (mặc định: bóng rổ Nhật – Hàn) → Claude tra cứu
+chủ đề đang hot và đưa ra 5–15 ý tưởng (title, lý do nên làm, 🔥 đang hot hay ♻️ không lỗi thời).
+Bấm **🎬 Làm video này** → form tạo video tự điền sẵn, chỉ cần bấm Tạo.
+
+### 🏆 Top / Xếp hạng
+Chọn thể loại Top, chọn Top 3 / 5 / 7 / 10. AI đếm ngược từ hạng cuối lên hạng 1, có số liệu cho từng hạng,
+và giữ lại hạng 1 tới cuối video.
+
+### 📋 Điểm tin
+Ở thể loại Tin tức, chọn **Số tin trong 1 video: 3 hoặc 5**. Sau khi quét tin, bấm chọn nhiều tin (hoặc để trống → AI tự chọn).
+Video có lời mở đầu, câu chuyển tin ("Tiếp theo là…", "Cuối cùng là…"), mỗi tin 2–3 cảnh.
+
+### 🌐 Làm 1 lần ra 2 bản Nhật + Hàn
+Mở một video đã có content, bấm **🌐 Tạo bản Tiếng Hàn** (hoặc Tiếng Nhật) ở góc trên.
+Tool tạo video mới **dùng lại y nguyên ảnh/video** (không tốn thêm dung lượng), Claude viết lại content cho khán giả
+nước kia (không dịch máy móc), giữ đúng số cảnh. Bạn chỉ cần duyệt → đọc giọng (giọng mẫu tiếng nước đó) → xuất video.
+
 
 Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1:7860`.
 

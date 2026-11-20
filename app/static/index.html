@@ -10,6 +10,7 @@
 <aside id="side">
   <h1>🎬 Shorts Maker</h1>
   <div class="card">
+    <button id="btnIdeasOpen" class="ideas-open">💡 Gợi ý ý tưởng video</button>
     <h3>Tạo video mới</h3>
     <label>Ngôn ngữ video (tool đóng vai người nước đó, nói với khán giả nước đó)</label>
     <select id="newLang"></select>
@@ -18,8 +19,14 @@
       <option value="sports">⚾ Thể thao</option>
       <option value="biography">👤 Tiểu sử người nổi tiếng</option>
       <option value="news">📰 Tin tức (mới nhất)</option>
+      <option value="ranking">🏆 Top / Xếp hạng</option>
       <option value="general">💡 Chủ đề chung (kiến thức, chuyện lạ...)</option>
     </select>
+    <div id="rankBox" class="hidden">
+      <label>Số hạng mục</label>
+      <select id="rankN"><option value="3">Top 3</option><option value="5" selected>Top 5</option>
+        <option value="7">Top 7</option><option value="10">Top 10</option></select>
+    </div>
     <div id="newsBox" class="hidden">
       <label>Tin của quốc gia nào?</label>
       <select id="newsRegion"></select>
@@ -30,9 +37,12 @@
             <option value="7">1 tuần</option><option value="30">1 tháng</option></select></div>
         <div><label>Lĩnh vực</label><select id="newsCat"></select></div>
       </div>
+      <label>Số tin trong 1 video</label>
+      <select id="newsCount"><option value="1">1 tin (chi tiết)</option><option value="3">📋 Điểm tin: 3 tin</option>
+        <option value="5">📋 Điểm tin: 5 tin</option></select>
       <button id="btnScan">🔎 Quét tin mới nhất</button>
       <div id="newsList"></div>
-      <p class="hint" style="color:#9ca3af">Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.</p>
+      <p class="hint" style="color:#9ca3af" id="newsHint">Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.</p>
     </div>
     <label>Title (nếu có)</label>
     <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
@@ -71,6 +81,7 @@
     <header class="phead">
       <input id="pTitle" class="title-input" placeholder="Title">
       <span id="pMeta" class="muted"></span>
+      <span id="twinBtns"></span>
       <button id="btnDelete" class="ghost danger">Xóa</button>
     </header>
     <nav class="tabs">
@@ -98,7 +109,7 @@
         <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
         <select id="pLang" title="Ngôn ngữ video (áp dụng khi viết lại content)"></select>
         <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
-          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="general">💡 Chủ đề chung</option>
+          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
         </select>
       </div>
       <div id="ratio" class="ratio"></div>
@@ -202,6 +213,28 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <div id="ideas" class="hidden">
+    <div class="card">
+      <h3>💡 Gợi ý ý tưởng video</h3>
+      <div class="grid3">
+        <div><label>Ngôn ngữ / khán giả</label><select id="ideaLang"></select></div>
+        <div><label>Thể loại</label>
+          <select id="ideaGenre"><option value="any">Tất cả</option><option value="sports">⚾ Thể thao</option>
+            <option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option>
+            <option value="ranking">🏆 Top / Xếp hạng</option><option value="general">💡 Chủ đề chung</option></select></div>
+        <div><label>Số ý tưởng</label><select id="ideaCount"><option>5</option><option selected>10</option><option>15</option></select></div>
+      </div>
+      <label>Ngách / chủ đề kênh của bạn</label>
+      <input id="ideaNiche" value="Bóng rổ Nhật Bản và Hàn Quốc (B.League, KBL, cầu thủ Nhật/Hàn ở NBA)">
+      <div class="toolbar">
+        <button class="primary" id="btnIdeas">✨ Gợi ý ngay</button>
+        <span class="muted">Claude tra cứu chủ đề đang hot gần đây, mất khoảng 1–2 phút.</span>
+        <span class="grow"></span><button id="btnIdeasClose">Đóng</button>
+      </div>
+    </div>
+    <div id="ideaList"></div>
   </div>
 
   <div id="settings" class="hidden card">

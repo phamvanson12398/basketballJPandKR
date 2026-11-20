@@ -39,7 +39,8 @@ def create_project(data: dict = Body(...)):
         _err(ValueError("Nhập title hoặc chủ đề nhé"))
     return P.create(title, topic, int(data.get("duration") or 60), genre,
                     int(data.get("video_pct") if data.get("video_pct") is not None else 30),
-                    data.get("news") if genre == "news" else None, data.get("lang") or "ja")
+                    data.get("news") if genre == "news" else None, data.get("lang") or "ja",
+                    data.get("ranking_n"))
 
 
 @app.get("/api/projects/{pid}")
@@ -54,7 +55,7 @@ def get_project(pid: str):
 def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
-        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang"):
+        for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang", "ranking_n"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -124,6 +125,29 @@ def news_suggest(data: dict = Body(...)):
         return suggest_news(data.get("region") or "world", int(data.get("days") or 3),
                             data.get("category") or "all", data.get("custom_region") or "",
                             data.get("lang") or "ja")
+    except Exception as e:  # noqa: BLE001
+        _err(e)
+
+
+@app.post("/api/projects/{pid}/twin")
+def make_twin(pid: str, data: dict = Body(...)):
+    """Tạo bản ngôn ngữ khác của video này, dùng lại ảnh/video."""
+    from .extras import create_twin, localize
+    try:
+        p = create_twin(pid, data.get("lang") or "ko")
+    except Exception as e:  # noqa: BLE001
+        _err(e)
+    jobs.start(p["id"], "script", localize)
+    return {"id": p["id"]}
+
+
+@app.post("/api/ideas")
+def ideas(data: dict = Body(...)):
+    """Claude gợi ý ý tưởng video (mất khoảng 1–2 phút)."""
+    from .extras import suggest_ideas
+    try:
+        return suggest_ideas(data.get("lang") or "ja", data.get("niche") or "", data.get("genre") or "any",
+                             int(data.get("count") or 10))
     except Exception as e:  # noqa: BLE001
         _err(e)
 

@@ -4,6 +4,7 @@ let P = null;          // dự án đang mở
 let tab = 'script';
 let pollTimer = null;
 let voiceInfo = {voices: [], design: {}};
+let LANGS = [];
 
 async function api(url, opt = {}) {
   if (opt.json !== undefined) {
@@ -37,9 +38,9 @@ async function loadList() {
 
 async function openProject(id, keepTab) {
   P = await api(`/api/projects/${id}`);
-  $('#empty').classList.add('hidden'); $('#settings').classList.add('hidden');
-  $('#proj').classList.remove('hidden');
+  showOnly('#proj');
   $('#pTitle').value = P.title || '';
+  renderTwinBtns();
   $('#pMeta').textContent = `${P.duration}s mục tiêu · ${P.scenes.length} cảnh`;
   if (!keepTab) setTab(P.output ? 'render' : P.script_approved ? (P.scenes.some(s => s.items?.length) ? 'media' : 'voice') : 'script');
   renderAll();
@@ -48,6 +49,17 @@ async function openProject(id, keepTab) {
   if (P.job.status === 'running') startPoll();
 }
 
+function renderTwinBtns() {
+  if (!P) return;
+  $('#twinBtns').innerHTML = LANGS.filter(l => l.id !== (P.lang || 'ja')).map(l =>
+    `<button data-lang="${l.id}" title="Viết lại content cho khán giả nước đó, dùng lại y nguyên ảnh/video">🌐 Tạo bản ${l.vi}</button>`).join('');
+  $$('#twinBtns button').forEach(b => b.onclick = async () => {
+    if (!P.scenes.length) return alert('Video này chưa có content.');
+    if (!confirm(`Tạo thêm 1 video ${b.textContent.replace('🌐 Tạo bản ', '')} từ video này?\nẢnh/video giữ nguyên, Claude viết lại content cho khán giả nước đó.`)) return;
+    const r = await api(`/api/projects/${P.id}/twin`, {method: 'POST', json: {lang: b.dataset.lang}});
+    await openProject(r.id); setTab('script'); startPoll();
+  });
+}
 function setTab(t) {
   tab = t;
   $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -424,9 +436,11 @@ function startPoll() {
 // ---- tin tức
 function newsParams() {
   return {region: $('#newsRegion').value, custom_region: $('#newsCustom').value.trim(),
-          days: +$('#newsDays').value, category: $('#newsCat').value, lang: $('#newLang').value};
+          days: +$('#newsDays').value, category: $('#newsCat').value, lang: $('#newLang').value,
+          count: +$('#newsCount').value};
 }
 function toggleNewsBox() {
+  $('#rankBox').classList.toggle('hidden', $('#newGenre').value !== 'ranking');
   const isNews = $('#newGenre').value === 'news';
   $('#newsBox').classList.toggle('hidden', !isNews);
   $('#newTopic').placeholder = isNews ? 'Để trống = AI tự chọn tin nóng nhất. Hoặc chọn tin đã quét / gõ chủ đề tin.'
@@ -436,8 +450,10 @@ async function initNews() {
   const d = await api('/api/news/regions');
   $('#newsRegion').innerHTML = d.regions.map(r => `<option value="${r.id}">${r.vi}</option>`).join('');
   $('#newsCat').innerHTML = d.categories.map(c => `<option value="${c.id}">${c.vi}</option>`).join('');
+  LANGS = d.langs;
   const langOpts = d.langs.map(l => `<option value="${l.id}">${l.vi}</option>`).join('');
-  $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts;
+  $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts; $('#ideaLang').innerHTML = langOpts;
+  if (P) renderTwinBtns();
   try { const dl = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').lang; if (dl) $('#newLang').value = dl; } catch {}
   if (P) $('#pLang').value = P.lang || 'ja';
   try {
@@ -447,6 +463,11 @@ async function initNews() {
   $('#newsCustom').classList.toggle('hidden', $('#newsRegion').value !== 'custom');
 }
 $('#newGenre').onchange = toggleNewsBox;
+$('#newsCount').onchange = () => {
+  const n = +$('#newsCount').value;
+  $('#newsHint').textContent = n > 1 ? `Điểm tin: bấm chọn tối đa ${n} tin ở trên, hoặc để trống → AI tự chọn ${n} tin nóng nhất.`
+    : 'Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.';
+};
 $('#newsRegion').onchange = () => $('#newsCustom').classList.toggle('hidden', $('#newsRegion').value !== 'custom');
 $('#btnScan').onclick = async () => {
   const b = $('#btnScan'); b.disabled = true; b.textContent = '⏳ Đang quét báo (1–2 phút)...';
@@ -457,9 +478,12 @@ $('#btnScan').onclick = async () => {
       <b>${esc(n.headline_vi)}</b>${esc(n.headline || n.headline_ja)}<br><small>${esc(n.date || '')} · ${esc(n.source || '')} · 🔥${n.score ?? ''}</small>
       <div>${esc(n.summary_vi || '')}</div></div>`).join('') || '<small>Không tìm thấy tin nào.</small>';
     $$('#newsList .news').forEach(el => el.onclick = () => {
-      $$('#newsList .news').forEach(x => x.classList.toggle('sel', x === el));
-      const n = items[+el.dataset.i];
-      $('#newTopic').value = `${n.headline || n.headline_ja}\n${n.date || ''} ${n.source || ''}\n${n.url || ''}`;
+      const multi = +$('#newsCount').value > 1;
+      if (multi) el.classList.toggle('sel');
+      else $$('#newsList .news').forEach(x => x.classList.toggle('sel', x === el));
+      const picked = $$('#newsList .news.sel').map(x => items[+x.dataset.i]);
+      $('#newTopic').value = picked.map((n, k) => (multi ? `${k + 1}. ` : '') +
+        `${n.headline || n.headline_ja}\n${n.date || ''} ${n.source || ''}\n${n.url || ''}`).join('\n');
     });
   } finally { b.disabled = false; b.textContent = '🔎 Quét tin mới nhất'; }
 };
@@ -480,7 +504,8 @@ $('#btnCreate').onclick = async () => {
   const video_pct = +$('#newRatio').value, genre = $('#newGenre').value, lang = $('#newLang').value;
   const news = genre === 'news' ? newsParams() : null;
   try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news, lang})); } catch {}
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang}});
+  const ranking_n = genre === 'ranking' ? +$('#rankN').value : null;
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n}});
   $('#newsList').innerHTML = '';
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);
@@ -492,6 +517,50 @@ $('#btnDelete').onclick = async () => {
   await api(`/api/projects/${P.id}`, {method: 'DELETE'});
   P = null; $('#proj').classList.add('hidden'); $('#empty').classList.remove('hidden'); loadList();
 };
+// ------------------------------------------------------------- gợi ý ý tưởng
+const GENRE_VI = {sports: '⚾ Thể thao', biography: '👤 Tiểu sử', news: '📰 Tin tức', ranking: '🏆 Top', general: '💡 Chủ đề chung'};
+function showOnly(id) {
+  ['#empty', '#proj', '#settings', '#ideas'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+}
+$('#btnIdeasOpen').onclick = () => {
+  showOnly('#ideas');
+  $('#ideaLang').value = $('#newLang').value;
+  try { const s = JSON.parse(localStorage.getItem('shorts_ideas') || 'null'); if (s && !$('#ideaList').innerHTML) renderIdeas(s); } catch {}
+};
+$('#btnIdeasClose').onclick = () => showOnly(P ? '#proj' : '#empty');
+function renderIdeas(list) {
+  $('#ideaList').innerHTML = list.map((x, i) => `<div class="idea">
+    <div class="body">
+      <div class="t">${esc(x.title)}</div><div class="vi">${esc(x.title_vi || '')}</div>
+      <div class="why">💬 ${esc(x.why_vi || '')}</div>
+      <div class="meta"><span class="badge">${GENRE_VI[x.genre] || x.genre}${x.genre === 'ranking' && x.ranking_n ? ' ' + x.ranking_n : ''}</span>
+        ${x.timely ? '<span class="badge hot">🔥 đang hot</span>' : '<span class="badge">♻️ không lỗi thời</span>'}
+        điểm ${x.score ?? '-'}/10</div>
+    </div>
+    <button class="primary" data-i="${i}">🎬 Làm video này</button></div>`).join('') || '<p class="muted">Không có gợi ý nào.</p>';
+  $$('#ideaList button[data-i]').forEach(b => b.onclick = () => {
+    const x = list[+b.dataset.i];
+    $('#newLang').value = $('#ideaLang').value;
+    $('#newGenre').value = x.genre; toggleNewsBox();
+    if (x.genre === 'ranking' && x.ranking_n) {
+      const n = String(x.ranking_n); if ([...$('#rankN').options].some(o => o.value === n)) $('#rankN').value = n;
+    }
+    $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
+    showOnly(P ? '#proj' : '#empty');
+    $('#newTitle').scrollIntoView({behavior: 'smooth', block: 'center'});
+    $('#newTitle').focus();
+  });
+}
+$('#btnIdeas').onclick = async () => {
+  const b = $('#btnIdeas'); b.disabled = true; b.textContent = '⏳ Claude đang tra cứu (1–2 phút)...';
+  try {
+    const list = await api('/api/ideas', {method: 'POST', json: {lang: $('#ideaLang').value, niche: $('#ideaNiche').value,
+      genre: $('#ideaGenre').value, count: +$('#ideaCount').value}});
+    try { localStorage.setItem('shorts_ideas', JSON.stringify(list)); } catch {}
+    renderIdeas(list);
+  } finally { b.disabled = false; b.textContent = '✨ Gợi ý ngay'; }
+};
+
 $('#lnkSettings').onclick = async e => {
   e.preventDefault();
   const s = await api('/api/settings');
@@ -499,7 +568,7 @@ $('#lnkSettings').onclick = async e => {
   $$('.src').forEach(c => c.checked = (s.image_sources || []).includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
   $('#sHL').checked = s.use_claude_for_highlight; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
-  $('#proj').classList.add('hidden'); $('#empty').classList.add('hidden'); $('#settings').classList.remove('hidden');
+  showOnly('#settings');
   $('#checkOut').textContent = 'Đang kiểm tra...';
   const c = await api('/api/check');
   $('#checkOut').textContent = [
