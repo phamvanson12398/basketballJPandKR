@@ -218,6 +218,61 @@ def pick(pid: str, sid: str, data: dict = Body(...)):
     return P.update(pid, apply)
 
 
+@app.post("/api/projects/{pid}/scenes/{sid}/crop")
+def crop_image(pid: str, sid: str, data: dict = Body(...)):
+    """Cắt ảnh: data = {file, x, y, w, h} (tỉ lệ 0–1 theo ảnh gốc). Ảnh gốc được giữ lại."""
+    import hashlib
+    from PIL import Image
+    base = P.pdir(pid)
+    p = P.load(pid)
+    sc = next((x for x in p["scenes"] if x["id"] == sid), None)
+    if not sc:
+        _err(ValueError("Không thấy cảnh"))
+    old = data.get("file", "")
+    cand = next((c for c in (sc.get("candidates") or []) + (sc.get("items") or [])
+                 if c.get("file") == old and c.get("kind") == "image"), None)
+    if not cand:
+        _err(ValueError("Không thấy ảnh này trong cảnh"))
+    # luôn cắt từ ảnh GỐC (cắt lại nhiều lần không bị mờ dần)
+    src_rel = cand.get("cropped_from") or old
+    src = (base / src_rel).resolve()
+    if base.resolve() not in src.parents or not src.exists():
+        _err(ValueError("Không thấy file ảnh gốc"))
+    im = Image.open(src).convert("RGB")
+    fx = max(0.0, min(1.0, float(data.get("x", 0))))
+    fy = max(0.0, min(1.0, float(data.get("y", 0))))
+    fw = max(0.02, min(1.0 - fx, float(data.get("w", 1))))
+    fh = max(0.02, min(1.0 - fy, float(data.get("h", 1))))
+    box = (round(fx * im.width), round(fy * im.height), round((fx + fw) * im.width), round((fy + fh) * im.height))
+    out = im.crop(box)
+    if out.width < 200 or out.height < 120:
+        _err(ValueError("Vùng cắt quá nhỏ, kéo rộng ra một chút nhé"))
+    tag = hashlib.md5(f"{src_rel}{box}".encode()).hexdigest()[:8]
+    new_rel = f"media/{sid}/crop_{tag}.jpg"
+    (base / "media" / sid).mkdir(parents=True, exist_ok=True)
+    out.save(base / new_rel, "JPEG", quality=93)
+
+    def apply(pp):
+        s = next(x for x in pp["scenes"] if x["id"] == sid)
+        for lst in ("candidates", "items"):
+            s[lst] = [dict(c, file=new_rel, cropped_from=src_rel) if c.get("file") == old else c
+                      for c in (s.get(lst) or [])]
+    return P.update(pid, apply)
+
+
+@app.post("/api/projects/{pid}/scenes/{sid}/uncrop")
+def uncrop_image(pid: str, sid: str, data: dict = Body(...)):
+    """Trả ảnh đã cắt về ảnh gốc."""
+    old = data.get("file", "")
+
+    def apply(pp):
+        s = next(x for x in pp["scenes"] if x["id"] == sid)
+        for lst in ("candidates", "items"):
+            s[lst] = [({k: v for k, v in c.items() if k != "cropped_from"} | {"file": c["cropped_from"]})
+                      if c.get("file") == old and c.get("cropped_from") else c for c in (s.get(lst) or [])]
+    return P.update(pid, apply)
+
+
 @app.post("/api/projects/{pid}/scenes/{sid}/upload")
 async def upload_scene(pid: str, sid: str, file: UploadFile = File(...)):
     data = await file.read()

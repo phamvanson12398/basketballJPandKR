@@ -138,6 +138,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
     nhờ Claude xem các đoạn tốt nhất rồi chọn đoạn **hợp với câu đang đọc**.
 - Click ảnh ứng viên để thêm hoặc bỏ. Với video, click khung hình để đổi sang đoạn khác.
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
+- **✂️ Cắt ảnh**: rê chuột lên ảnh → bấm ✂️ → kéo khung chọn vùng giữ lại (bỏ chữ, logo, watermark).
+  Khung mặc định khóa đúng tỉ lệ khung video nên không bị viền trắng; ảnh gốc được giữ, bấm "Về ảnh gốc" để hoàn tác.
 
 ### Bước 4 – Xuất video
 - **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 20 bài **do tool tự soạn bằng code, không bản quyền**

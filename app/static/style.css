@@ -256,3 +256,21 @@ label.radio.mode:has(input:checked){border-color:var(--pri);background:var(--pri
 .toast .x{margin-left:auto;border:none;background:none;padding:0 4px;color:var(--muted);font-size:16px}
 @keyframes toastIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
 #btnNotify.on{background:var(--ok-soft);color:var(--ok)}
+
+/* ---------- cắt ảnh ---------- */
+.thumb .crop-btn{position:absolute;top:5px;right:5px;width:30px;height:30px;padding:0;justify-content:center;border-radius:8px;
+  background:#000a;color:#fff;border:none;font-size:15px;opacity:0;transition:opacity .15s}
+.thumb:hover .crop-btn{opacity:1}
+.thumb .cut{position:absolute;bottom:4px;left:5px;background:#4f46e5;color:#fff;font-size:11px;padding:0 6px;border-radius:4px}
+.modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:16px}
+.modal-box{background:#fff;border-radius:16px;padding:16px 20px;max-width:min(1000px,96vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#cropStage{position:relative;display:inline-block;user-select:none;touch-action:none;line-height:0;background:#111;border-radius:8px;overflow:hidden}
+#cropImg{max-width:min(920px,90vw);max-height:62vh;display:block}
+#cropBox{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move}
+#cropBox::after{content:"";position:absolute;inset:0;background:
+  linear-gradient(#fff6,#fff6) 33.3% 0/1px 100% no-repeat,linear-gradient(#fff6,#fff6) 66.6% 0/1px 100% no-repeat,
+  linear-gradient(#fff6,#fff6) 0 33.3%/100% 1px no-repeat,linear-gradient(#fff6,#fff6) 0 66.6%/100% 1px no-repeat;pointer-events:none}
+#cropBox i{position:absolute;width:18px;height:18px;background:#fff;border:2px solid var(--pri);border-radius:4px;z-index:2}
+#cropBox i[data-h=nw]{left:-2px;top:-2px;cursor:nwse-resize}#cropBox i[data-h=ne]{right:-2px;top:-2px;cursor:nesw-resize}
+#cropBox i[data-h=sw]{left:-2px;bottom:-2px;cursor:nesw-resize}#cropBox i[data-h=se]{right:-2px;bottom:-2px;cursor:nwse-resize}
+.actions input[type=checkbox]{flex:none;min-width:0}
