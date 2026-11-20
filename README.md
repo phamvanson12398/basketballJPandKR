@@ -111,7 +111,12 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
 
 ### Bước 4 – Xuất video
-- Upload nhạc nền (được lưu lại để dùng cho video sau), chỉnh âm lượng, rồi bấm **🎬 Xuất video**.
+- **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 10 bài **do tool tự soạn bằng code, không bản quyền**
+  (2 bài mỗi thể loại: Thể thao – Sôi động/Kịch tính, Tin tức – Bản tin/Trầm tĩnh, Top – Đếm ngược/Vui nhộn,
+  Tiểu sử – Cảm động/Truyền cảm hứng, Chủ đề chung – Lo-fi/Tò mò), dùng chung cho video tiếng Nhật và tiếng Hàn.
+  Lần đầu mở tool, nhạc được soạn tự động trong ~2 phút. Muốn soạn lại: `python -m app.bgm_gen --force`.
+- Bạn vẫn có thể chọn bài khác hoặc upload nhạc của bạn (được lưu lại để dùng cho video sau), chỉnh âm lượng,
+  rồi bấm **🎬 Xuất video**.
 - Video nằm ở `projects\<mã video>\render\<title>.mp4`, hoặc tải trực tiếp trên trang.
 
 ### Bước 5 – Đăng TikTok

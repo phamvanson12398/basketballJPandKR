@@ -48,6 +48,8 @@ def get_project(pid: str):
     p = P.load(pid)
     p["ratio"] = P.ratio_info(p["scenes"]) if p["scenes"] else None
     p["job"] = jobs.get(pid)
+    from .bgm_gen import resolve as resolve_bgm
+    p["bgm_resolved"] = resolve_bgm(p)
     return p
 
 
@@ -267,7 +269,9 @@ def del_voice(name: str):
 
 @app.get("/api/bgm")
 def bgm_list():
-    return [f.name for f in sorted(BGM.iterdir()) if f.suffix.lower() in (".mp3", ".wav", ".m4a", ".ogg", ".aac", ".flac")]
+    files = [f.name for f in sorted(BGM.iterdir()) if f.suffix.lower() in (".mp3", ".wav", ".m4a", ".ogg", ".aac", ".flac")]
+    # nhạc của tool lên đầu, nhạc bạn upload ở sau
+    return sorted(files, key=lambda x: (not x.endswith("(tool).m4a"), x))
 
 
 @app.post("/api/bgm")
@@ -332,6 +336,15 @@ def main():
     a = ap.parse_args()
     url = f"http://127.0.0.1:{a.port}"
     print(f"\n  Mở trình duyệt: {url}\n")
+    def make_bgm():
+        try:
+            from .bgm_gen import ensure_all
+            n = ensure_all(log=lambda msg: print(msg, flush=True))
+            if n:
+                print(f"  Đã soạn xong {n} bài nhạc nền.", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print("  Không tạo được nhạc nền:", e, flush=True)
+    threading.Thread(target=make_bgm, daemon=True).start()   # lần đầu mất ~2 phút, chạy nền
     if not a.no_browser:
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()
     uvicorn.run(app, host="127.0.0.1", port=a.port, log_level="warning")

@@ -392,8 +392,17 @@ $('#btnMedia').onclick = () => {
 // ------------------------------------------------------------- 4. XUẤT
 async function loadBgm() {
   const list = await api('/api/bgm');
-  $('#bgmSel').innerHTML = '<option value="">— không dùng nhạc nền —</option>' + list.map(x => `<option ${x === P.bgm?.file ? 'selected' : ''}>${esc(x)}</option>`).join('');
-  $('#bgmPrev').src = P.bgm?.file ? `/library/bgm/${encodeURIComponent(P.bgm.file)}` : '';
+  const cur = P.bgm?.file ?? '';
+  $('#bgmSel').innerHTML = `<option value="__auto__">🎵 Tự chọn theo thể loại (nhạc tool soạn sẵn)</option>
+    <option value="">— Không dùng nhạc nền —</option>` +
+    list.map(x => `<option value="${esc(x)}">${x.endsWith('(tool).m4a') ? '🎼 ' : '📁 '}${esc(x.replace(' (tool).m4a', ''))}</option>`).join('');
+  $('#bgmSel').value = cur;
+  const real = cur === '__auto__' ? (P.bgm_resolved || '') : cur;
+  $('#bgmPrev').src = real ? `/library/bgm/${encodeURIComponent(real)}` : '';
+  $('#bgmHint').textContent = cur === '__auto__'
+    ? (real ? `Video này sẽ dùng: ${real.replace(' (tool).m4a', '')}. Nhạc do tool tự soạn, không bản quyền.`
+            : 'Nhạc đang được soạn lần đầu (khoảng 2 phút), mở lại tab này sau ít phút.')
+    : (list.some(x => x.endsWith('(tool).m4a')) ? '🎼 = nhạc tool tự soạn (không bản quyền) · 📁 = nhạc bạn upload' : '');
 }
 // ------------------------------------------------------------- 5. TIKTOK
 function tkTagsText() { return (P.tiktok?.hashtags || []).filter(t => t.on).map(t => t.tag).join(' '); }
@@ -451,7 +460,8 @@ function renderRender() {
 async function saveBgm() {
   P.bgm = {file: $('#bgmSel').value, volume: +$('#bgmVol').value / 100};
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {bgm: P.bgm}});
-  $('#bgmPrev').src = P.bgm.file ? `/library/bgm/${encodeURIComponent(P.bgm.file)}` : '';
+  P = Object.assign(await api(`/api/projects/${P.id}`), {job: P.job});
+  loadBgm();
 }
 $('#bgmSel').onchange = saveBgm;
 $('#bgmVol').oninput = () => { $('#bgmVolVal').textContent = $('#bgmVol').value; $('#bgmPrev').volume = $('#bgmVol').value / 100; };

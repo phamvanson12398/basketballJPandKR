@@ -43,7 +43,7 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "script_approved": False,
         "scenes": [],
         "voice": {"mode": "clone", "voice": "", "instruct": "", "speed": 1.0},
-        "bgm": {"file": "", "volume": 0.15},
+        "bgm": {"file": "__auto__", "volume": 0.15},   # nhạc nền tự chọn theo thể loại
         "output": "",
     }
     save(p)

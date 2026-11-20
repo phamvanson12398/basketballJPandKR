@@ -307,8 +307,12 @@ def render(pid: str, log) -> None:
     rel = rdir.relative_to(ROOT).as_posix()
     fonts_rel = FONTS.relative_to(ROOT).as_posix()
     cmd = [ffmpeg_bin(), "-v", "error", "-y", "-i", f"{rel}/video.mp4", "-i", f"{rel}/narration.wav"]
+    from .bgm_gen import resolve as resolve_bgm
     bgm = p.get("bgm", {})
-    bgm_file = BGM / bgm["file"] if bgm.get("file") else None
+    bgm_name = resolve_bgm(p)
+    bgm_file = BGM / bgm_name if bgm_name else None
+    if bgm_name:
+        log(f"Nhạc nền: {bgm_name}")
     if bgm_file and bgm_file.exists():
         vol = float(bgm.get("volume", 0.15))
         cmd += ["-stream_loop", "-1", "-i", str(bgm_file)]
