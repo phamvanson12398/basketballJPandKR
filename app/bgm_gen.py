@@ -31,6 +31,8 @@ TRACKS = [
     ("Sumo - Truyền thống (tool).m4a",        "sumo",      "sumo_traditional"),
     ("Bóng đá - Sân vận động (tool).m4a",     "soccer",    "soccer_stadium"),
     ("Bóng đá - Hào hùng (tool).m4a",         "soccer",    "soccer_anthem"),
+    ("Idol - J-pop sôi động (tool).m4a",      "idol",      "idol_pop"),
+    ("Idol - Ballad (tool).m4a",              "idol",      "idol_ballad"),
 ]
 
 
@@ -48,9 +50,9 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") in ("sumo", "soccer") and tracks_for(p["sport"]):
-        lay = p["sport"]   # sumo: trống taiko / shamisen · bóng đá: không khí sân vận động
-    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer")
+    if p.get("sport") in ("sumo", "soccer", "idol") and tracks_for(p["sport"]):
+        lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
+    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol")
                        else "sports")
     if not files:
         return ""
@@ -642,6 +644,55 @@ def soccer_anthem():
     s.put("crowd", crowd(s.n / SR + 1), 0, 0.6)
     return s.mix({"piano": 0.9, "bass": 0.8, "drums": 0.9, "brass": 1.0, "lead": 0.9, "pad": 0.7, "crowd": 1.0},
                  reverb=0.35)
+
+
+def idol_pop():
+    """J-pop idol: nhịp nhanh, vỗ tay, synth sáng, bass nhảy quãng tám, giai điệu bắt tai."""
+    s = Song(150, 48)
+    prog = ["F", "G", "Em", "Am"]          # tiến trình "royal road" rất hay gặp trong J-pop
+    mel = [12, 14, 16, 19, 16, 14, 12, 11]
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 4)
+        b0 = bar * 4
+        sec = bar // 8
+        if sec >= 1:
+            four_floor(s, bar, clap_=True, open_hat=True)
+        for k in range(8):                  # bass nhảy quãng tám
+            s.put("bass", bass(c[0] - 24 + (12 if k % 2 else 0), s.beat / 2 * 0.7, cutoff=900), b0 + k / 2)
+        for k in range(4):                  # hợp âm synth nhịp phách
+            s.put("synth", sum(lead(m, s.beat * 0.35, 0.03, "saw") for m in c), b0 + k + 0.5)
+        if sec in (2, 3, 5):                # giai điệu điệp khúc
+            for k, iv in enumerate(mel):
+                s.put("lead", lead(48 + 12 + iv + (2 if bar % 4 == 1 else 0), s.beat / 2 * 0.85, 0.07), b0 + k / 2)
+        if bar % 8 == 7:                    # dồn trống trước đoạn mới
+            for k in range(8):
+                s.put("drums", snare(), b0 + 2 + k / 4, 0.5 + k * 0.05)
+        s.put("pad", pad(c, s.beat * 4, 2600, 0.07), b0)
+    return s.mix({"drums": 0.9, "hats": 0.6, "bass": 0.9, "synth": 0.7, "lead": 0.9, "pad": 0.6}, reverb=0.25)
+
+
+def idol_ballad():
+    """Ballad idol (kiểu nhạc tốt nghiệp / cảm động): piano + dây đàn tổng hợp, trống nhẹ ở nửa sau."""
+    s = Song(76, 28)
+    prog = [("C", "C"), ("G", "B"), ("Am", "A"), ("Em", "G"), ("F", "F"), ("C", "E"), ("Dm", "D"), ("G", "G")]
+    for bar in range(s.bars):
+        name, bnote = prog[bar % 8]
+        c = chord(name, 4)
+        b0 = bar * 4
+        s.put("bass", piano(12 * 3 + NOTE[bnote], s.beat * 3.8, 0.6), b0)
+        for k, m in enumerate([c[0], c[1], c[2], c[1] + 12, c[2], c[1]]):
+            s.put("piano", piano(m, s.beat * 0.9, 0.45), b0 + k * 4 / 6)
+        if bar >= 8:
+            s.put("strings", pad(chord(name, 4), s.beat * 4, 1300, 0.12), b0)
+        if bar >= 16:
+            s.put("drums", kick(0.6), b0)
+            s.put("drums", snare(), b0 + 2, 0.5)
+            for k in range(4):
+                s.put("hats", hat(), b0 + k, 0.35)
+            s.put("melody", piano(c[2] + 12, s.beat * 1.8, 0.4), b0)
+            s.put("melody", piano(c[1] + 12, s.beat * 1.8, 0.35), b0 + 2)
+    return s.mix({"piano": 1.0, "bass": 0.8, "strings": 0.9, "drums": 0.6, "hats": 0.4, "melody": 0.9}, reverb=0.45)
 
 
 # ---------------------------------------------------------------- xuất file

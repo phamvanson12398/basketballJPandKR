@@ -701,7 +701,7 @@ function renderIdeas(list) {
     }
     $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
     const niche = $('#ideaNiche').value.toLowerCase();
-    const sp = /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
+    const sp = /idol|アイドル|akb|乃木坂|nogizaka/.test(niche) ? 'idol' : /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
       : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
     if (sp) $('#newSport').value = sp;
     openCreate();
