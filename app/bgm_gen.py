@@ -27,6 +27,8 @@ TRACKS = [
     ("Tiểu sử - Truyền cảm hứng (tool).m4a",  "biography", "bio_inspire"),
     ("Chủ đề chung - Lo-fi (tool).m4a",       "general",   "gen_lofi"),
     ("Chủ đề chung - Tò mò (tool).m4a",       "general",   "gen_curious"),
+    ("Sumo - Trống Taiko (tool).m4a",         "sumo",      "sumo_taiko"),
+    ("Sumo - Truyền thống (tool).m4a",        "sumo",      "sumo_traditional"),
 ]
 
 
@@ -44,7 +46,9 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general") else "sports")
+    if p.get("sport") == "sumo" and tracks_for("sumo"):
+        lay = "sumo"   # video sumo: nhạc trống taiko / shamisen
+    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo") else "sports")
     if not files:
         return ""
     return files[sum(p.get("id", "").encode()) % len(files)]
@@ -476,6 +480,92 @@ def gen_curious():
             for k in range(4):
                 s.put("hats", hat(), b0 + k + 0.5, 0.5)
     return s.mix({"pizz": 1.0, "bass": 0.9, "drums": 0.6, "hats": 0.4}, reverb=0.2)
+
+
+def taiko(big=True):
+    """Trống taiko: thân trống trầm, ngân dài + tiếng dùi gõ."""
+    n = int((1.2 if big else 0.5) * SR)
+    t = np.arange(n) / SR
+    f0 = 62 if big else 140
+    f = f0 * (1 + 0.35 * np.exp(-t * 18))
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * (3.2 if big else 9))
+    hit = hp_fast(RNG.standard_normal(n), 900) * np.exp(-t * 60) * 0.25
+    return (body + hit) * (1.0 if big else 0.6)
+
+
+def kane():
+    """Chuông kim loại nhỏ (kane) – tiếng leng keng giữ nhịp."""
+    n = int(0.6 * SR)
+    t = np.arange(n) / SR
+    return sum(np.sin(2 * np.pi * fr * t) * a for fr, a in ((2100, 0.5), (3350, 0.3), (5200, 0.2))) * np.exp(-t * 14) * 0.12
+
+
+def shamisen(m, dur, vel=0.6):
+    """Shamisen: đàn gảy sáng, tắt nhanh + tiếng 'sawari' rè nhẹ."""
+    x = pluck(m, dur, vel, bright=1.0)
+    n = len(x)
+    t = np.arange(n) / SR
+    return x + 0.15 * vel * np.sign(np.sin(2 * np.pi * hz(m) * t)) * np.exp(-t * 25) * 0.3
+
+
+def shakuhachi(m, dur, vol=0.12):
+    """Sáo shakuhachi: âm sine có hơi thở và rung nhẹ."""
+    n = int((dur + 0.3) * SR)
+    t = np.arange(n) / SR
+    vib = 1 + 0.006 * np.sin(2 * np.pi * 5 * t) * np.minimum(1, t / 0.4)
+    tone = np.sin(2 * np.pi * np.cumsum(hz(m) * vib) / SR)
+    breath = lp_fast(RNG.standard_normal(n), 2500) * 0.25
+    e = np.minimum(1, t / 0.15) * np.where(t < dur, 1, np.exp(-(t - dur) * 6))
+    return vol * (tone + breath) * e
+
+
+# thang âm Nhật (miyako-bushi): Mi Fa La Si Đô
+MIYAKO = [0, 1, 5, 7, 8]
+
+
+def sumo_taiko():
+    s = Song(132, 40)
+    pat = [(0, True), (1, False), (1.5, False), (2, True), (3, True), (3.5, False)]
+    for bar in range(s.bars):
+        b0 = bar * 4
+        sec = bar // 8
+        for k, big in pat:
+            s.put("taiko", taiko(big), b0 + k, 1.0 if big else 0.7)
+        if sec >= 1:
+            for k in range(4):
+                s.put("kane", kane(), b0 + k + 0.5)
+        if sec in (2, 3):   # dàn trống đuổi nhau
+            for k in range(8):
+                s.put("taiko", taiko(False), b0 + k / 2 + 0.25, 0.4)
+        if sec >= 1:
+            root = 52   # Mi
+            phrase = [0, 1, 3, 4, 3, 1, 0, 2]
+            for k, idx in enumerate(phrase):
+                m = root + MIYAKO[idx] + (12 if sec == 3 else 0)
+                s.put("shamisen", shamisen(m, s.beat * 0.4, 0.6), b0 + k / 2)
+        if bar % 8 == 7:   # tiếng hô dồn trước đoạn mới
+            for k in range(4):
+                s.put("taiko", taiko(True), b0 + 2 + k / 2, 0.9)
+    return s.mix({"taiko": 1.0, "kane": 0.5, "shamisen": 0.8}, reverb=0.3)
+
+
+def sumo_traditional():
+    s = Song(76, 24)
+    for bar in range(s.bars):
+        b0 = bar * 4
+        s.put("taiko", taiko(True), b0, 0.9)
+        if bar % 2 == 1:
+            s.put("taiko", taiko(True), b0 + 2.5, 0.6)
+        root = 52
+        if bar % 4 in (0, 2):
+            for k, idx in enumerate([4, 3, 1, 0]):
+                s.put("shamisen", shamisen(root + MIYAKO[idx] + 12, s.beat * 0.8, 0.5), b0 + k)
+        if bar >= 4:
+            line = [(0, 3, 2.0), (2, 4, 2.0)] if bar % 2 == 0 else [(0, 1, 3.0)]
+            for pos, idx, d in line:
+                s.put("flute", shakuhachi(root + MIYAKO[idx] + 12, s.beat * d), b0 + pos)
+        s.put("drone", pad([40, 47], s.beat * 4, 700, 0.08), b0)
+    return s.mix({"taiko": 0.9, "shamisen": 0.8, "flute": 0.9, "drone": 0.7}, reverb=0.45)
 
 
 # ---------------------------------------------------------------- xuất file

@@ -164,6 +164,31 @@ score は話題性（1〜10）。新しい順ではなく、話題性の高い�
     return out
 
 
+# ---------------------------------------------------------------- MÔN THỂ THAO
+SPORTS = {
+    "baseball": {"vi": "⚾ Bóng chày", "ja": "野球", "rule": """## 競技: 野球（NPB / MLB / 高校野球 / KBO）
+- 用語は正確に（防御率・打率・本塁打・先発・救援・ドラフト・FA など）。成績の数字は公式記録や報道で確認。
+- 選手名は tts で読みをかな/ハングルにする（例: 上沢→うわさわ）。
+- image_query / video_query は「選手名 + 球団名 + 場面（投球/本塁打/試合後）」で具体的に。"""},
+    "basketball": {"vi": "🏀 Bóng rổ", "ja": "バスケットボール", "rule": """## 競技: バスケットボール（Bリーグ / KBL / NBA / 代表戦）
+- 用語は正確に（得点・リバウンド・アシスト・3P成功率・ダブルダブル・ドラフト・2ウェイ契約 など）。数字は公式記録で確認。
+- image_query / video_query は「選手名 + チーム名 + 場面（ダンク/3P/ハイライト）」で具体的に。"""},
+    "sumo": {"vi": "🤼 Sumo", "ja": "大相撲", "rule": """## 競技: 大相撲（相撲）
+- 用語を正確に使う: 番付（横綱・大関・関脇・小結・前頭・十両）、本場所（初場所・春場所・夏場所・名古屋場所・秋場所・九州場所）、
+  取組・立ち合い・決まり手（寄り切り・押し出し・上手投げ・突き落とし など）、勝ち越し・負け越し・千秋楽・金星・懸賞・優勝・昇進。
+- 四股名は読みが難しいので、tts では必ず読みをひらがな（韓国語ならハングル）にする
+  （例: 照ノ富士→てるのふじ、大の里→おおのさと、豊昇龍→ほうしょうりゅう、琴櫻→ことざくら、霧島→きりしま）。
+- 成績・番付・優勝回数は日本相撲協会の公式情報や報道で確認する。力士の私生活のうわさ・未確認情報は書かない。
+- 相撲を知らない視聴者向けに、専門用語は短く補足する（韓国語なら 요코즈나＝最高位 のように）。
+- action: 立ち合い・決まり手の瞬間・逆転・優勝の瞬間・懸賞金を受け取る場面=高、番付や成績の説明=低。
+- image_query は「四股名 + 場所名/年 + 取組/土俵入り/優勝」、video_query は「四股名 + 取組 + 場所名」や「大相撲 ハイライト 場所名」。"""},
+    "soccer": {"vi": "⚽ Bóng đá", "ja": "サッカー", "rule": """## 競技: サッカー（Jリーグ / Kリーグ / 欧州 / 代表戦）
+- 用語は正確に（ゴール・アシスト・PK・移籍金・代表キャップ など）。数字は公式記録で確認。
+- image_query / video_query は「選手名 + クラブ名 + 場面（ゴール/ハイライト）」で具体的に。"""},
+    "other": {"vi": "🏅 Môn khác / không phải thể thao", "ja": "", "rule": ""},
+}
+
+
 # ---------------------------------------------------------------- CHỮ TRÊN MÀN HÌNH (bố cục)
 SCREEN_RULES = {
     "news": """## 画面表示用テキスト（JSON の "screen" と各シーンに入れる）
@@ -201,6 +226,7 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 
 ## スタイル（参考動画の特徴）
 {style}
+{sport_rule}
 {lang_rules}
 - テンポよく引きのある語り口にするが、誹謗中傷や事実でないことは書かない。必要ならWeb検索で事実を確認する。
 - 字幕は白背景に黒文字で表示され、1チャンク=1〜3行、1行は最大{line_max}文字。
@@ -263,6 +289,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
         lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
         screen_rule=SCREEN_RULES.get(p.get("genre"), ""),
+        sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"],
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
@@ -357,7 +384,8 @@ def gen_tiktok(pid: str, log) -> None:
     script = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
     log("Đang nhờ Claude viết title và hashtag TikTok...", 0.2)
     L = LG.get(p.get("lang"))
-    text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ"),
+    sport_ja = SPORTS.get(p.get("sport") or "other", SPORTS["other"])["ja"]
+    text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ") + (f"（{sport_ja}）" if sport_ja else ""),
                                     title=p.get("title", ""), script=script, country=L["country"],
                                     people=L["people"], lang_name=L["name"], discover=L["discover"]),
                timeout=300)

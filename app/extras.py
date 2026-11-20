@@ -33,7 +33,7 @@ def create_twin(pid: str, lang: str) -> dict:
     if not src.get("scenes"):
         raise ValueError("Video gốc chưa có content")
     new = P.create(src.get("title", ""), src.get("topic", ""), src["duration"], src.get("genre", "sports"),
-                   src.get("video_pct", 30), src.get("news"), lang)
+                   src.get("video_pct", 30), src.get("news"), lang, src.get("ranking_n"), src.get("sport") or "other")
     nd, sd = P.pdir(new["id"]), P.pdir(pid)
     for sub in ("media", "sources"):
         if (sd / sub).exists():

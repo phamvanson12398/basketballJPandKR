@@ -40,7 +40,7 @@ def create_project(data: dict = Body(...)):
     return P.create(title, topic, int(data.get("duration") or 60), genre,
                     int(data.get("video_pct") if data.get("video_pct") is not None else 30),
                     data.get("news") if genre == "news" else None, data.get("lang") or "ja",
-                    data.get("ranking_n"))
+                    data.get("ranking_n"), data.get("sport") or "other")
 
 
 @app.get("/api/projects/{pid}")
@@ -58,7 +58,7 @@ def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
         for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang", "ranking_n",
-                  "screen", "layout"):
+                  "screen", "layout", "sport"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -116,8 +116,9 @@ def gen_script(pid: str, data: dict = Body(default={})):
 @app.get("/api/news/regions")
 def news_regions():
     from .languages import LANGS
-    from .script_gen import NEWS_REGIONS, NEWS_CATEGORIES
+    from .script_gen import NEWS_REGIONS, NEWS_CATEGORIES, SPORTS
     return {"regions": NEWS_REGIONS, "categories": NEWS_CATEGORIES,
+            "sports": [{"id": k, "vi": v["vi"]} for k, v in SPORTS.items()],
             "langs": [{"id": k, "vi": v["vi"]} for k, v in LANGS.items()]}
 
 

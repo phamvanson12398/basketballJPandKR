@@ -24,7 +24,8 @@ def pdir(pid: str) -> Path:
 
 
 def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30,
-           news: dict | None = None, lang: str = "ja", ranking_n: int | None = None) -> dict:
+           news: dict | None = None, lang: str = "ja", ranking_n: int | None = None,
+           sport: str = "other") -> dict:
     pid = new_id(title)
     d = pdir(pid)
     for sub in ("audio", "media", "sources", "render"):
@@ -36,6 +37,7 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "duration": int(duration),
         "genre": genre if genre in ("sports", "biography", "general", "news", "ranking") else "sports",
         "ranking_n": max(3, min(10, int(ranking_n))) if genre == "ranking" and ranking_n else None,
+        "sport": sport or "other",   # môn thể thao: baseball / basketball / sumo / soccer / other
         "news": news or {},       # tin tức: {region, days, category}
         "lang": lang if lang in LG.LANGS else LG.DEFAULT,   # ngôn ngữ video
         "video_pct": max(0, min(100, int(video_pct))),

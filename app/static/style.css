@@ -112,3 +112,5 @@ code{background:#eef2ff;padding:0 4px;border-radius:4px}
 #screenBox label.chk{display:flex;gap:6px;align-items:center;color:var(--fg);font-size:14px}
 #screenBox label.chk input{width:auto}
 .scene .lbl{display:grid;grid-template-columns:90px 1fr;gap:6px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+.presets{font-size:13px;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.presets a{cursor:pointer;color:var(--pri);background:#eff6ff;padding:2px 10px;border-radius:99px}

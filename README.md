@@ -43,6 +43,11 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 
 ## 2. Sử dụng
 
+### 🏅 Môn thể thao: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá
+Khi tạo video (trừ Tin tức), chọn **Môn thể thao**. Mỗi môn có hướng dẫn riêng cho AI (thuật ngữ, cách tra số liệu,
+từ khóa tìm ảnh/video). Riêng **Sumo**: dùng đúng thuật ngữ (横綱・大関・場所・決まり手…), tên võ sĩ (四股名) luôn được
+viết cách đọc bằng hiragana / hangul để giọng đọc chuẩn, và có nhạc nền riêng **trống Taiko / Truyền thống** (shamisen, sáo).
+
 ### 💡 Chưa biết làm gì? Bấm "Gợi ý ý tưởng video"
 Nút vàng ở góc trên bên trái. Chọn ngôn ngữ, thể loại, gõ ngách kênh (mặc định: bóng rổ Nhật – Hàn) → Claude tra cứu
 chủ đề đang hot và đưa ra 5–15 ý tưởng (title, lý do nên làm, 🔥 đang hot hay ♻️ không lỗi thời).
@@ -111,8 +116,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
 
 ### Bước 4 – Xuất video
-- **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 10 bài **do tool tự soạn bằng code, không bản quyền**
-  (2 bài mỗi thể loại: Thể thao – Sôi động/Kịch tính, Tin tức – Bản tin/Trầm tĩnh, Top – Đếm ngược/Vui nhộn,
+- **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 12 bài **do tool tự soạn bằng code, không bản quyền**
+  (2 bài mỗi thể loại + 2 bài Sumo: Thể thao – Sôi động/Kịch tính, Sumo – Trống Taiko/Truyền thống, Tin tức – Bản tin/Trầm tĩnh, Top – Đếm ngược/Vui nhộn,
   Tiểu sử – Cảm động/Truyền cảm hứng, Chủ đề chung – Lo-fi/Tò mò), dùng chung cho video tiếng Nhật và tiếng Hàn.
   Lần đầu mở tool, nhạc được soạn tự động trong ~2 phút. Muốn soạn lại: `python -m app.bgm_gen --force`.
 - Bạn vẫn có thể chọn bài khác hoặc upload nhạc của bạn (được lưu lại để dùng cho video sau), chỉnh âm lượng,

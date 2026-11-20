@@ -161,6 +161,8 @@ function renderScript() {
   $('#pRatio').value = tv; $('#pVidPct').textContent = tv; $('#pImgPct').textContent = 100 - tv;
   $('#pGenre').value = P.genre || 'sports';
   if ($('#pLang').options.length) $('#pLang').value = P.lang || 'ja';
+  if ($('#pSport').options.length) $('#pSport').value = P.sport || 'other';
+  $('#pSport').classList.toggle('hidden', P.genre === 'news');
   $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
@@ -230,6 +232,10 @@ $('#pLang').onchange = async () => {
   P.lang = $('#pLang').value;
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {lang: P.lang}});
   if (P.scenes.length && confirm('Đã đổi ngôn ngữ. Viết lại content bằng ngôn ngữ mới luôn không?')) runJob(`/api/projects/${P.id}/script`, {});
+};
+$('#pSport').onchange = async () => {
+  P.sport = $('#pSport').value;
+  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {sport: P.sport}});
 };
 $('#pLayout').onchange = async () => {
   P.layout = $('#pLayout').value;
@@ -513,6 +519,7 @@ function newsParams() {
 }
 function toggleNewsBox() {
   $('#rankBox').classList.toggle('hidden', $('#newGenre').value !== 'ranking');
+  $('#sportBox').classList.toggle('hidden', $('#newGenre').value === 'news');
   const isNews = $('#newGenre').value === 'news';
   $('#newsBox').classList.toggle('hidden', !isNews);
   $('#newTopic').placeholder = isNews ? 'Để trống = AI tự chọn tin nóng nhất. Hoặc chọn tin đã quét / gõ chủ đề tin.'
@@ -523,6 +530,10 @@ async function initNews() {
   $('#newsRegion').innerHTML = d.regions.map(r => `<option value="${r.id}">${r.vi}</option>`).join('');
   $('#newsCat').innerHTML = d.categories.map(c => `<option value="${c.id}">${c.vi}</option>`).join('');
   LANGS = d.langs;
+  const sportOpts = d.sports.map(s => `<option value="${s.id}">${s.vi}</option>`).join('');
+  $('#newSport').innerHTML = sportOpts; $('#pSport').innerHTML = sportOpts;
+  try { const ds = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').sport; $('#newSport').value = ds || 'basketball'; } catch { $('#newSport').value = 'basketball'; }
+  if (P) $('#pSport').value = P.sport || 'other';
   const langOpts = d.langs.map(l => `<option value="${l.id}">${l.vi}</option>`).join('');
   $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts; $('#ideaLang').innerHTML = langOpts;
   if (P) renderTwinBtns();
@@ -577,7 +588,9 @@ $('#btnCreate').onclick = async () => {
   const news = genre === 'news' ? newsParams() : null;
   try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news, lang})); } catch {}
   const ranking_n = genre === 'ranking' ? +$('#rankN').value : null;
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n}});
+  const sport = genre === 'news' ? 'other' : $('#newSport').value;
+  try { const d0 = JSON.parse(localStorage.getItem('shorts_defaults') || '{}'); d0.sport = $('#newSport').value; localStorage.setItem('shorts_defaults', JSON.stringify(d0)); } catch {}
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n, sport}});
   $('#newsList').innerHTML = '';
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);
@@ -600,6 +613,7 @@ $('#btnIdeasOpen').onclick = () => {
   try { const s = JSON.parse(localStorage.getItem('shorts_ideas') || 'null'); if (s && !$('#ideaList').innerHTML) renderIdeas(s); } catch {}
 };
 $('#btnIdeasClose').onclick = () => showOnly(P ? '#proj' : '#empty');
+$$('.presets a').forEach(a => a.onclick = () => { $('#ideaNiche').value = a.dataset.n; });
 function renderIdeas(list) {
   $('#ideaList').innerHTML = list.map((x, i) => `<div class="idea">
     <div class="body">
@@ -618,6 +632,10 @@ function renderIdeas(list) {
       const n = String(x.ranking_n); if ([...$('#rankN').options].some(o => o.value === n)) $('#rankN').value = n;
     }
     $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
+    const niche = $('#ideaNiche').value.toLowerCase();
+    const sp = /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
+      : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
+    if (sp) $('#newSport').value = sp;
     showOnly(P ? '#proj' : '#empty');
     $('#newTitle').scrollIntoView({behavior: 'smooth', block: 'center'});
     $('#newTitle').focus();
