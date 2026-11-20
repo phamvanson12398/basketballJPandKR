@@ -286,7 +286,9 @@ def ranking(e: Ev, p, scenes, starts, total, g):
     e.add(0, total, f"\\an8\\fs{96 * K:.0f}\\c{YELLOW}\\bord4\\3c{BLACK}{fit(scr.get('title2', ''), 96)}"
                     f"\\fscx40\\fscy40\\t(100,280,\\fscx108\\fscy108)\\t(280,380,\\fscx100\\fscy100)"
                     f"\\pos(540,{my - 205})", esc(scr.get("title2", p.get("title", ""))), 2)
-    for rv, a, b, sc in segments(scenes, starts, total, "rank"):
+    # gom theo (hạng, dải tên): 2 mục đồng hạng sẽ có dải tên riêng (và màn "第N位" hiện cho từng mục)
+    keyed = [dict(sc, _rk=(sc.get("rank"), sc.get("rank_label") or "")) for sc in scenes]
+    for (rv, _lbl), a, b, sc in segments(keyed, starts, total, "_rk"):
         try:
             n = int(rv)
         except (TypeError, ValueError):

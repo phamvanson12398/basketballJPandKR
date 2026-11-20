@@ -48,13 +48,16 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 > bạn nhận **thông báo của Windows + tiếng "ting ting" + tên tab nhấp nháy "✅ Xong!"**, kể cả khi đang xem tab khác
 > hoặc đang mở video khác. Bấm vào thông báo là mở đúng video, đúng bước.
 
-### 🏅 Lĩnh vực: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá / 🎤 Idol Nhật / 🎶 K-pop
+### 🏅 Lĩnh vực: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá / 🎤 Idol Nhật / 🎶 K-pop / 😂 Hài – M-1
 Khi tạo video (trừ Tin tức), chọn **Lĩnh vực**. **🎤 Idol Nhật**: tên thành viên luôn có cách đọc, thứ hạng dựa trên
 số lần center / tuyển chọn / tổng tuyển cử / phát ngôn chính thức, không viết tin đồn tình cảm hay scandal; nhạc nền riêng
 **J-pop sôi động / Ballad**. Top có thêm Top 4, 6, 8.
 **🎶 K-pop**: tên nhóm/thành viên đúng (hangul cho video tiếng Hàn, katakana cho video tiếng Nhật), số liệu từ
 chương trình âm nhạc / Circle / Hanteo / MelOn / Billboard, không tin đồn hẹn hò hay suy đoán tranh chấp công ty;
 nhạc nền riêng **Dance / Hip-hop**.
+**😂 Hài / M-1**: tên nhóm hài/nghệ sĩ có cách đọc, số liệu từ M-1 / King of Conte (năm vô địch, điểm giám khảo,
+năm cuối ラストイヤー, vòng phục hồi), không chép nguyên kịch bản tiết mục, không tin đồn scandal; nhạc nền riêng
+**Vui nhộn / Hồi hộp M-1**.
 **Idol Nhật và K-pop luôn dùng nền trắng** ở mọi thể loại (Top, Tiểu sử, Tin tức… đều đổi sang bản nền trắng, chữ tối). Mỗi môn có hướng dẫn riêng cho AI (thuật ngữ, cách tra số liệu,
 từ khóa tìm ảnh/video). Riêng **Sumo**: dùng đúng thuật ngữ (横綱・大関・場所・決まり手…), tên võ sĩ (四股名) luôn được
 viết cách đọc bằng hiragana / hangul để giọng đọc chuẩn, và có nhạc nền riêng **trống Taiko / Truyền thống** (shamisen, sáo).
@@ -137,7 +140,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
 
 ### Bước 4 – Xuất video
-- **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 18 bài **do tool tự soạn bằng code, không bản quyền**
+- **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 20 bài **do tool tự soạn bằng code, không bản quyền**
   (2 bài mỗi thể loại + 2 bài Sumo + 2 bài Bóng đá: Bóng đá – Sân vận động/Hào hùng, Thể thao – Sôi động/Kịch tính, Sumo – Trống Taiko/Truyền thống, Tin tức – Bản tin/Trầm tĩnh, Top – Đếm ngược/Vui nhộn,
   Tiểu sử – Cảm động/Truyền cảm hứng, Chủ đề chung – Lo-fi/Tò mò), dùng chung cho video tiếng Nhật và tiếng Hàn.
   Lần đầu mở tool, nhạc được soạn tự động trong ~2 phút. Muốn soạn lại: `python -m app.bgm_gen --force`.

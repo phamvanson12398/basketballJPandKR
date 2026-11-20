@@ -35,6 +35,8 @@ TRACKS = [
     ("Idol - Ballad (tool).m4a",              "idol",      "idol_ballad"),
     ("K-pop - Dance (tool).m4a",              "kpop",      "kpop_dance"),
     ("K-pop - Hip-hop (tool).m4a",            "kpop",      "kpop_hiphop"),
+    ("Hài - Vui nhộn (tool).m4a",             "owarai",    "owarai_fun"),
+    ("Hài - Hồi hộp M-1 (tool).m4a",          "owarai",    "owarai_tension"),
 ]
 
 
@@ -52,10 +54,10 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") in ("sumo", "soccer", "idol", "kpop") and tracks_for(p["sport"]):
+    if p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop")
+                                      "kpop", "owarai")
                        else "sports")
     if not files:
         return ""
@@ -758,6 +760,62 @@ def kpop_hiphop():
                 s.put("lead", lead(m, s.beat * 0.8, 0.05, "saw"), b0 + k)
         s.put("pad", pad(chord(prog[bar % 4], 4), s.beat * 4, 1000, 0.09), b0)
     return s.mix({"drums": 1.0, "hats": 0.6, "bass": 1.0, "lead": 0.8, "pad": 0.7}, reverb=0.2)
+
+
+def owarai_fun():
+    """Vui nhộn kiểu nhạc lên sân khấu (出囃子): nhịp swing, bass đi bộ, pizzicato, vỗ tay, kèn ngắn."""
+    s = Song(132, 40)
+    prog = ["C", "A7", "Dm7", "G7"]
+    walk = {"C": [0, 4, 7, 9], "A7": [0, 4, 7, 6], "Dm7": [0, 3, 7, 8], "G7": [0, 4, 7, 11]}
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 4)
+        root = c[0] - 24
+        b0 = bar * 4
+        sec = bar // 8
+        for k, iv in enumerate(walk[name]):                         # bass đi bộ
+            s.put("bass", pluck(root + iv, s.beat * 0.8, 0.8, 0.2), b0 + k)
+        for k in range(4):                                          # hi-hat swing
+            s.put("hats", hat(), b0 + k, 0.6)
+            s.put("hats", hat(), b0 + k + 0.5, 0.4, swing=0.7)
+        if sec >= 1:
+            s.put("drums", kick(0.7), b0)
+            s.put("drums", kick(0.7), b0 + 2)
+            s.put("drums", clap(), b0 + 1)
+            s.put("drums", clap(), b0 + 3)
+        for k in (0.5, 1.5, 2.5, 3.5):                              # hợp âm pizzicato nhảy nhót
+            s.put("pizz", sum(pluck(m, s.beat * 0.2, 0.3, 0.6) for m in c[:3]), b0 + k, swing=0.7)
+        if sec in (2, 4) and bar % 2 == 1:                          # kèn "ta-đa!" cuối câu
+            s.put("brass", brass([c[0] + 12, c[2] + 12], s.beat * 0.3, 0.10), b0 + 3)
+            s.put("brass", brass([c[0] + 12, c[2] + 12], s.beat * 0.8, 0.10), b0 + 3.5)
+        if sec == 3:                                                # đoạn giữa: piano rải vui
+            for k, m in enumerate([c[0] + 12, c[1] + 12, c[2] + 12, c[1] + 12]):
+                s.put("piano", piano(m, s.beat * 0.4, 0.45), b0 + k)
+    return s.mix({"bass": 1.0, "hats": 0.5, "drums": 0.7, "pizz": 0.8, "brass": 0.9, "piano": 0.8}, reverb=0.2)
+
+
+def owarai_tension():
+    """Hồi hộp kiểu chờ công bố điểm M-1: nhịp đập đều, dây trầm, trống cuộn dâng lên rồi 'bùm'."""
+    s = Song(100, 32)
+    prog = ["Am", "F", "Dm", "E"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 3)
+        b0 = bar * 4
+        for k in range(8):                                          # nhịp tim
+            s.put("bass", bass(c[0] - 12, s.beat * 0.3, cutoff=500, vol=0.3), b0 + k / 2, 1.0 if k % 2 == 0 else 0.6)
+        s.put("pad", pad(c, s.beat * 4, 900 + 60 * (bar % 8), 0.12), b0)
+        if bar % 8 >= 4:                                            # trống cuộn dâng dần
+            n = 4 * (1 + (bar % 8) - 4)
+            for k in range(n):
+                s.put("drums", snare(), b0 + k * 4 / n, 0.25 + 0.1 * (bar % 8 - 4))
+        if bar % 8 == 0 and bar > 0:                                # "bùm" mở đoạn mới
+            s.put("drums", kick(1.3), b0)
+            s.put("drums", tom(33), b0, 1.0)
+            s.put("brass", brass(chord(prog[bar % 4], 3), s.beat * 2, 0.12), b0)
+        if bar >= 16:
+            for k in range(4):
+                s.put("hats", hat(), b0 + k + 0.5, 0.5)
+    return s.mix({"bass": 1.0, "pad": 0.9, "drums": 0.8, "brass": 0.9, "hats": 0.5}, reverb=0.35)
 
 
 # ---------------------------------------------------------------- xuất file
