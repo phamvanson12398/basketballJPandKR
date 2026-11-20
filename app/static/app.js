@@ -530,6 +530,7 @@ function showJob(j) {
 function startPoll() {
   clearInterval(pollTimer);
   const id = P.id;
+  watchJob(id);
   pollTimer = setInterval(async () => {
     if (!P || P.id !== id) return clearInterval(pollTimer);
     const j = await api(`/api/projects/${id}/job`);
@@ -542,6 +543,111 @@ function startPoll() {
     }
   }, 1500);
 }
+
+// ------------------------------------------------------------- 🔔 thông báo khi xong việc
+const JOB_MSG = {
+  script: ['✍️', 'Đã viết xong content', 'Vào bước 1 để đọc & duyệt'],
+  tts: ['🎙️', 'Đã đọc xong giọng', 'Vào bước 2 để nghe thử'],
+  media: ['🖼️', 'Đã tìm xong ảnh & video', 'Vào bước 3 để xem lại'],
+  render: ['🎬', 'Đã xuất xong video!', 'Vào bước 4 để xem & tải video'],
+  tiktok: ['#️⃣', 'Đã tạo xong title & hashtag', 'Vào bước 5 để copy đi đăng'],
+};
+const JOB_TAB = {script: 'script', tts: 'voice', media: 'media', render: 'render', tiktok: 'tiktok'};
+const WATCH = new Set();
+let watchTimer = null;
+function watchJob(pid) {
+  WATCH.add(pid);
+  if (!watchTimer) watchTimer = setInterval(checkWatch, 2000);
+}
+async function checkWatch() {
+  for (const pid of [...WATCH]) {
+    let j;
+    try { j = await (await fetch(`/api/projects/${pid}/job`)).json(); } catch { continue; }
+    if (j.status === 'running') continue;
+    WATCH.delete(pid);
+    if (j.status !== 'done' && j.status !== 'error') continue;
+    const title = (PROJECTS.find(p => p.id === pid) || (P && P.id === pid ? P : {})).title || 'Video của bạn';
+    const m = JOB_MSG[j.name] || ['✅', 'Đã xong', ''];
+    if (j.status === 'done') {
+      notify(m[0], m[1], `${title} · ${m[2]}`, 'ok', () => openProject(pid).then(() => setTab(JOB_TAB[j.name] || 'script')));
+    } else {
+      notify('⚠️', 'Có lỗi: ' + m[1].replace('Đã ', '').replace(' xong', ''), `${title} · ${(j.error || '').slice(0, 120)}`, 'err',
+             () => openProject(pid));
+    }
+    loadList();
+  }
+  if (!WATCH.size) { clearInterval(watchTimer); watchTimer = null; }
+}
+
+// tiếng "ting ting" (tự tạo, không cần file)
+function chime(ok = true) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    (ok ? [880, 1320] : [440, 330]).forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.type = 'sine';
+      const t = ctx.currentTime + i * 0.18;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.55);
+    });
+    setTimeout(() => ctx.close(), 1500);
+  } catch {}
+}
+
+// tên tab nhấp nháy khi bạn đang ở tab khác
+const BASE_TITLE = document.title;
+let flashTimer = null;
+function flashTitle(text) {
+  clearInterval(flashTimer);
+  let on = false;
+  flashTimer = setInterval(() => { document.title = (on = !on) ? text : BASE_TITLE; }, 1000);
+  document.title = text;
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { clearInterval(flashTimer); document.title = BASE_TITLE; }
+});
+
+function notify(icon, title, body, kind = 'ok', onClick = null) {
+  chime(kind !== 'err');
+  // hộp thông báo trong trang
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.innerHTML = `<span class="ic">${icon}</span><div><b>${esc(title)}</b><small>${esc(body)}</small></div><button class="x" title="Đóng">✕</button>`;
+  t.onclick = e => { if (e.target.classList.contains('x')) { t.remove(); return; } t.remove(); onClick && onClick(); };
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), 12000);
+  // đang ở tab khác → nhấp nháy tên tab + thông báo của máy
+  if (document.hidden) {
+    flashTitle(`${kind === 'err' ? '⚠️ Lỗi' : '✅ Xong'}! ${title}`);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const n = new Notification(`${icon} ${title}`, {body, tag: 'shorts-maker-' + Date.now()});
+        n.onclick = () => { window.focus(); n.close(); onClick && onClick(); };
+      } catch {}
+    }
+  }
+}
+
+// nút chuông: xin phép hiện thông báo của máy
+function drawNotifyBtn() {
+  const b = $('#btnNotify');
+  if (!('Notification' in window)) { b.classList.add('hidden'); return; }
+  const p = Notification.permission;
+  b.classList.toggle('on', p === 'granted');
+  b.textContent = p === 'granted' ? '🔔 Thông báo: bật' : p === 'denied' ? '🔕 Thông báo bị chặn' : '🔔 Bật thông báo';
+  b.title = p === 'denied'
+    ? 'Trình duyệt đang chặn thông báo. Bấm biểu tượng ổ khóa cạnh địa chỉ trang → Thông báo → Cho phép, rồi tải lại trang.'
+    : 'Báo khi tool làm xong việc, kể cả khi bạn đang ở tab khác';
+}
+$('#btnNotify').onclick = async () => {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') await Notification.requestPermission();
+  drawNotifyBtn();
+  if (Notification.permission === 'granted') notify('🔔', 'Đã bật thông báo', 'Tool sẽ báo mỗi khi làm xong một việc.', 'info');
+  else if (Notification.permission === 'denied') alert($('#btnNotify').title);
+};
+drawNotifyBtn();
 
 // ------------------------------------------------------------- tạo mới, cài đặt
 // ---- chip chọn nhanh (ô chọn vẫn còn, chỉ ẩn đi)
@@ -615,6 +721,7 @@ $('#btnScan').onclick = async () => {
   $('#newsList').innerHTML = '';
   try {
     const items = await api('/api/news/suggest', {method: 'POST', json: newsParams()});
+    notify('📰', `Đã quét xong ${items.length} tin`, 'Bấm chọn tin để làm video', 'ok', () => openCreate());
     $('#newsList').innerHTML = items.map((n, i) => `<div class="news" data-i="${i}">
       <b>${esc(n.headline_vi)}</b>${esc(n.headline || n.headline_ja)}<br><small>${esc(n.date || '')} · ${esc(n.source || '')} · 🔥${n.score ?? ''}</small>
       <div>${esc(n.summary_vi || '')}</div></div>`).join('') || '<small>Không tìm thấy tin nào.</small>';
@@ -714,6 +821,7 @@ $('#btnIdeas').onclick = async () => {
     const list = await api('/api/ideas', {method: 'POST', json: {lang: $('#ideaLang').value, niche: $('#ideaNiche').value,
       genre: $('#ideaGenre').value, count: +$('#ideaCount').value}});
     try { localStorage.setItem('shorts_ideas', JSON.stringify(list)); } catch {}
+    notify('💡', `Đã có ${list.length} ý tưởng`, 'Bấm “Làm video này” ở ý tưởng bạn thích', 'ok', () => showOnly('#ideas'));
     renderIdeas(list);
   } finally { b.disabled = false; b.textContent = '✨ Gợi ý ngay'; }
 };

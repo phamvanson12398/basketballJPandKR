@@ -43,6 +43,11 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 
 ## 2. Sử dụng
 
+> 🔔 **Bật thông báo**: bấm nút **🔔 Bật thông báo** ở thanh trên cùng (trình duyệt hỏi thì chọn *Cho phép*).
+> Mỗi khi tool làm xong một việc (viết content, đọc giọng, tìm ảnh/video, xuất video, tạo hashtag, gợi ý ý tưởng, quét tin),
+> bạn nhận **thông báo của Windows + tiếng "ting ting" + tên tab nhấp nháy "✅ Xong!"**, kể cả khi đang xem tab khác
+> hoặc đang mở video khác. Bấm vào thông báo là mở đúng video, đúng bước.
+
 ### 🏅 Lĩnh vực: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá / 🎤 Idol Nhật
 Khi tạo video (trừ Tin tức), chọn **Lĩnh vực**. **🎤 Idol Nhật**: tên thành viên luôn có cách đọc, thứ hạng dựa trên
 số lần center / tuyển chọn / tổng tuyển cử / phát ngôn chính thức, không viết tin đồn tình cảm hay scandal; nhạc nền riêng

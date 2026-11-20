@@ -245,3 +245,14 @@ label.radio.mode:has(input:checked){border-color:var(--pri);background:var(--pri
   .phead{flex-wrap:wrap} .phead-main{flex-basis:100%} .title-input{font-size:19px}
   .bottombar{flex-wrap:wrap} .chosen{flex-direction:column} .chosen video{width:100%}
 }
+
+/* ---------- thông báo ---------- */
+#toasts{position:fixed;right:20px;bottom:20px;z-index:100;display:flex;flex-direction:column;gap:10px;max-width:min(380px,calc(100vw - 40px))}
+.toast{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-left:5px solid var(--ok);
+  border-radius:12px;padding:12px 14px;box-shadow:0 12px 32px rgba(16,24,40,.18);cursor:pointer;animation:toastIn .25s ease-out}
+.toast.err{border-left-color:var(--bad)} .toast.info{border-left-color:var(--pri)}
+.toast .ic{font-size:22px;line-height:1}
+.toast b{display:block;font-size:14.5px} .toast small{color:var(--muted);font-size:13px}
+.toast .x{margin-left:auto;border:none;background:none;padding:0 4px;color:var(--muted);font-size:16px}
+@keyframes toastIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+#btnNotify.on{background:var(--ok-soft);color:var(--ok)}
