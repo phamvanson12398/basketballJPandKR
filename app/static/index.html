@@ -7,170 +7,228 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- ============================ THANH TRÊN CÙNG ============================ -->
+<header class="topbar">
+  <div class="brand">🎬 <b>Shorts Maker</b></div>
+  <button class="primary" id="btnNew">＋ Video mới</button>
+  <button id="btnIdeasOpen" class="soft">💡 Gợi ý ý tưởng</button>
+  <span class="grow"></span>
+  <span id="checkBadge" class="badge-status"></span>
+  <button id="lnkSettings" class="icon-btn" title="Cài đặt">⚙️</button>
+</header>
+
+<div class="shell">
+<!-- ============================ DANH SÁCH VIDEO ============================ -->
 <aside id="side">
-  <h1>🎬 Shorts Maker</h1>
-  <div class="card">
-    <button id="btnIdeasOpen" class="ideas-open">💡 Gợi ý ý tưởng video</button>
-    <h3>Tạo video mới</h3>
-    <label>Ngôn ngữ video (tool đóng vai người nước đó, nói với khán giả nước đó)</label>
-    <select id="newLang"></select>
-    <label>Thể loại</label>
-    <select id="newGenre">
-      <option value="sports">⚾ Thể thao</option>
-      <option value="biography">👤 Tiểu sử người nổi tiếng</option>
-      <option value="news">📰 Tin tức (mới nhất)</option>
-      <option value="ranking">🏆 Top / Xếp hạng</option>
-      <option value="general">💡 Chủ đề chung (kiến thức, chuyện lạ...)</option>
-    </select>
-    <div id="sportBox">
-      <label>Môn thể thao (nếu có)</label>
-      <select id="newSport"></select>
-    </div>
-    <div id="rankBox" class="hidden">
-      <label>Số hạng mục</label>
-      <select id="rankN"><option value="3">Top 3</option><option value="5" selected>Top 5</option>
-        <option value="7">Top 7</option><option value="10">Top 10</option></select>
-    </div>
-    <div id="newsBox" class="hidden">
-      <label>Tin của quốc gia nào?</label>
-      <select id="newsRegion"></select>
-      <input id="newsCustom" class="hidden" placeholder="Tên quốc gia, VD: Indonesia">
-      <div class="grid2">
-        <div><label>Trong vòng</label>
-          <select id="newsDays"><option value="1">24 giờ</option><option value="3" selected>3 ngày</option>
-            <option value="7">1 tuần</option><option value="30">1 tháng</option></select></div>
-        <div><label>Lĩnh vực</label><select id="newsCat"></select></div>
-      </div>
-      <label>Số tin trong 1 video</label>
-      <select id="newsCount"><option value="1">1 tin (chi tiết)</option><option value="3">📋 Điểm tin: 3 tin</option>
-        <option value="5">📋 Điểm tin: 5 tin</option></select>
-      <button id="btnScan">🔎 Quét tin mới nhất</button>
-      <div id="newsList"></div>
-      <p class="hint" style="color:#9ca3af" id="newsHint">Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.</p>
-    </div>
-    <label>Title (nếu có)</label>
-    <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
-    <label>Chủ đề / ghi chú cho AI (không bắt buộc)</label>
-    <textarea id="newTopic" rows="3" placeholder="VD: kể chuyện Kawamura Yuki được Grizzlies ký hợp đồng..."></textarea>
-    <label>Thời lượng video</label>
-    <select id="newDur">
-      <option value="30">30 giây</option><option value="45">45 giây</option>
-      <option value="60" selected>60 giây</option><option value="90">90 giây</option>
-      <option value="120">2 phút</option><option value="180">3 phút</option>
-      <option value="custom">Tự nhập...</option>
-    </select>
-    <input id="newDurCustom" type="number" min="10" max="600" placeholder="số giây" class="hidden">
-    <label>Tỉ lệ: Ảnh <b id="newImgPct">70</b>% / Video <b id="newVidPct">30</b>%</label>
-    <input id="newRatio" type="range" min="0" max="100" step="5" value="30">
-    <button class="primary" id="btnCreate">＋ Tạo &amp; viết content</button>
+  <div class="side-head">
+    <span>Video của bạn</span>
   </div>
-  <h3>Video đã làm</h3>
+  <input id="projSearch" class="search" placeholder="🔍 Tìm video...">
   <ul id="projList"></ul>
-  <div class="foot"><a href="#" id="lnkSettings">⚙️ Cài đặt</a> · <span id="checkBadge"></span></div>
 </aside>
 
 <main id="main">
-  <div id="empty" class="empty">
-    <h2>Chào bạn 👋</h2>
-    <p>Nhập title hoặc chủ đề ở bên trái và chọn thời lượng để bắt đầu.</p>
-    <ol>
-      <li>AI viết content → <b>bạn duyệt</b></li>
-      <li>OmniVoice đọc content (giọng mẫu / mô tả giọng / tự động)</li>
-      <li>Tự tìm ảnh + video theo tỉ lệ bạn chọn (mặc định 70/30) → bạn xem lại, đổi được</li>
-      <li>Chọn nhạc nền → xuất video</li>
-    </ol>
+
+  <!-- ============================ MÀN HÌNH CHÀO ============================ -->
+  <div id="empty" class="view-center">
+    <div class="hero">
+      <h1>Chào bạn 👋</h1>
+      <p class="muted">Bắt đầu làm video Shorts tiếng Nhật / tiếng Hàn chỉ với vài bước.</p>
+      <div class="hero-actions">
+        <button class="hero-card" id="btnNewEmpty"><span class="ic">＋</span><b>Tạo video mới</b><small>Nhập chủ đề, AI viết content</small></button>
+        <button class="hero-card" id="btnIdeasEmpty"><span class="ic">💡</span><b>Chưa biết làm gì?</b><small>AI gợi ý chủ đề đang hot</small></button>
+      </div>
+      <ol class="flow">
+        <li><span>1</span>Content<small>AI viết, bạn duyệt</small></li>
+        <li><span>2</span>Giọng đọc<small>OmniVoice</small></li>
+        <li><span>3</span>Ảnh &amp; video<small>tự tìm, đổi được</small></li>
+        <li><span>4</span>Xuất video<small>có nhạc nền</small></li>
+        <li><span>5</span>Đăng TikTok<small>title + hashtag</small></li>
+      </ol>
+    </div>
   </div>
 
+  <!-- ============================ TẠO VIDEO MỚI ============================ -->
+  <div id="create" class="hidden view-narrow">
+    <div class="page-head">
+      <h2>Tạo video mới</h2>
+      <button id="btnCreateCancel" class="ghost">✕ Đóng</button>
+    </div>
+
+    <section class="panel">
+      <h3><span class="num">1</span> Video nói tiếng gì, thể loại gì?</h3>
+      <label>Ngôn ngữ (tool đóng vai người nước đó, nói với khán giả nước đó)</label>
+      <select id="newLang"></select>
+      <label>Thể loại</label>
+      <select id="newGenre">
+        <option value="sports">⚾ Thể thao</option>
+        <option value="biography">👤 Tiểu sử</option>
+        <option value="news">📰 Tin tức</option>
+        <option value="ranking">🏆 Top / Xếp hạng</option>
+        <option value="general">💡 Chủ đề chung</option>
+      </select>
+      <div id="sportBox">
+        <label>Môn thể thao</label>
+        <select id="newSport"></select>
+      </div>
+      <div id="rankBox" class="hidden">
+        <label>Bao nhiêu hạng?</label>
+        <select id="rankN"><option value="3">Top 3</option><option value="5" selected>Top 5</option>
+          <option value="7">Top 7</option><option value="10">Top 10</option></select>
+      </div>
+      <div id="newsBox" class="hidden subpanel">
+        <div class="grid2">
+          <div><label>Tin của quốc gia nào?</label><select id="newsRegion"></select>
+            <input id="newsCustom" class="hidden" placeholder="Tên quốc gia, VD: Indonesia"></div>
+          <div><label>Lĩnh vực</label><select id="newsCat"></select></div>
+        </div>
+        <label>Trong vòng</label>
+        <select id="newsDays"><option value="1">24 giờ</option><option value="3" selected>3 ngày</option>
+          <option value="7">1 tuần</option><option value="30">1 tháng</option></select>
+        <label>Số tin trong 1 video</label>
+        <select id="newsCount"><option value="1">1 tin (chi tiết)</option><option value="3">Điểm tin 3 tin</option>
+          <option value="5">Điểm tin 5 tin</option></select>
+        <button id="btnScan" class="soft wide">🔎 Quét tin mới nhất</button>
+        <div id="newsList"></div>
+        <p class="hint" id="newsHint">Chọn 1 tin ở trên, hoặc để trống chủ đề → AI tự chọn tin nóng nhất.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3><span class="num">2</span> Nói về điều gì?</h3>
+      <label>Title <span class="opt">(nếu có)</span></label>
+      <input id="newTitle" placeholder="VD: 河村勇輝がNBAで見せた神プレー">
+      <label>Chủ đề / ghi chú cho AI <span class="opt">(tiếng Việt cũng được)</span></label>
+      <textarea id="newTopic" rows="3" placeholder="VD: kể chuyện Kawamura Yuki được Grizzlies ký hợp đồng..."></textarea>
+    </section>
+
+    <section class="panel">
+      <h3><span class="num">3</span> Dài bao lâu?</h3>
+      <select id="newDur">
+        <option value="30">30 giây</option><option value="45">45 giây</option>
+        <option value="60" selected>60 giây</option><option value="90">90 giây</option>
+        <option value="120">2 phút</option><option value="180">3 phút</option>
+        <option value="custom">Tự nhập</option>
+      </select>
+      <input id="newDurCustom" type="number" min="10" max="600" placeholder="số giây" class="hidden">
+      <label class="range-label">Tỉ lệ: Ảnh <b id="newImgPct">70</b>% · Video <b id="newVidPct">30</b>%</label>
+      <input id="newRatio" type="range" min="0" max="100" step="5" value="30">
+    </section>
+
+    <button class="primary big" id="btnCreate">✨ Tạo &amp; để AI viết content</button>
+  </div>
+
+  <!-- ============================ MỘT VIDEO ============================ -->
   <div id="proj" class="hidden">
     <header class="phead">
-      <input id="pTitle" class="title-input" placeholder="Title">
-      <span id="pMeta" class="muted"></span>
+      <div class="phead-main">
+        <input id="pTitle" class="title-input" placeholder="Title">
+        <span id="pMeta" class="muted small"></span>
+      </div>
       <span id="twinBtns"></span>
-      <button id="btnDelete" class="ghost danger">Xóa</button>
+      <button id="btnDelete" class="ghost danger" title="Xóa video này">🗑 Xóa</button>
     </header>
-    <nav class="tabs">
-      <button data-tab="script" class="active">1. Content</button>
-      <button data-tab="voice">2. Giọng đọc</button>
-      <button data-tab="media">3. Ảnh &amp; video</button>
-      <button data-tab="render">4. Xuất video</button>
-      <button data-tab="tiktok">5. Đăng TikTok</button>
+
+    <nav class="tabs steps">
+      <button data-tab="script" class="active"><span class="n">1</span>Content</button>
+      <button data-tab="voice"><span class="n">2</span>Giọng đọc</button>
+      <button data-tab="media"><span class="n">3</span>Ảnh &amp; video</button>
+      <button data-tab="render"><span class="n">4</span>Xuất video</button>
+      <button data-tab="tiktok"><span class="n">5</span>Đăng TikTok</button>
     </nav>
 
     <div id="jobBox" class="job hidden">
+      <div class="job-row"><span class="spinner"></span><span id="jobLast"></span></div>
       <div class="bar"><div id="jobBar"></div></div>
-      <pre id="jobLog"></pre>
+      <details><summary>Xem chi tiết</summary><pre id="jobLog"></pre></details>
     </div>
 
     <!-- 1. CONTENT -->
     <section data-pane="script">
-      <div class="toolbar">
-        <button class="primary" id="btnGen">✍️ Viết content</button>
-        <input id="feedback" placeholder="Góp ý để AI viết lại (VD: hook mạnh hơn, thêm chi tiết...)">
-        <button id="btnRegen">🔁 Viết lại theo góp ý</button>
+      <div class="actions">
+        <button id="btnGen" class="soft">✍️ Viết content</button>
+        <details class="inline-pop">
+          <summary class="btn-like">💬 Góp ý để AI viết lại</summary>
+          <div class="pop">
+            <input id="feedback" placeholder="VD: hook mạnh hơn, thêm chi tiết, ngắn lại...">
+            <button id="btnRegen" class="primary">🔁 Viết lại</button>
+          </div>
+        </details>
       </div>
-      <div class="toolbar ratiorow">
-        <label>Mục tiêu: Ảnh <b id="pImgPct">70</b>% / Video <b id="pVidPct">30</b>%</label>
+
+      <details class="panel fold">
+        <summary>⚙️ Thiết lập video <span class="muted small">ngôn ngữ · thể loại · môn · bố cục · tỉ lệ ảnh/video</span></summary>
+        <div class="fold-body">
+        <div class="grid4">
+          <div><label>Ngôn ngữ</label><select id="pLang" title="Áp dụng khi viết lại content"></select></div>
+          <div><label>Thể loại</label>
+            <select id="pGenre" title="Áp dụng khi viết lại content">
+              <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
+            </select></div>
+          <div><label>Môn thể thao</label><select id="pSport" title="Áp dụng khi viết lại content"></select></div>
+          <div><label>Bố cục</label>
+            <select id="pLayout">
+              <option value="auto">Tự động theo thể loại</option>
+              <option value="sports">Bóng chày (nền trắng)</option>
+              <option value="news">Tin tức (nền navy)</option>
+              <option value="ranking">Top (nền đen)</option>
+              <option value="biography">Tiểu sử (nền kem)</option>
+              <option value="general">Chủ đề chung (nền trắng)</option>
+            </select></div>
+        </div>
+        <label class="range-label">Mục tiêu: Ảnh <b id="pImgPct">70</b>% · Video <b id="pVidPct">30</b>%</label>
         <input id="pRatio" type="range" min="0" max="100" step="5" value="30">
-        <select id="pLang" title="Ngôn ngữ video (áp dụng khi viết lại content)"></select>
-        <select id="pSport" title="Môn thể thao (áp dụng khi viết lại content)"></select>
-        <select id="pLayout" title="Bố cục video">
-          <option value="auto">🎨 Bố cục: tự động theo thể loại</option>
-          <option value="sports">Bố cục bóng chày (nền trắng, sub trên/dưới)</option>
-          <option value="news">Bố cục tin tức (nền navy)</option>
-          <option value="ranking">Bố cục Top (nền đen)</option>
-          <option value="biography">Bố cục tiểu sử (nền kem)</option>
-          <option value="general">Bố cục chủ đề chung (nền trắng)</option>
-        </select>
-        <select id="pGenre" title="Thể loại (áp dụng khi viết lại content)">
-          <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
-        </select>
-      </div>
+        </div>
+      </details>
+
       <div id="ratio" class="ratio"></div>
       <div id="sources" class="sources hidden"></div>
-      <div id="screenBox" class="card hidden"></div>
-      <p class="hint" id="subHint">Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng trong cùng một lần hiện.
-        Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung hình, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).</p>
+      <div id="screenBox" class="panel hidden"></div>
+      <p class="hint" id="subHint"></p>
       <div id="scenes"></div>
-      <div class="toolbar sticky">
-        <button id="btnAddScene">＋ Thêm cảnh</button>
-        <button id="btnRebalance">⚖️ Tự chia lại theo tỉ lệ</button>
+
+      <div class="bottombar">
+        <button id="btnAddScene" class="ghost">＋ Thêm cảnh</button>
+        <button id="btnRebalance" class="ghost">⚖️ Chia lại tỉ lệ</button>
         <span class="grow"></span>
-        <button id="btnSaveScript">💾 Lưu</button>
-        <button class="primary" id="btnApprove">✅ Duyệt content</button>
+        <button id="btnSaveScript" class="soft">💾 Lưu</button>
+        <button class="primary" id="btnApprove">✅ Duyệt → sang Giọng đọc</button>
       </div>
     </section>
 
     <!-- 2. VOICE -->
     <section data-pane="voice" class="hidden">
-      <div class="card">
+      <div class="panel">
         <h3>Chọn kiểu giọng</h3>
-        <label class="radio"><input type="radio" name="vmode" value="clone"> <b>Giọng mẫu</b>: nhân bản giọng từ file bạn upload (ổn định nhất)</label>
+        <div class="mode-cards">
+          <label class="radio mode"><input type="radio" name="vmode" value="clone"><b>🎤 Giọng mẫu</b><small>Nhân bản từ file bạn upload. Ổn định nhất.</small></label>
+          <label class="radio mode"><input type="radio" name="vmode" value="design"><b>🎛️ Mô tả giọng</b><small>Tự chọn giới tính, tuổi, cao độ.</small></label>
+          <label class="radio mode"><input type="radio" name="vmode" value="auto"><b>🤖 Để tool chọn</b><small>AI chọn giọng hợp chủ đề.</small></label>
+        </div>
         <div class="sub" data-vmode="clone">
           <select id="voiceSel"></select> <audio id="voicePrev" controls></audio>
-          <details><summary>＋ Upload giọng mẫu mới</summary>
+          <details class="upload"><summary>＋ Upload giọng mẫu mới</summary>
             <div class="grid2">
               <div><label>Tên giọng</label><input id="vName" placeholder="VD: nam_tram"></div>
-              <div><label>File giọng (3–10 giây, tiếng Nhật, rõ, không nhạc nền)</label><input id="vFile" type="file" accept="audio/*,video/*"></div>
+              <div><label>File giọng (3–10 giây, rõ, không nhạc nền)</label><input id="vFile" type="file" accept="audio/*,video/*"></div>
             </div>
-            <label>Lời trong file giọng (không bắt buộc, để trống thì tool tự nghe)</label>
+            <label>Lời trong file giọng <span class="opt">(để trống thì tool tự nghe)</span></label>
             <input id="vText">
-            <button id="btnVoiceUp">Upload</button>
+            <button id="btnVoiceUp" class="soft">⬆ Upload</button>
           </details>
         </div>
-        <label class="radio"><input type="radio" name="vmode" value="design"> <b>Mô tả giọng</b>: tự chọn đặc điểm giọng</label>
         <div class="sub" data-vmode="design">
           <select id="dGender"></select><select id="dAge"></select><select id="dPitch"></select><select id="dStyle"></select>
         </div>
-        <label class="radio"><input type="radio" name="vmode" value="auto"> <b>Ủy quyền cho tool</b>: AI tự chọn giọng hợp với chủ đề</label>
-        <div class="sub" data-vmode="auto"><span class="muted">AI đề xuất: </span><b id="autoInstruct">—</b></div>
-        <p class="hint">⚠️ Giọng mẫu nên <b>cùng ngôn ngữ với video</b> (video tiếng Hàn → giọng mẫu tiếng Hàn), nếu không giọng đọc sẽ bị lơ lớ.</p>
-        <p class="hint">Mô tả giọng / Ủy quyền: tool tạo giọng ở cảnh đầu rồi dùng đúng giọng đó cho cả video.
-          Nếu nghe chưa hay, bấm đọc lại để ra giọng khác.</p>
-        <label>Tốc độ đọc: <b id="speedVal">1.0</b>x</label>
+        <div class="sub" data-vmode="auto"><span class="muted">AI đề xuất:</span> <b id="autoInstruct">—</b></div>
+        <p class="hint">⚠️ Giọng mẫu nên <b>cùng ngôn ngữ với video</b> (video tiếng Hàn → giọng mẫu tiếng Hàn).
+          Với “Mô tả giọng / Để tool chọn”, tool tạo giọng ở cảnh đầu rồi dùng đúng giọng đó cho cả video.</p>
+        <label class="range-label">Tốc độ đọc: <b id="speedVal">1.0</b>x</label>
         <input id="speed" type="range" min="0.8" max="1.4" step="0.05" value="1.0">
-        <div class="toolbar">
+        <div class="actions">
           <button class="primary" id="btnTTS">🎙️ Đọc toàn bộ</button>
-          <button id="btnTTSStale">Chỉ đọc lại cảnh đã sửa</button>
+          <button id="btnTTSStale" class="soft">Chỉ đọc lại cảnh đã sửa</button>
         </div>
       </div>
       <div id="voiceScenes"></div>
@@ -178,9 +236,9 @@
 
     <!-- 3. MEDIA -->
     <section data-pane="media" class="hidden">
-      <div class="toolbar">
+      <div class="actions">
         <button class="primary" id="btnMedia">🔎 Tự tìm ảnh &amp; video cho tất cả cảnh</button>
-        <span class="muted">Click vào ảnh ứng viên để thêm/bỏ. Với video, click để chọn đoạn khác.</span>
+        <span class="muted small">Bấm ảnh để thêm/bỏ · bấm khung video để đổi đoạn</span>
       </div>
       <div id="ratio2" class="ratio"></div>
       <div id="mediaScenes"></div>
@@ -188,100 +246,121 @@
 
     <!-- 4. RENDER -->
     <section data-pane="render" class="hidden">
-      <div class="card">
-        <h3>Nhạc nền</h3>
-        <select id="bgmSel"></select> <audio id="bgmPrev" controls></audio>
+      <div class="panel">
+        <h3>🎵 Nhạc nền</h3>
+        <div class="row-wrap"><select id="bgmSel"></select> <audio id="bgmPrev" controls></audio></div>
         <p class="hint" id="bgmHint"></p>
-        <div><label>Upload nhạc nền mới</label><input id="bgmFile" type="file" accept="audio/*"></div>
-        <label>Âm lượng nhạc nền: <b id="bgmVolVal">15</b>%</label>
-        <input id="bgmVol" type="range" min="0" max="60" step="1" value="15">
-        <div class="toolbar"><button class="primary" id="btnRender">🎬 Xuất video</button></div>
+        <div class="grid2">
+          <div>
+            <label class="range-label">Âm lượng nhạc nền: <b id="bgmVolVal">15</b>%</label>
+            <input id="bgmVol" type="range" min="0" max="60" step="1" value="15">
+          </div>
+          <div><label>Upload nhạc nền của bạn</label><input id="bgmFile" type="file" accept="audio/*"></div>
+        </div>
+        <button class="primary big" id="btnRender">🎬 Xuất video</button>
       </div>
       <div id="output"></div>
     </section>
 
     <!-- 5. TIKTOK -->
     <section data-pane="tiktok" class="hidden">
-      <div class="toolbar">
+      <div class="actions">
         <button class="primary" id="btnTiktok">✨ Tạo title &amp; hashtag</button>
-        <span class="muted">Claude đọc content của video để viết. Bấm lại để ra bộ khác.</span>
+        <span class="muted small">Claude đọc content của video để viết. Bấm lại để ra bộ khác.</span>
       </div>
       <div id="tkBody" class="hidden">
-        <div class="card">
-          <h3>1. Chọn title (bấm để chọn, sửa được ở ô bên dưới)</h3>
+        <div class="panel">
+          <h3><span class="num">1</span> Chọn title</h3>
           <div id="tkCaps"></div>
         </div>
-        <div class="card">
-          <h3>2. Hashtag (bấm để bật / tắt)</h3>
+        <div class="panel">
+          <h3><span class="num">2</span> Hashtag <span class="muted small">bấm để bật / tắt</span></h3>
           <div id="tkTags" class="tags"></div>
-          <div class="toolbar"><input id="tkNewTag" placeholder="Thêm hashtag, VD: #バスケ"><button id="btnAddTag">＋ Thêm</button></div>
+          <div class="actions"><input id="tkNewTag" placeholder="Thêm hashtag, VD: #バスケ"><button id="btnAddTag" class="soft">＋ Thêm</button></div>
         </div>
-        <div class="card">
-          <h3>3. Nội dung đăng TikTok</h3>
+        <div class="panel">
+          <h3><span class="num">3</span> Nội dung đăng TikTok</h3>
           <textarea id="tkFinal" rows="5"></textarea>
-          <div class="toolbar">
+          <div class="actions">
             <button class="primary" id="btnCopyAll">📋 Copy tất cả</button>
-            <button id="btnCopyCap">Copy title</button>
-            <button id="btnCopyTags">Copy hashtag</button>
-            <span class="grow"></span><span id="tkCount" class="muted"></span>
+            <button id="btnCopyCap" class="soft">Copy title</button>
+            <button id="btnCopyTags" class="soft">Copy hashtag</button>
+            <span class="grow"></span><span id="tkCount" class="muted small"></span>
           </div>
         </div>
       </div>
     </section>
   </div>
 
-  <div id="ideas" class="hidden">
-    <div class="card">
-      <h3>💡 Gợi ý ý tưởng video</h3>
+  <!-- ============================ GỢI Ý Ý TƯỞNG ============================ -->
+  <div id="ideas" class="hidden view-narrow">
+    <div class="page-head">
+      <h2>💡 Gợi ý ý tưởng video</h2>
+      <button id="btnIdeasClose" class="ghost">✕ Đóng</button>
+    </div>
+    <div class="panel">
+      <label>Ngách / chủ đề kênh của bạn</label>
+      <input id="ideaNiche" value="Bóng rổ Nhật Bản và Hàn Quốc (B.League, KBL, cầu thủ Nhật/Hàn ở NBA)">
+      <div class="presets">
+        <a data-n="Bóng rổ Nhật Bản và Hàn Quốc (B.League, KBL, cầu thủ Nhật/Hàn ở NBA)">🏀 Bóng rổ</a>
+        <a data-n="Bóng chày Nhật Bản và Hàn Quốc (NPB, KBO, cầu thủ Nhật/Hàn ở MLB)">⚾ Bóng chày</a>
+        <a data-n="Sumo chuyên nghiệp (大相撲): các giải đấu, yokozuna, ozeki, võ sĩ nổi bật, võ sĩ người nước ngoài">🤼 Sumo</a>
+        <a data-n="Bóng đá Nhật Bản và Hàn Quốc (J.League, K League, cầu thủ Nhật/Hàn ở châu Âu)">⚽ Bóng đá</a>
+      </div>
       <div class="grid3">
-        <div><label>Ngôn ngữ / khán giả</label><select id="ideaLang"></select></div>
+        <div><label>Khán giả</label><select id="ideaLang"></select></div>
         <div><label>Thể loại</label>
           <select id="ideaGenre"><option value="any">Tất cả</option><option value="sports">⚾ Thể thao</option>
             <option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option>
             <option value="ranking">🏆 Top / Xếp hạng</option><option value="general">💡 Chủ đề chung</option></select></div>
         <div><label>Số ý tưởng</label><select id="ideaCount"><option>5</option><option selected>10</option><option>15</option></select></div>
       </div>
-      <label>Ngách / chủ đề kênh của bạn</label>
-      <input id="ideaNiche" value="Bóng rổ Nhật Bản và Hàn Quốc (B.League, KBL, cầu thủ Nhật/Hàn ở NBA)">
-      <div class="presets">Chọn nhanh:
-        <a data-n="Bóng rổ Nhật Bản và Hàn Quốc (B.League, KBL, cầu thủ Nhật/Hàn ở NBA)">🏀 Bóng rổ Nhật–Hàn</a>
-        <a data-n="Bóng chày Nhật Bản và Hàn Quốc (NPB, KBO, cầu thủ Nhật/Hàn ở MLB)">⚾ Bóng chày</a>
-        <a data-n="Sumo chuyên nghiệp (大相撲): các giải đấu, yokozuna, ozeki, võ sĩ nổi bật, võ sĩ người nước ngoài">🤼 Sumo</a>
-        <a data-n="Bóng đá Nhật Bản và Hàn Quốc (J.League, K League, cầu thủ Nhật/Hàn ở châu Âu)">⚽ Bóng đá</a>
-      </div>
-      <div class="toolbar">
-        <button class="primary" id="btnIdeas">✨ Gợi ý ngay</button>
-        <span class="muted">Claude tra cứu chủ đề đang hot gần đây, mất khoảng 1–2 phút.</span>
-        <span class="grow"></span><button id="btnIdeasClose">Đóng</button>
-      </div>
+      <button class="primary big" id="btnIdeas">✨ Gợi ý ngay</button>
+      <p class="hint center">Claude tra cứu chủ đề đang hot gần đây, mất khoảng 1–2 phút.</p>
     </div>
     <div id="ideaList"></div>
   </div>
 
-  <div id="settings" class="hidden card">
-    <h3>Cài đặt</h3>
-    <label>Model Claude (để trống = mặc định của Claude CLI, VD: opus, sonnet)</label><input id="sModel">
-    <label>Nguồn tìm ảnh (miễn phí, không cần key)</label>
-    <div class="srcs">
-      <label><input type="checkbox" class="src" value="duckduckgo"> DuckDuckGo</label>
-      <label><input type="checkbox" class="src" value="bing"> Bing</label>
-      <label><input type="checkbox" class="src" value="yahoo"> Yahoo! JAPAN</label>
+  <!-- ============================ CÀI ĐẶT ============================ -->
+  <div id="settings" class="hidden view-narrow">
+    <div class="page-head">
+      <h2>⚙️ Cài đặt</h2>
+      <button id="btnCloseSettings" class="ghost">✕ Đóng</button>
     </div>
-    <p class="hint">Nếu vẫn thiếu ảnh 16:9, tool tự chụp khung hình nét nhất từ video YouTube liên quan.</p>
-    <label>Bộ mã hóa video</label>
-    <select id="sEnc"><option value="auto">Tự động (ưu tiên card NVIDIA)</option><option value="h264_nvenc">NVIDIA NVENC</option><option value="libx264">CPU (libx264)</option></select>
-    <label>Chiều cao khung ảnh &amp; video (px) – áp dụng cho CẢ ảnh và video. 608 = đúng 16:9, càng lớn khung càng cao</label>
-    <input id="sMediaH" type="number" min="400" max="1400" step="10">
-    <label>Khoảng cách chữ ↔ khung ảnh/video (px)</label><input id="sGap" type="number" min="0" max="300" step="5">
-    <label>Cỡ chữ sub</label><input id="sSize" type="number">
-    <label>Font sub</label><input id="sFont">
-    <label><input type="checkbox" id="sZoom"> Zoom / lia nhẹ ảnh cho sinh động</label>
-    <label><input type="checkbox" id="sHL"> Nhờ Claude xem và chọn đoạn video hợp nội dung (chậm hơn, chuẩn hơn)</label>
-    <label>Số bước tạo giọng OmniVoice (32 = chất lượng, 16 = nhanh)</label><input id="sSteps" type="number">
-    <div class="toolbar"><button class="primary" id="btnSaveSettings">Lưu</button><button id="btnCloseSettings">Đóng</button></div>
-    <h3>Kiểm tra hệ thống</h3><pre id="checkOut"></pre>
+    <div class="panel">
+      <h3>AI &amp; tìm kiếm</h3>
+      <label>Model Claude <span class="opt">(để trống = mặc định, VD: opus, sonnet)</span></label><input id="sModel">
+      <label>Nguồn tìm ảnh <span class="opt">(miễn phí, không cần key)</span></label>
+      <div class="srcs">
+        <label><input type="checkbox" class="src" value="duckduckgo"> DuckDuckGo</label>
+        <label><input type="checkbox" class="src" value="bing"> Bing</label>
+        <label><input type="checkbox" class="src" value="yahoo"> Yahoo! JAPAN</label>
+      </div>
+      <label class="check"><input type="checkbox" id="sHL"> Nhờ Claude chọn đoạn video hợp nội dung (chậm hơn, chuẩn hơn)</label>
+    </div>
+    <div class="panel">
+      <h3>Hình ảnh &amp; chữ</h3>
+      <div class="grid2">
+        <div><label>Chiều cao khung ảnh/video (px) <span class="opt">608 = đúng 16:9</span></label><input id="sMediaH" type="number" min="400" max="1400" step="10"></div>
+        <div><label>Khoảng cách chữ ↔ khung (px)</label><input id="sGap" type="number" min="0" max="300" step="5"></div>
+        <div><label>Cỡ chữ sub</label><input id="sSize" type="number"></div>
+        <div><label>Font sub</label><input id="sFont"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="sZoom"> Zoom / lia nhẹ ảnh cho sinh động</label>
+    </div>
+    <div class="panel">
+      <h3>Giọng đọc &amp; xuất video</h3>
+      <div class="grid2">
+        <div><label>Số bước tạo giọng <span class="opt">32 = hay, 16 = nhanh</span></label><input id="sSteps" type="number"></div>
+        <div><label>Bộ mã hóa video</label>
+          <select id="sEnc"><option value="auto">Tự động (ưu tiên card NVIDIA)</option><option value="h264_nvenc">NVIDIA NVENC</option><option value="libx264">CPU (libx264)</option></select></div>
+      </div>
+    </div>
+    <button class="primary big" id="btnSaveSettings">💾 Lưu cài đặt</button>
+    <div class="panel"><h3>Kiểm tra hệ thống</h3><pre id="checkOut"></pre></div>
   </div>
 </main>
+</div>
 <script src="app.js"></script>
 </body>
 </html>

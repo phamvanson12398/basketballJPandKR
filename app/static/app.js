@@ -28,13 +28,24 @@ const est = sc => {
 };
 
 // ------------------------------------------------------------- dự án
+let PROJECTS = [];
 async function loadList() {
-  const list = await api('/api/projects');
-  $('#projList').innerHTML = list.map(p =>
-    `<li data-id="${p.id}" class="${P && P.id === p.id ? 'active' : ''}">${esc(p.title || '(chưa có title)')}
-      <small>${p.duration}s · ${p.output ? '✅ đã xuất' : 'đang làm'}</small></li>`).join('');
+  PROJECTS = await api('/api/projects');
+  drawList();
+}
+function drawList() {
+  const q = ($('#projSearch').value || '').trim().toLowerCase();
+  const list = PROJECTS.filter(p => !q || (p.title || '').toLowerCase().includes(q));
+  const item = p => `<li data-id="${p.id}" class="${P && P.id === p.id ? 'active' : ''}">${esc(p.title || '(chưa có title)')}
+      <small>${p.duration}s${p.output ? ' · ✅ đã xuất' : ''}</small></li>`;
+  const doing = list.filter(p => !p.output), done = list.filter(p => p.output);
+  $('#projList').innerHTML =
+    (doing.length ? `<div class="grp">Đang làm (${doing.length})</div>` + doing.map(item).join('') : '') +
+    (done.length ? `<div class="grp">Đã xuất (${done.length})</div>` + done.map(item).join('') : '') ||
+    '<div class="grp">Chưa có video nào</div>';
   $$('#projList li').forEach(li => li.onclick = () => openProject(li.dataset.id));
 }
+$('#projSearch').oninput = drawList;
 
 async function openProject(id, keepTab) {
   P = await api(`/api/projects/${id}`);
@@ -180,30 +191,32 @@ function renderScript() {
   $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
+  $('#btnGen').className = P.scenes.length ? 'soft' : 'primary';
   $('#scenes').innerHTML = P.scenes.map((s, i) => `
     <div class="scene" data-i="${i}">
-      <div class="meta">
-        <span class="sid">${s.id}</span>
-        <span class="tag ${s.kind}" data-act="kind" title="Click để đổi ảnh/video">${s.kind === 'video' ? '🎞 Video' : '🖼 Ảnh'}${s.locked_kind ? ' 🔒' : ''}</span>
+      <div class="scene-head">
+        <span class="sid">#${i + 1}</span>
+        <span class="tag ${s.kind}" data-act="kind" title="Bấm để đổi ảnh / video">${s.kind === 'video' ? '🎞 Video' : '🖼 Ảnh'}${s.locked_kind ? ' 🔒' : ''}</span>
         <span class="est">~${est(s).toFixed(1)}s</span>
+        <span class="grow"></span>
         <div class="mini">
           <button data-act="up" title="Lên">↑</button><button data-act="down" title="Xuống">↓</button>
-          <button data-act="del" title="Xóa">✕</button>
+          <button data-act="del" title="Xóa cảnh">🗑</button>
         </div>
       </div>
-      <div>
-        <label>Sub (mỗi dòng = 1 lần hiện, "/" = xuống dòng)</label>
-        <textarea class="chunks" data-k="chunks">${esc((s.chunks || []).map(c => c.replace(/\n/g, '/')).join('\n'))}</textarea>
-        <label>Câu để đọc (viết tên/ số bằng hiragana cho đọc chuẩn)</label>
-        <input data-k="tts" value="${esc(s.tts)}">
-      </div>
-      <div>
-        <label>Từ khóa tìm ảnh</label><input data-k="image_query" value="${esc(s.image_query)}">
-        <label>Từ khóa tìm video</label><input data-k="video_query" value="${esc(s.video_query)}">
-        <label>Độ "hành động" (0–10, cao → ưu tiên video)</label><input data-k="action" type="number" min="0" max="10" value="${s.action ?? 0}">
-        ${sceneLabelFields(s)}
-      </div>
-    </div>`).join('') || '<p class="muted">Chưa có content. Bấm “Viết content”.</p>';
+      <textarea class="chunks" data-k="chunks" title="Mỗi dòng = 1 lần hiện chữ, dấu / = xuống dòng">${esc((s.chunks || []).map(c => c.replace(/\n/g, '/')).join('\n'))}</textarea>
+      ${sceneLabelFields(s) ? `<div class="labels">${sceneLabelFields(s)}</div>` : ''}
+      <details class="adv"><summary>Tùy chọn: câu đọc, từ khóa tìm ảnh/video</summary>
+        <div class="adv-grid">
+          <div class="full"><label>Câu để đọc <span class="opt">(tên người, số viết bằng hiragana/hangul để đọc chuẩn)</span></label>
+            <input data-k="tts" value="${esc(s.tts)}"></div>
+          <div><label>Từ khóa tìm ảnh</label><input data-k="image_query" value="${esc(s.image_query)}"></div>
+          <div><label>Từ khóa tìm video</label><input data-k="video_query" value="${esc(s.video_query)}"></div>
+          <div><label>Độ "hành động" <span class="opt">(0–10, cao → ưu tiên video)</span></label>
+            <input data-k="action" type="number" min="0" max="10" value="${s.action ?? 0}"></div>
+        </div>
+      </details>
+    </div>`).join('') || '<div class="panel center muted">Chưa có content. Bấm “✍️ Viết content”.</div>';
   $$('#scenes .scene').forEach(el => {
     const i = +el.dataset.i;
     el.querySelectorAll('[data-k]').forEach(inp => inp.oninput = () => { readScene(el, i); ratioBar($('#ratio')); el.querySelector('.est').textContent = '~' + est(P.scenes[i]).toFixed(1) + 's'; });
@@ -272,6 +285,7 @@ $('#btnRegen').onclick = async () => {
   const fb = $('#feedback').value.trim();
   if (!fb) return alert('Nhập góp ý trước nhé');
   await saveScript();
+  document.querySelector('.inline-pop')?.removeAttribute('open');
   await runJob(`/api/projects/${P.id}/script`, {feedback: fb});
 };
 $('#pTitle').onchange = () => api(`/api/projects/${P.id}`, {method: 'PUT', json: {title: $('#pTitle').value}}).then(loadList);
@@ -504,10 +518,14 @@ function showJob(j) {
   if (!j || j.status === 'idle') { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
   box.classList.toggle('err', j.status === 'error');
+  box.classList.toggle('done', j.status === 'done');
   $('#jobBar').style.width = Math.round((j.progress || 0) * 100) + '%';
-  $('#jobLog').textContent = (j.log || []).join('\n');
+  const lines = j.log || [];
+  const last = (lines[lines.length - 1] || '').replace(/^\[[\d:]+\]\s*/, '');
+  $('#jobLast').textContent = j.status === 'error' ? '⚠️ ' + (j.error || last) : last || 'Đang chạy...';
+  $('#jobLog').textContent = lines.join('\n');
   $('#jobLog').scrollTop = 1e9;
-  $$('button.primary, #btnRegen').forEach(b => { if (b.id !== 'btnCreate') b.disabled = j.status === 'running'; });
+  $$('#proj button.primary, #btnRegen').forEach(b => { b.disabled = j.status === 'running'; });
 }
 function startPoll() {
   clearInterval(pollTimer);
@@ -526,6 +544,28 @@ function startPoll() {
 }
 
 // ------------------------------------------------------------- tạo mới, cài đặt
+// ---- chip chọn nhanh (ô chọn vẫn còn, chỉ ẩn đi)
+var CHIPS = [];
+function chipify(id) {
+  const sel = $('#' + id);
+  if (!sel || sel.dataset.chips) return;
+  sel.dataset.chips = '1';
+  sel.classList.add('hidden');
+  const box = document.createElement('div');
+  box.className = 'chips';
+  sel.after(box);
+  const draw = () => {
+    box.innerHTML = [...sel.options].map(o =>
+      `<button type="button" class="chip-btn ${o.value === sel.value ? 'on' : ''}" data-v="${esc(o.value)}">${esc(o.textContent)}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => {
+      sel.value = b.dataset.v; sel.dispatchEvent(new Event('change')); refreshChips();
+    });
+  };
+  CHIPS.push(draw); draw();
+}
+function refreshChips() { CHIPS.forEach(f => f()); }
+['newGenre', 'rankN', 'newsDays', 'newsCount', 'newDur'].forEach(chipify);
+
 // ---- tin tức
 function newsParams() {
   return {region: $('#newsRegion').value, custom_region: $('#newsCustom').value.trim(),
@@ -533,6 +573,7 @@ function newsParams() {
           count: +$('#newsCount').value};
 }
 function toggleNewsBox() {
+  refreshChips();
   $('#rankBox').classList.toggle('hidden', $('#newGenre').value !== 'ranking');
   $('#sportBox').classList.toggle('hidden', $('#newGenre').value === 'news');
   const isNews = $('#newGenre').value === 'news';
@@ -549,10 +590,12 @@ async function initNews() {
   $('#newSport').innerHTML = sportOpts; $('#pSport').innerHTML = sportOpts;
   try { const ds = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').sport; $('#newSport').value = ds || 'basketball'; } catch { $('#newSport').value = 'basketball'; }
   if (P) $('#pSport').value = P.sport || 'other';
+  chipify('newSport');
   const langOpts = d.langs.map(l => `<option value="${l.id}">${l.vi}</option>`).join('');
   $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts; $('#ideaLang').innerHTML = langOpts;
   if (P) renderTwinBtns();
   try { const dl = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').lang; if (dl) $('#newLang').value = dl; } catch {}
+  chipify('newLang');
   if (P) $('#pLang').value = P.lang || 'ja';
   try {
     const n = (JSON.parse(localStorage.getItem('shorts_defaults') || '{}')).news;
@@ -585,7 +628,7 @@ $('#btnScan').onclick = async () => {
     });
   } finally { b.disabled = false; b.textContent = '🔎 Quét tin mới nhất'; }
 };
-initNews().then(toggleNewsBox);
+initNews().then(() => { toggleNewsBox(); refreshChips(); });
 
 function newRatioLabel() { const v = +$('#newRatio').value; $('#newVidPct').textContent = v; $('#newImgPct').textContent = 100 - v; }
 $('#newRatio').oninput = newRatioLabel;
@@ -620,8 +663,18 @@ $('#btnDelete').onclick = async () => {
 // ------------------------------------------------------------- gợi ý ý tưởng
 const GENRE_VI = {sports: '⚾ Thể thao', biography: '👤 Tiểu sử', news: '📰 Tin tức', ranking: '🏆 Top', general: '💡 Chủ đề chung'};
 function showOnly(id) {
-  ['#empty', '#proj', '#settings', '#ideas'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+  const changed = $(id).classList.contains('hidden');
+  ['#empty', '#proj', '#settings', '#ideas', '#create'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+  if (changed) window.scrollTo(0, 0);   // chỉ cuộn lên đầu khi đổi màn hình
 }
+function openCreate() {
+  showOnly('#create'); toggleNewsBox(); refreshChips();
+  $$('#projList li').forEach(li => li.classList.remove('active'));
+}
+$('#btnNew').onclick = openCreate;
+$('#btnNewEmpty').onclick = openCreate;
+$('#btnIdeasEmpty').onclick = () => $('#btnIdeasOpen').click();
+$('#btnCreateCancel').onclick = () => showOnly(P ? '#proj' : '#empty');
 $('#btnIdeasOpen').onclick = () => {
   showOnly('#ideas');
   $('#ideaLang').value = $('#newLang').value;
@@ -651,8 +704,7 @@ function renderIdeas(list) {
     const sp = /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
       : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
     if (sp) $('#newSport').value = sp;
-    showOnly(P ? '#proj' : '#empty');
-    $('#newTitle').scrollIntoView({behavior: 'smooth', block: 'center'});
+    openCreate();
     $('#newTitle').focus();
   });
 }
@@ -687,7 +739,7 @@ $('#btnSaveSettings').onclick = async () => {
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };
-$('#btnCloseSettings').onclick = () => { $('#settings').classList.add('hidden'); P ? $('#proj').classList.remove('hidden') : $('#empty').classList.remove('hidden'); };
+$('#btnCloseSettings').onclick = () => showOnly(P ? '#proj' : '#empty');
 
 loadList();
 api('/api/check').then(c => $('#checkBadge').textContent = (c.ffmpeg && c.claude && c.omnivoice && c.cuda) ? '✅ sẵn sàng' : '⚠️ xem cài đặt');
