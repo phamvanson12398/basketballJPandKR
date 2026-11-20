@@ -332,30 +332,12 @@ def biography(e: Ev, p, scenes, starts, total, g):
         step = 0.05
         for k in range(1, len(s) + 1):
             e.text(a + (k - 1) * step, (a + k * step) if k < len(s) else b, 540, my - 140, s[:k], 52, BROWN2, layer=2)
-    # năm: chạy số + dòng thời gian
-    years = []
-    for sc in scenes:
-        y = str(sc.get("year") or "").strip()
-        if y and y not in years:
-            years.append(y)
-    if years and all(re.fullmatch(r"\d{4}", y) for y in years):
-        years.sort()            # dòng thời gian luôn theo thứ tự năm (cảnh mở đầu có thể nhảy cóc)
-    if len(years) > 7:          # quá nhiều mốc → giữ đầu, cuối và các mốc cách đều
-        idx = sorted({round(i * (len(years) - 1) / 6) for i in range(7)})
-        years = [years[i] for i in idx]
-    ytl = mb + 285
-    if years:
-        x0, x1 = 140, 940
-        xs = {y: (x0 + (x1 - x0) * i / max(1, len(years) - 1)) if len(years) > 1 else 540 for i, y in enumerate(years)}
-        e.shape(0, total, x0, ytl - 3, rect(x1 - x0, 6), TAN, layer=1, extra="\\fscx0\\t(0,500,\\fscx100)")
-        for y in years:
-            e.shape(0, total, xs[y] - 18, ytl - 18, circle(36), CREAM, layer=2, extra=f"\\bord5\\3c{BROWN2}")
-    prev_year, prev_x = None, None
+    # năm: huy hiệu ở góc ảnh, chạy số khi sang mốc mới (đã bỏ dòng thời gian ở cuối video)
+    prev_year = None
     for yv, a, b, _ in segments(scenes, starts, total, "year"):
         if not yv:
             continue
         yv = str(yv)
-        # huy hiệu năm
         e.shape(a, b, 70, my - 70, rrect(260, 110, 18), BROWN, layer=6)
         if prev_year and re.fullmatch(r"\d{4}", prev_year) and re.fullmatch(r"\d{4}", yv) and prev_year != yv:
             y0, y1 = int(prev_year), int(yv)
@@ -366,18 +348,6 @@ def biography(e: Ev, p, scenes, starts, total, g):
                        CREAM, an=5, layer=7, maxw=230)
         else:
             e.text(a, b, 200, my - 15, yv, 82, CREAM, an=5, layer=7, maxw=230, extra="\\fad(120,0)")
-        if years and yv not in xs:   # năm bị lược khỏi dòng thời gian → dùng mốc gần nhất
-            near = min(xs, key=lambda y: abs(int(y) - int(yv)) if y.isdigit() and yv.isdigit() else 0)
-        else:
-            near = yv
-        if years and near in xs:
-            yv_tl = near
-            x = xs[yv_tl]
-            mv = f"\\move({prev_x - 18:.0f},{ytl - 18},{x - 18:.0f},{ytl - 18},0,300)" if prev_x is not None else ""
-            e.shape(a, b, x - 18, ytl - 18, circle(36), BROWN2, layer=3, extra=mv)
-            for yy in years:
-                e.text(a, b, xs[yy], ytl + 30, yy, 34, BROWN if yy == yv_tl else FADED, layer=3, maxw=180)
-            prev_x = x
         prev_year = yv
     captions(e, scenes, starts, mb + 50, INK)
 
