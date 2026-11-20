@@ -110,11 +110,19 @@ function renderScreenBox() {
   const lay = effLayout(), box = $('#screenBox');
   P.screen = P.screen || {};
   const S = P.screen;
-  box.classList.toggle('hidden', lay === 'sports');
-  if (lay === 'sports') return;
+  const sportV = lay === 'sports' && ['sumo', 'soccer'].includes(P.sport) ? P.sport : null;
+  box.classList.toggle('hidden', lay === 'sports' && !sportV);
+  if (lay === 'sports' && !sportV) return;
   const inp = (k, label, ph = '') => `<div><label>${label}</label><input data-s="${k}" value="${esc(S[k] || '')}" placeholder="${esc(ph)}"></div>`;
   let html = '<h3>🖥️ Chữ trên màn hình (tiêu đề cố định, nhãn…)</h3>';
-  if (lay === 'news') {
+  if (sportV === 'sumo') {
+    html += `${inp('basho', 'Nhãn giải đấu ở góc ảnh (để trống nếu không nói về giải cụ thể)', '九州場所 13日目')}
+      <p class="hint">Cấp bậc, tên + thành tích, con dấu kỹ thuật thắng: chỉnh ở từng cảnh bên dưới. Cảnh nào để trống thì chỉ có ảnh + sub như bóng chày.</p>`;
+  } else if (sportV === 'soccer') {
+    html += `<div class="two">${inp('league', 'Nhãn giải đấu ở góc ảnh', 'プレミアリーグ 第10節')}
+      <div class="two">${inp('home', 'Đội nhà (viết tắt)', 'COV')}${inp('away', 'Đội khách (viết tắt)', 'SUN')}</div></div>
+      <p class="hint">Tỉ số, phút, tên cầu thủ: chỉnh ở từng cảnh. Bảng tỉ số chỉ hiện ở cảnh có điền tỉ số.</p>`;
+  } else if (lay === 'news') {
     S.stories = S.stories && S.stories.length ? S.stories : [{headline: P.title || '', subhead: '', source: ''}];
     html += `<div class="two">${inp('band', 'Dải đỏ: quốc gia · ngày', '韓国 ・ 11月19日')}
       <label class="chk" style="margin-top:22px"><input type="checkbox" data-s="breaking" ${S.breaking ? 'checked' : ''}> Hiện nhãn 速報 / 속보 (tin nóng)</label></div>
@@ -147,6 +155,12 @@ function sceneLabelFields(s) {
   if (lay === 'news') return f('story', 'Tin số', 'number', '1');
   if (lay === 'ranking') return f('rank', 'Hạng', 'number', 'trống = mở đầu/kết') + f('rank_label', 'Dải tên', 'text', '渡邊雄太 875得点');
   if (lay === 'biography') return f('year', 'Năm', 'text', '2010') + f('chapter', 'Chương', 'text', '第2章・高校時代');
+  if (lay === 'sports' && P.sport === 'sumo')
+    return f('banzuke', 'Cấp bậc', 'text', '横綱') + f('name', 'Tên võ sĩ', 'text', '大の里') +
+           f('record', 'Thành tích', 'text', '11勝1敗') + f('kimarite', 'Con dấu', 'text', 'kỹ thuật thắng, VD: 寄り切り');
+  if (lay === 'sports' && P.sport === 'soccer')
+    return f('score', 'Tỉ số', 'text', '1-0') + f('minute', 'Phút', 'text', "17'") +
+           f('player', 'Cầu thủ', 'text', '坂元達裕') + f('team', 'CLB · số áo', 'text', 'コヴェントリー #7');
   return '';
 }
 
@@ -236,6 +250,7 @@ $('#pLang').onchange = async () => {
 $('#pSport').onchange = async () => {
   P.sport = $('#pSport').value;
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {sport: P.sport}});
+  renderScript();
 };
 $('#pLayout').onchange = async () => {
   P.layout = $('#pLayout').value;

@@ -218,7 +218,22 @@ SCREEN_RULES = {
 - screen.title1: 上段（最大12文字、例: 「韓国人NBA選手は」）。
 - screen.title2: 下段の一番気になる部分（最大10文字、例: 「たった1人？」）。""",
 }
-SCENE_LABELS = ("story", "rank", "rank_label", "year", "chapter")
+SPORT_SCREEN_RULES = {
+    "sumo": """## 画面表示用テキスト（JSON の "screen" と各シーン。ストーリー形式の動画なので、該当するシーンにだけ入れる）
+- screen.basho: 話の中心となる場所名（例: 「九州場所 13日目」）。特定の場所の話でなければ空文字。
+- 各シーンの "banzuke": そのシーンで主役の力士の番付（例: 「横綱」「大関」「前頭7枚目」）。主役が映らない場面は入れない。
+- 各シーンの "name": その力士の四股名、"record": その場所の成績（例: 「11勝1敗」）。不明なら record は空。
+- 各シーンの "kimarite": ナレーションで勝負が決まった瞬間を語るシーンにだけ決まり手（例: 「寄り切り」）。それ以外は入れない。
+- 生い立ち・エピソード・背景を語るシーンにはこれらを無理に入れない（入れなければ普通の写真＋字幕になる）。""",
+    "soccer": """## 画面表示用テキスト（JSON の "screen" と各シーン。ストーリー形式の動画なので、該当するシーンにだけ入れる）
+- screen.league: 話の中心となる大会・節（例: 「プレミアリーグ 第10節」）。特定の試合の話でなければ空文字。
+- screen.home / screen.away: その試合のチーム略称（3文字程度、例: 「COV」「SUN」）。試合の話でなければ空。
+- 各シーンの "score": そのシーンの時点のスコア（例: 「1-0」）と "minute": 時間（例: 「17'」）。
+  試合の経過を語るシーンにだけ入れ、生い立ち・移籍・背景などのシーンには入れない。
+- 各シーンの "player": そのシーンの主役の選手名、"team": 所属と背番号（例: 「コヴェントリー #7」）。主役が映らない場面は入れない。""",
+}
+SCENE_LABELS = ("story", "rank", "rank_label", "year", "chapter",
+                "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team")
 
 
 # ---------------------------------------------------------------- PROMPT
@@ -295,7 +310,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
         lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
-        screen_rule=SCREEN_RULES.get(p.get("genre"), ""),
+        screen_rule=SCREEN_RULES.get(p.get("genre"), "") or
+        (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else ""),
         sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"].replace("{country}", L["country"]),
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",

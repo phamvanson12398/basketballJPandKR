@@ -51,6 +51,13 @@ Riêng **Bóng đá**: thuật ngữ chuẩn (ハットトリック・VAR・移�
 tên cầu thủ/CLB nước ngoài có cách đọc, ưu tiên góc cầu thủ Nhật/Hàn ở châu Âu, và nhạc nền riêng **Sân vận động / Hào hùng**
 (vỗ tay cổ động, tiếng khán đài, kèn đồng).
 
+### 🤼⚽ Bố cục Sumo / Bóng đá (thể loại Thể thao)
+Vẫn là bố cục bóng chày (kể chuyện, sub đen trên/dưới khung), thêm nhãn riêng **chỉ ở cảnh nói về trận đấu**:
+- **Sumo**: nền giấy washi + vạch vàng, nhãn giải đấu (九州場所 13日目), thẻ cấp bậc (横綱…), biển tên + thành tích,
+  con dấu đỏ ghi kỹ thuật thắng (寄り切り…) đóng xuống ở cảnh quyết định thắng thua.
+- **Bóng đá**: nền sọc cỏ nhạt, nhãn giải đấu, bảng tỉ số kiểu truyền hình (tự đổi số), biển tên cầu thủ + CLB + số áo.
+Cảnh kể tuổi thơ / hậu trường để trống → chỉ có ảnh + sub như bóng chày. Sửa nhãn ở khung 🖥️ và ô nhãn của từng cảnh.
+
 ### 💡 Chưa biết làm gì? Bấm "Gợi ý ý tưởng video"
 Nút vàng ở góc trên bên trái. Chọn ngôn ngữ, thể loại, gõ ngách kênh (mặc định: bóng rổ Nhật – Hàn) → Claude tra cứu
 chủ đề đang hot và đưa ra 5–15 ý tưởng (title, lý do nên làm, 🔥 đang hot hay ♻️ không lỗi thời).

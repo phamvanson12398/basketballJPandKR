@@ -176,7 +176,7 @@ def auto_wrap(chunk: str, maxlen: int = 11) -> str:
     return "\n".join(lines)
 
 
-def build_ass(scenes: list[dict], starts: list[float], out: Path) -> None:
+def build_ass(scenes: list[dict], starts: list[float], out: Path, extra_rows: list | None = None) -> None:
     st = load_settings()
     font, size = st.get("subtitle_font"), int(st.get("subtitle_size", 124))
     lh = size * SUB_LINE_SPACING
@@ -192,6 +192,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Top,{font},{size},&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,2,0,1,0,0,2,20,20,0,1
 Style: Bottom,{font},{size},&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,2,0,1,0,0,8,20,20,0,1
+{LAY.STYLE_D.format(font=font)}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -225,7 +226,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     y = L['sub_bottom'] + k * lh
                     ev.append(f"Dialogue: 0,{ass_time(bounds[i + 1][0])},{ass_time(a1)},Bottom,,0,0,0,,"
                               f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
-    out.write_text(head + "\n".join(ev) + "\n", encoding="utf-8")
+    out.write_text(head + "\n".join((extra_rows or []) + ev) + "\n", encoding="utf-8")
 
 
 # ------------------------------------------------------------------ main
@@ -243,7 +244,8 @@ def render(pid: str, log) -> None:
     if missing:
         raise RuntimeError(f"Các cảnh chưa có giọng đọc: {', '.join(missing)}")
     lay = LAY.resolve(p)
-    g = LAY.geometry(lay)
+    sport = LAY.sport_variant(p, lay)
+    g = LAY.geometry(lay, sport)
     log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 
     # 1) ghép giọng đọc
@@ -298,7 +300,8 @@ def render(pid: str, log) -> None:
 
     # 3) sub + chữ/hiệu ứng của bố cục
     if lay == "sports":
-        build_ass(scenes, starts, rdir / "subs.ass")
+        extra = LAY.sport_rows(sport, p, scenes, starts, total, g) if sport else None
+        build_ass(scenes, starts, rdir / "subs.ass", extra)
     else:
         LAY.build_ass(lay, p, scenes, starts, total, rdir / "subs.ass")
 

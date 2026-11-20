@@ -40,7 +40,8 @@ def create_twin(pid: str, lang: str) -> dict:
             shutil.rmtree(nd / sub, ignore_errors=True)
             shutil.copytree(sd / sub, nd / sub, copy_function=_link_or_copy)
     keep = ("id", "kind", "locked_kind", "action", "image_query", "video_query", "items", "candidates",
-            "video_results", "story", "rank", "rank_label", "year", "chapter")
+            "video_results", "story", "rank", "rank_label", "year", "chapter",
+            "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team")
 
     def apply(p):
         p["scenes"] = [{k: s[k] for k in keep if k in s} | {"chunks": s.get("chunks", []), "tts": ""}
@@ -65,7 +66,8 @@ TWIN_PROMPT = """あなたは{role}です。
 - 各シーンの長さ（読み上げ秒数）は元とほぼ同じに。1シーンあたり元の文字数の±20%以内を目安。
 - 直訳ではなく、{country}の人が自然に感じる表現・語順・補足にする（{country}の視聴者が知らない固有名詞は短く補足）。
 - 事実（数字・日付・人名）は変えない。
-- "screen"（画面に出す見出し類）と、各シーンの rank_label / chapter も同じキーのまま{dst_name}にする
+- "screen"（画面に出す見出し類）と、各シーンの rank_label / chapter / banzuke / name / record / kimarite /
+  player / team も同じキーのまま{dst_name}にする
   （文字数は元と同じくらいに短く）。story / rank / year の値はそのまま。
 
 ## 言語ルール
@@ -90,7 +92,8 @@ def localize(pid: str, log) -> None:
     S = LG.get(p.get("twin_from_lang"))
     gen = GENRES.get(p.get("genre") or "sports", GENRES["sports"])
     n = len(p["scenes"])
-    labels = ("story", "rank", "rank_label", "year", "chapter")
+    labels = ("story", "rank", "rank_label", "year", "chapter",
+              "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team")
     src_json = json.dumps({"title": p.get("title", ""), "screen": p.get("screen") or {},
                            "scenes": [{"no": i + 1, "chunks": s.get("chunks", []),
                                        **{k: s[k] for k in labels if s.get(k) not in (None, "")}}
@@ -119,7 +122,7 @@ def localize(pid: str, log) -> None:
         for s, ns in zip(pp["scenes"], scenes_new):
             s["chunks"] = [c.strip() for c in ns.get("chunks", []) if str(c).strip()] or s["chunks"]
             s["tts"] = (ns.get("tts") or "").strip()
-            for k in ("rank_label", "chapter"):
+            for k in ("rank_label", "chapter", "banzuke", "name", "record", "kimarite", "player", "team"):
                 if ns.get(k):
                     s[k] = ns[k]
             for k in ("audio", "duration", "audio_text", "audio_stale"):

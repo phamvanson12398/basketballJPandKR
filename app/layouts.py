@@ -33,11 +33,20 @@ def resolve(p: dict) -> str:
     return g if g in LAYOUTS else "sports"
 
 
-def geometry(name: str) -> dict:
+def sport_variant(p: dict, lay: str) -> str | None:
+    """Bố cục bóng chày + nhãn riêng của môn: chỉ cho sumo / bóng đá."""
+    if lay == "sports" and p.get("sport") in ("sumo", "soccer"):
+        return p["sport"]
+    return None
+
+
+def geometry(name: str, sport: str | None = None) -> dict:
     """Màu nền + vị trí khung ảnh/video cho từng bố cục (dùng chung chiều cao khung trong Cài đặt)."""
     L = frame_layout()
     my, mh = L["media_y"], L["media_h"]
     g = {"bg": "white", "x": 0, "y": my, "w": W, "h": mh, "frame": 0, "drop": False}
+    if sport == "sumo":
+        g["bg"] = "0xf4efe4"     # màu giấy washi
     if name == "news":
         g["bg"] = "0x0b1f3a"
     elif name == "ranking":
@@ -96,11 +105,17 @@ class Ev:
         if b - a > 0.01:
             self.rows.append(f"Dialogue: {layer},{t(a)},{t(b)},D,,0,0,0,,{{{tags}}}{text}")
 
+    @staticmethod
+    def _pos(x, y, extra):
+        # \\pos và \\move không dùng chung được (libass chỉ lấy cái đứng trước) → có \\move thì bỏ \\pos
+        return "" if "\\move" in extra else f"\\pos({x:.0f},{y:.0f})"
+
     def text(self, a, b, x, y, s, px, color, an=8, layer=5, extra="", maxw=1000):
-        self.add(a, b, f"\\an{an}\\pos({x:.0f},{y:.0f})\\fs{px * K:.0f}\\c{color}{fit(s, px, maxw)}{extra}", esc(s), layer)
+        self.add(a, b, f"\\an{an}{self._pos(x, y, extra)}\\fs{px * K:.0f}\\c{color}{fit(s, px, maxw)}{extra}",
+                 esc(s), layer)
 
     def shape(self, a, b, x, y, path, color, layer=1, extra="", an=7):
-        self.add(a, b, f"\\an{an}\\pos({x:.0f},{y:.0f})\\p1\\c{color}{extra}", path, layer)
+        self.add(a, b, f"\\an{an}{self._pos(x, y, extra)}\\p1\\c{color}{extra}", path, layer)
 
     def pop_text(self, a, b, x, y, s, px, color, layer=6, maxw=1000):
         """Chữ bật ra: 70% → 108% → 100%."""
@@ -371,3 +386,111 @@ def build_ass(name: str, p: dict, scenes: list, starts: list, total: float, out:
     BUILDERS[name](e, p, scenes, starts, total, g)
     font = load_settings().get("subtitle_font") or "Noto Sans CJK JP Black"
     out.write_text(HEAD.format(W=W, H=H, font=font) + "\n".join(e.rows) + "\n", encoding="utf-8")
+
+
+# ------------------------------------------------------------------ 🤼 SUMO / ⚽ BÓNG ĐÁ (trên bố cục bóng chày)
+STYLE_D = ("Style: D,{font},80,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1")
+VERMILION, GOLD, PITCH, PITCH2 = "&H1B12B5&", "&H27A2C9&", "&H3D7A0F&", "&HF1F7F1&"
+
+
+def _plate(e: Ev, a, b, x0, y, w, bar, fill, name, sub, sub_color, name_px=60, sub_px=46):
+    """Biển tên góc dưới ảnh, trượt vào từ trái."""
+    mv = f"\\move(-{w},{y},0,{y},0,260)"
+    e.shape(a, b, 0, y, rect(w, 90), fill, layer=3, extra=mv)
+    e.shape(a, b, 0, y, rect(14, 90), bar, layer=4, extra=mv)
+    e.add(a + 0.08, b, f"\\an4\\fs{name_px * K:.0f}\\c{WHITE}{fit(name, name_px, w * 0.5)}"
+                       f"\\move(-300,{y + 45},{x0},{y + 45},0,260)", esc(name), 5)
+    if sub:
+        sx = x0 + min(text_width(name, name_px), w * 0.5) + 30
+        e.add(a + 0.15, b, f"\\an4\\fs{sub_px * K:.0f}\\c{sub_color}{fit(sub, sub_px, w - sx - 20)}\\fad(150,0)"
+                           f"\\pos({sx:.0f},{y + 47})", esc(sub), 5)
+
+
+def _label_spans(scenes, starts, total, keys):
+    """Các khoảng thời gian (gộp cảnh liền nhau) có nói về trận đấu → lúc đó mới hiện nhãn giải đấu."""
+    spans = []
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        end = starts[i + 1] if i + 1 < len(starts) else total
+        if any(sc.get(k) for k in keys):
+            if spans and abs(spans[-1][1] - st) < 1e-6:
+                spans[-1][1] = end
+            else:
+                spans.append([st, end])
+    return spans
+
+
+def sumo_overlay(e: Ev, p, scenes, starts, total, g):
+    scr = p.get("screen") or {}
+    my, mb = g["y"], g["y"] + g["h"]
+    # vạch vàng trên/dưới khung (gợi vòng dây sàn đấu)
+    for y in (my - 14, mb + 4):
+        e.shape(0, total, 0, y, rect(W, 10), GOLD, layer=1, extra="\\fscx0\\t(0,500,\\fscx100)")
+    # nhãn giải đấu góc trên phải ảnh
+    if scr.get("basho"):
+        wpx = text_width(scr["basho"], 40) + 50
+        for a, b in _label_spans(scenes, starts, total, ("banzuke", "name", "kimarite")):
+            e.shape(a, b, W - 20 - wpx, my + 24, rrect(wpx, 62, 31), VERMILION, layer=3, extra="\\fad(200,0)")
+            e.text(a, b, W - 20 - wpx / 2, my + 30, scr["basho"], 40, WHITE, layer=4, extra="\\fad(200,0)")
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        end = starts[i + 1] if i + 1 < len(starts) else total
+        if sc.get("banzuke"):     # thẻ cấp bậc góc trên trái
+            e.shape(st, end, 24, my + 20, rrect(206, 90, 14), "&H111111&", layer=3,
+                    extra="\\fscx0\\fscy0\\t(0,160,\\fscx108\\fscy108)\\t(160,240,\\fscx100\\fscy100)")
+            e.text(st + 0.05, end, 127, my + 26, sc["banzuke"], 60, "&H5CC3E6&", layer=4, maxw=180,
+                   extra="\\fad(120,0)")
+        if sc.get("name"):        # biển tên + thành tích
+            _plate(e, st, end, 40, mb - 110, 640, VERMILION, "&H000000&", sc["name"], sc.get("record", ""),
+                   "&H5CC3E6&")
+        if sc.get("kimarite"):    # con dấu đỏ ghi kỹ thuật thắng đóng xuống
+            a = st + 0.35
+            cx, cy = W - 210, my + g["h"] // 2 + 10
+            stamp = "\\frz12\\fscx170\\fscy170\\alpha&HFF&\\t(0,140,\\fscx95\\fscy95\\alpha&H10&)\\t(140,220,\\fscx100\\fscy100)"
+            e.add(a, end, f"\\an5\\pos({cx},{cy})\\p1\\1a&HFF&\\3c{VERMILION}\\bord16{stamp}", circle(300), 6)
+            word = str(sc["kimarite"])
+            lines = [word[: (len(word) + 1) // 2], word[(len(word) + 1) // 2:]] if len(word) > 3 else [word]
+            for k, ln in enumerate(lines):
+                dy = (k - (len(lines) - 1) / 2) * 100
+                e.add(a, end, f"\\an5\\pos({cx},{cy + dy:.0f})\\fs{96 * K:.0f}\\c{VERMILION}{fit(ln, 96, 230)}{stamp}",
+                      esc(ln), 7)
+
+
+def soccer_overlay(e: Ev, p, scenes, starts, total, g):
+    scr = p.get("screen") or {}
+    my, mb = g["y"], g["y"] + g["h"]
+    # nền sọc cỏ rất nhạt (chỉ ở phần nền, không đè lên ảnh)
+    for y0 in range(0, H, 240):
+        y1 = y0 + 120
+        for a, b in ((y0, min(y1, my)), (max(y0, mb), y1)):
+            if b > a:
+                e.shape(0, total, 0, a, rect(W, b - a), PITCH2, layer=0)
+    if scr.get("league"):
+        wpx = text_width(scr["league"], 38) + 50
+        for a, b in _label_spans(scenes, starts, total, ("score",)):
+            e.shape(a, b, W - 20 - wpx, my + 24, rrect(wpx, 60, 30), PITCH, layer=3, extra="\\fad(200,0)")
+            e.text(a, b, W - 20 - wpx / 2, my + 30, scr["league"], 38, WHITE, layer=4, extra="\\fad(200,0)")
+    home, away = scr.get("home", ""), scr.get("away", "")
+    shown = False
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        end = starts[i + 1] if i + 1 < len(starts) else total
+        if sc.get("score") and home and away:   # bảng tỉ số chỉ ở cảnh nói về trận đấu
+            pop = "" if shown else "\\fad(150,0)"
+            e.shape(st, end, 20, my + 20, rrect(520, 80, 12), "&H111111&", layer=3, extra=pop)
+            e.shape(st, end, 20, my + 20, rect(14, 80), "&HE6B458&", layer=4, extra=pop)
+            e.text(st, end, 56, my + 33, home[:4], 48, WHITE, an=7, layer=4, extra=pop, maxw=110)
+            e.shape(st, end, 172, my + 28, rect(140, 64), WHITE, layer=4, extra=pop)
+            e.text(st, end, 242, my + 31, sc["score"], 50, "&H111111&", layer=5, extra=pop, maxw=130)
+            e.text(st, end, 330, my + 33, away[:4], 48, WHITE, an=7, layer=4, extra=pop, maxw=110)
+            if sc.get("minute"):
+                e.text(st, end, 470, my + 38, sc["minute"], 40, "&HB4E69A&", an=7, layer=4, extra=pop, maxw=80)
+            shown = True
+        if sc.get("player"):
+            _plate(e, st, end, 30, mb - 110, 720, "&HFFFFFF&", PITCH, sc["player"], sc.get("team", ""), "&HE5FAD1&")
+
+
+SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay}
+
+
+def sport_rows(sport: str, p, scenes, starts, total, g) -> list[str]:
+    e = Ev()
+    SPORT_OVERLAYS[sport](e, p, scenes, starts, total, g)
+    return e.rows

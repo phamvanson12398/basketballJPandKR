@@ -70,7 +70,8 @@ def put_project(pid: str, data: dict = Body(...)):
                 text_changed = (base.get("chunks") != s.get("chunks") or base.get("tts") != s.get("tts"))
                 base.update({k: s[k] for k in ("chunks", "tts", "kind", "image_query", "video_query",
                                                "action", "locked_kind", "story", "rank", "rank_label",
-                                               "year", "chapter") if k in s})
+                                               "year", "chapter", "banzuke", "name", "record",
+                                               "kimarite", "score", "minute", "player", "team") if k in s})
                 base["id"] = sid
                 if text_changed and base.get("audio"):
                     base["audio_stale"] = True  # cần đọc lại
