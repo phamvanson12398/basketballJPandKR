@@ -29,6 +29,8 @@ TRACKS = [
     ("Chủ đề chung - Tò mò (tool).m4a",       "general",   "gen_curious"),
     ("Sumo - Trống Taiko (tool).m4a",         "sumo",      "sumo_taiko"),
     ("Sumo - Truyền thống (tool).m4a",        "sumo",      "sumo_traditional"),
+    ("Bóng đá - Sân vận động (tool).m4a",     "soccer",    "soccer_stadium"),
+    ("Bóng đá - Hào hùng (tool).m4a",         "soccer",    "soccer_anthem"),
 ]
 
 
@@ -46,9 +48,10 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") == "sumo" and tracks_for("sumo"):
-        lay = "sumo"   # video sumo: nhạc trống taiko / shamisen
-    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo") else "sports")
+    if p.get("sport") in ("sumo", "soccer") and tracks_for(p["sport"]):
+        lay = p["sport"]   # sumo: trống taiko / shamisen · bóng đá: không khí sân vận động
+    files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer")
+                       else "sports")
     if not files:
         return ""
     return files[sum(p.get("id", "").encode()) % len(files)]
@@ -566,6 +569,79 @@ def sumo_traditional():
                 s.put("flute", shakuhachi(root + MIYAKO[idx] + 12, s.beat * d), b0 + pos)
         s.put("drone", pad([40, 47], s.beat * 4, 700, 0.08), b0)
     return s.mix({"taiko": 0.9, "shamisen": 0.8, "flute": 0.9, "drone": 0.7}, reverb=0.45)
+
+
+def crowd(n_sec):
+    """Tiếng khán đài: nhiễu lọc dải giữa, lên xuống chậm như hàng vạn người reo."""
+    n = int(n_sec * SR)
+    x = RNG.standard_normal(n)
+    x = lp_fast(hp_fast(x, 300), 2500)
+    t = np.arange(n) / SR
+    swell = 0.6 + 0.4 * np.sin(2 * np.pi * t / 7.3) * np.sin(2 * np.pi * t / 3.1 + 1)
+    return 0.05 * x * swell
+
+
+def brass(notes, dur, vol=0.10):
+    """Kèn đồng tổng hợp (saw sáng, mở dần) cho đoạn điệp khúc hào hùng."""
+    n = int((dur + 0.15) * SR)
+    out = sum(saw(hz(m), n, harm=14) for m in notes)
+    out = lp_fast(out, 2800)
+    t = np.arange(n) / SR
+    e = np.minimum(1, t / 0.06) * np.where(t < dur, 1, np.exp(-(t - dur) * 12))
+    return vol * out * e / len(notes)
+
+
+def soccer_stadium():
+    """Nhịp vỗ tay 'tán tán – tán tán tán' của khán đài + trống lớn + tiếng reo."""
+    s = Song(124, 40)
+    prog = ["Em", "C", "G", "D"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 3)
+        b0 = bar * 4
+        sec = bar // 8
+        for k in (0, 1, 2.5, 3, 3.5):          # vỗ tay kiểu cổ động viên
+            s.put("claps", clap(), b0 + k, 1.0)
+        for k in (0, 2):
+            s.put("drums", tom(36), b0 + k, 1.0)   # trống cổ động
+        if sec >= 1:
+            four_floor(s, bar, clap_=False, open_hat=sec >= 3)
+            for k in range(8):
+                s.put("bass", bass(c[0] - 12, s.beat / 2 * 0.85, cutoff=750), b0 + k / 2)
+        if sec in (2, 4):
+            s.put("brass", brass(chord(prog[bar % 4], 4), s.beat * 1.8), b0)
+            s.put("brass", brass(chord(prog[bar % 4], 4), s.beat * 1.6), b0 + 2)
+        s.put("pad", pad(chord(prog[bar % 4], 4), s.beat * 4, 1800, 0.08), b0)
+    s.put("crowd", crowd(s.n / SR + 1), 0)
+    return s.mix({"claps": 0.8, "drums": 0.9, "hats": 0.5, "bass": 0.9, "brass": 0.9, "pad": 0.6, "crowd": 1.0},
+                 reverb=0.3)
+
+
+def soccer_anthem():
+    """Hào hùng kiểu nhạc vào sân: kèn đồng, trống tom dồn, piano giữ nhịp."""
+    s = Song(96, 32)
+    prog = ["C", "G", "Am", "F"]
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 4)
+        b0 = bar * 4
+        for k in range(8):
+            s.put("piano", piano(c[k % 3] + (12 if k % 4 == 3 else 0), s.beat * 0.5, 0.4), b0 + k / 2)
+        s.put("bass", bass(c[0] - 24, s.beat * 3.8, kind="sine", vol=0.32), b0)
+        if bar >= 8:
+            s.put("drums", kick(), b0)
+            s.put("drums", snare(), b0 + 1)
+            s.put("drums", kick(), b0 + 2)
+            s.put("drums", snare(), b0 + 3)
+            for k in (3.5, 3.75):
+                s.put("drums", tom(41), b0 + k, 0.7)
+        if bar >= 16:
+            s.put("brass", brass(chord(name, 3), s.beat * 3.6, 0.12), b0)
+            s.put("lead", brass([c[2] + 12], s.beat * 0.9, 0.08), b0 + 2)
+            s.put("lead", brass([c[1] + 12], s.beat * 0.9, 0.08), b0 + 3)
+        s.put("pad", pad(c, s.beat * 4, 1600, 0.09), b0)
+    s.put("crowd", crowd(s.n / SR + 1), 0, 0.6)
+    return s.mix({"piano": 0.9, "bass": 0.8, "drums": 0.9, "brass": 1.0, "lead": 0.9, "pad": 0.7, "crowd": 1.0},
+                 reverb=0.35)
 
 
 # ---------------------------------------------------------------- xuất file

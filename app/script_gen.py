@@ -182,9 +182,16 @@ SPORTS = {
 - 相撲を知らない視聴者向けに、専門用語は短く補足する（韓国語なら 요코즈나＝最高位 のように）。
 - action: 立ち合い・決まり手の瞬間・逆転・優勝の瞬間・懸賞金を受け取る場面=高、番付や成績の説明=低。
 - image_query は「四股名 + 場所名/年 + 取組/土俵入り/優勝」、video_query は「四股名 + 取組 + 場所名」や「大相撲 ハイライト 場所名」。"""},
-    "soccer": {"vi": "⚽ Bóng đá", "ja": "サッカー", "rule": """## 競技: サッカー（Jリーグ / Kリーグ / 欧州 / 代表戦）
-- 用語は正確に（ゴール・アシスト・PK・移籍金・代表キャップ など）。数字は公式記録で確認。
-- image_query / video_query は「選手名 + クラブ名 + 場面（ゴール/ハイライト）」で具体的に。"""},
+    "soccer": {"vi": "⚽ Bóng đá", "ja": "サッカー", "rule": """## 競技: サッカー（Jリーグ / Kリーグ / 欧州5大リーグ / W杯・アジア杯・代表戦）
+- 用語を正確に使う: ゴール・アシスト・クリーンシート・PK・FK・ハットトリック・オフサイド・VAR・
+  移籍金・契約満了・代表キャップ・得点王・アシスト王・欧州CL・W杯予選・日韓戦。
+- 数字（得点・出場数・移籍金・順位）は公式記録や大手報道で確認。移籍の噂は「〜と報じられています」と書き、確定扱いしない。
+- 海外選手・海外クラブ名は日本（韓国）の報道で一般的な表記にし、tts では読みをかな（ハングル）にする
+  （例: 三笘薫→みとまかおる、久保建英→くぼたけふさ、ソン・フンミン→ソンフンミン、Man City→マンチェスターシティ）。
+- 日本・韓国の選手が欧州でどう評価されているか、代表での役割など、{country}の視聴者が誇りや関心を持てる切り口を優先。
+- action: ゴールの瞬間・ドリブル突破・スーパーセーブ・逆転・優勝セレブレーション=高、移籍金や順位表の説明=低。
+- image_query は「選手名 + クラブ名/代表 + 場面（ゴール/ドリブル/セレブレーション）+ 年」、
+  video_query は「選手名 + ゴール/ハイライト + 試合名（例: ブライトン 三笘 ゴール ハイライト）」。"""},
     "other": {"vi": "🏅 Môn khác / không phải thể thao", "ja": "", "rule": ""},
 }
 
@@ -289,7 +296,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
         lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
         screen_rule=SCREEN_RULES.get(p.get("genre"), ""),
-        sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"],
+        sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"].replace("{country}", L["country"]),
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
