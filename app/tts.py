@@ -30,6 +30,7 @@ _ALLOWED = {x for v in VOICE_DESIGN_OPTIONS.values() for x in v if x}
 
 _model = None
 _model_lock = threading.Lock()
+_synth_lock = threading.Lock()   # 1 GPU → mỗi lúc chỉ 1 video đọc giọng (nhiều tab sẽ xếp hàng)
 
 
 def get_model(log=print):
@@ -106,6 +107,17 @@ def _prompt_for_clone(model, ref_audio: Path, ref_text: str, cache: Path):
 
 
 def synth(pid: str, log, only: list[str] | None = None) -> None:
+    """Đọc giọng. Nếu tab khác đang đọc giọng thì chờ tới lượt (tránh tràn bộ nhớ GPU / hỏng âm thanh)."""
+    if not _synth_lock.acquire(blocking=False):
+        log("⏳ Video khác (tab khác) đang đọc giọng → chờ xong rồi tự đọc tiếp...")
+        _synth_lock.acquire()
+    try:
+        _synth(pid, log, only)
+    finally:
+        _synth_lock.release()
+
+
+def _synth(pid: str, log, only: list[str] | None = None) -> None:
     import soundfile as sf
 
     p = P.load(pid)
