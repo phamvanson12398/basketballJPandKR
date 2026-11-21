@@ -387,7 +387,7 @@ function renderMedia() {
         ${c.cropped_from ? '<span class="cut">đã cắt</span>' : ''}
         ${c.kind === 'video' ? `<span class="t">${(+c.start).toFixed(1)}s</span>` : ''}</div>`;
     }).join('');
-    const need = s.kind === 'image' ? Math.max(1, Math.round(est(s) / 4.5)) : 1;
+    const need = s.kind === 'image' ? Math.max(1, Math.round(est(s) / 3)) : 1;
     const vres = (s.video_results || []).map(r => `<a data-url="${esc(r.url)}" title="${esc(r.title)}">▶ ${esc(r.title.slice(0, 40))} (${Math.round(r.duration || 0)}s)</a>`).join('');
     return `<div class="mscene" data-i="${i}" data-sid="${s.id}">
       <div class="top"><b>${s.id}</b><span class="tag ${s.kind}" data-act="kind">${s.kind === 'video' ? '🎞 Video' : '🖼 Ảnh'}</span>

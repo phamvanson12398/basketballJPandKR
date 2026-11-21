@@ -25,7 +25,8 @@ SUB_LINE_SPACING = 0.76  # khoảng cách dòng (x cỡ chữ), sát nhau giốn
 
 # Tốc độ đọc tiếng Nhật ước tính (ký tự / giây) để ước lượng thời lượng
 JA_CHARS_PER_SEC = 6.5
-IMAGE_SEC = 4.5          # mỗi ảnh 4–5 giây
+IMAGE_SEC = 4.5          # độ dài mỗi cảnh thuyết minh (~4.5 giây) – dùng khi AI chia cảnh
+SWITCH_SEC = 3.0         # cứ ~3 giây đổi ảnh / đổi đoạn video một lần (giữ chân người xem)
 VIDEO_RATIO = 0.30       # 70% ảnh / 30% video
 
 DEFAULT_SETTINGS = {

@@ -15,7 +15,7 @@ Content viết bằng **tiếng Nhật chuẩn (標準語)** để người Nh�
 Nhập title + thời lượng
   → Claude CLI viết content (tiếng Nhật chuẩn 標準語)  → BẠN DUYỆT / sửa
   → OmniVoice đọc content (giọng mẫu / mô tả giọng / ủy quyền cho tool)
-  → Tự tìm ảnh 16:9 (70%, mỗi ảnh 4–5 giây) + video (30%, tự cắt đoạn hay)  → BẠN XEM LẠI / đổi
+  → Tự tìm ảnh 16:9 (70%, ~3 giây đổi ảnh) + video (30%, tự cắt nhiều đoạn hay)  → BẠN XEM LẠI / đổi
   → Chọn nhạc nền → Xuất video 1080x1920
   → Tạo title + hashtag TikTok → copy đi đăng
 ```
@@ -138,7 +138,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 ### Bước 3 – Ảnh & video
 - Bấm **🔎 Tự tìm…**. Tool sẽ:
   - Tìm ảnh **miễn phí, không cần key** từ DuckDuckGo + Bing + Yahoo! JAPAN. **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
-    không cắt, không làm mờ. Mỗi ảnh hiện 4–5 giây.
+    không cắt, không làm mờ. **Cứ ~3 giây đổi ảnh một lần** (mỗi cảnh dùng nhiều ảnh khác nhau, không lặp ảnh).
   - Nếu vẫn thiếu ảnh 16:9, tool tự chụp **khung hình nét nhất** từ video YouTube liên quan (luôn đúng 16:9).
   - Tìm video trên YouTube, tải về, tự chấm điểm **chuyển động + tiếng khán giả + độ nét**,
     nhờ Claude xem các đoạn tốt nhất rồi chọn đoạn **hợp với câu đang đọc**.
@@ -160,6 +160,12 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Bấm **✨ Tạo title & hashtag**. Claude đọc content của video rồi đưa ra **5 title** (mỗi cái một kiểu: câu hỏi, con số,
   sự thật bất ngờ…, có dịch tiếng Việt) và **10–12 hashtag** chia nhóm: rộng / chủ đề / cụ thể / đề xuất (#おすすめ #fyp).
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
+
+### 📈 Giữ chân người xem (đã cài sẵn)
+- AI viết **câu đầu có con số / sự thật gây sốc + tên người** (không mở đầu kiểu triết lý hay kể lý lịch),
+  **đưa kết luận lên trước**, cứ 15–20 giây có một câu "mồi", kết bằng câu hỏi để kéo bình luận.
+- **Cảnh đầu ưu tiên video** (có chuyển động). Ảnh đổi ~3 giây/lần; cảnh video dài được cắt thành nhiều đoạn hay.
+- Âm lượng video xuất ra được chuẩn hóa **-14 LUFS** như video trên TikTok/YouTube.
 
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.

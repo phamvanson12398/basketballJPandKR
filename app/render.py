@@ -18,6 +18,7 @@ from . import project as P
 from .config import (FONTS, FPS, H, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin,
                      layout, load_settings, BGM)
 from . import layouts as LAY
+from .config import SWITCH_SEC
 from .media import n_images_for
 
 ZOOM_SCALE = 3  # ảnh chuẩn bị ở 3x để zoom mượt, không giật
@@ -317,12 +318,29 @@ def render(pid: str, log) -> None:
         if not items:
             pieces = [("blank", None, D)]
         elif items[0]["kind"] == "video":
-            pieces = [("video", items[0], D)]
+            # cảnh video dài → cắt thành nhiều đoạn hay (~3 giây/đoạn) từ các đoạn ứng viên
+            clips = [items[0]] + [c for c in (s.get("candidates") or [])
+                                  if c.get("kind") == "video" and c is not items[0]
+                                  and (c.get("file"), c.get("start")) != (items[0].get("file"), items[0].get("start"))]
+            k = max(1, min(len(clips), round(D / SWITCH_SEC)))
+            pieces = [("video", clips[i], D / k) for i in range(k)]
         elif lay == "korea" and s.get("split") and len(items) >= 2 and items[1]["kind"] == "image":
             pieces = [("split", (items[0], items[1]), D)]   # so sánh 2 người: chia đôi khung
         else:
             k = n_images_for(D)
-            imgs = [items[i % len(items)] for i in range(k)]
+            imgs = [it for it in items if it["kind"] == "image"]
+            if len(imgs) < k:
+                # cảnh dài hơn dự tính → lấy thêm ảnh KHÁC trong danh sách ứng viên, hết mới lặp lại
+                seen = {it["file"] for it in imgs}
+                for c in s.get("candidates") or []:
+                    if len(imgs) >= k:
+                        break
+                    if c.get("kind") == "image" and c["file"] not in seen and (base / c["file"]).exists():
+                        imgs.append(c)
+                        seen.add(c["file"])
+                if len(imgs) < k:
+                    log(f"  {s['id']}: chỉ có {len(imgs)} ảnh cho {k} lần đổi → có ảnh lặp lại (nên tìm thêm ảnh)")
+            imgs = [imgs[i % len(imgs)] for i in range(k)]
             pieces = [("image", it, D / k) for it in imgs]
         for kind, it, d in pieces:
             out = rdir / f"part_{len(parts):03d}.mp4"
@@ -372,9 +390,9 @@ def render(pid: str, log) -> None:
         vol = float(bgm.get("volume", 0.15))
         cmd += ["-stream_loop", "-1", "-i", str(bgm_file)]
         afc = (f"[2:a]volume={vol:.3f},afade=t=in:d=0.5,afade=t=out:st={max(0, total - 2):.2f}:d=2[b];"
-               f"[1:a][b]amix=inputs=2:duration=first:normalize=0[a]")
+               f"[1:a][b]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
     else:
-        afc = "[1:a]anull[a]"
+        afc = "[1:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]"   # âm lượng chuẩn -14 LUFS như video trên TikTok
     fc = f"[0:v]ass={rel}/subs.ass:fontsdir={fonts_rel}[v];{afc}"
     safe_title = re.sub(r'[\\/:*?"<>|]+', "_", p.get("title") or p["id"])[:60].strip() or p["id"]
     final_rel = f"{rel}/{safe_title}.mp4"

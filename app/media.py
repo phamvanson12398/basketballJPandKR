@@ -14,7 +14,7 @@ from PIL import Image
 
 from . import highlight as HL
 from . import project as P
-from .config import IMAGE_RATIO, IMAGE_RATIO_TOL, IMAGE_SEC, load_settings
+from .config import IMAGE_RATIO, IMAGE_RATIO_TOL, SWITCH_SEC, load_settings
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
@@ -59,7 +59,8 @@ def download_image(url: str, dest: Path) -> bool:
 
 
 def n_images_for(dur: float) -> int:
-    return max(1, round(dur / IMAGE_SEC))
+    """Số ảnh cho 1 cảnh: cứ ~3 giây đổi ảnh một lần."""
+    return max(1, round(dur / SWITCH_SEC))
 
 
 def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
