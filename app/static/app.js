@@ -441,8 +441,10 @@ async function openCrop(sid, file, isCropped) {
   CROP.sid = sid; CROP.file = file;
   try { const st = await api('/api/settings'); CROP.ratio = 1080 / (+st.media_height || 680); } catch { CROP.ratio = 1080 / 680; }
   if (effLayout() === 'korea') {
+    let hk = 1140;
+    try { hk = Math.max(700, Math.min(1500, +(await api('/api/settings')).media_height_korea || 1140)); } catch {}
     const sc = P.scenes.find(x => x.id === sid);
-    CROP.ratio = sc && sc.split ? 537 / 1140 : 1080 / 1140;   // khung gần vuông / nửa khung khi chia đôi
+    CROP.ratio = sc && sc.split ? 537 / hk : 1080 / hk;   // theo chiều cao khung bố cục Hàn (nửa khung khi chia đôi)
   }
   $('#cropReset').classList.toggle('hidden', !isCropped);
   const img = $('#cropImg');
@@ -936,7 +938,7 @@ $('#lnkSettings').onclick = async e => {
   const s = await api('/api/settings');
   $('#sModel').value = s.claude_model;
   $$('.src').forEach(c => c.checked = (s.image_sources || []).includes(c.value));
-  $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
+  $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
   $('#sHL').checked = s.use_claude_for_highlight; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -948,7 +950,7 @@ $('#lnkSettings').onclick = async e => {
 };
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
-    image_sources: $$('.src').filter(c => c.checked).map(c => c.value), video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, sub_gap: +$('#sGap').value,
+    image_sources: $$('.src').filter(c => c.checked).map(c => c.value), video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };

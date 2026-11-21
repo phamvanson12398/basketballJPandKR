@@ -36,6 +36,7 @@ DEFAULT_SETTINGS = {
     "subtitle_font": "Noto Sans CJK JP Black",
     "subtitle_size": 124,
     "media_height": 680,         # chiều cao khung ảnh/video (px). 608 = đúng 16:9; lớn hơn = cao hơn
+    "media_height_korea": 1140,  # chiều cao khung ảnh/video của bố cục Hàn Quốc (px), khung luôn nằm giữa màn hình
     "sub_gap": 40,               # khoảng cách giữa chữ và khung ảnh/video (px)
     "use_claude_for_highlight": True,
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động

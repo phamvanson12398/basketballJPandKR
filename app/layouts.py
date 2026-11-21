@@ -69,7 +69,8 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
         g.update(bg="0xf4ecdf", x=60, y=my + 20, w=960, h=mh - 40, frame=20, drop=True)
     if name == "korea":
         # khung ảnh lớn gần vuông giữa màn hình (theo video mẫu Hàn)
-        g.update(bg="black", x=0, y=380, w=W, h=1140)
+        hk = max(700, min(1500, int(load_settings().get("media_height_korea") or 1140))) // 2 * 2
+        g.update(bg="black", x=0, y=950 - hk // 2, w=W, h=hk)   # giữa màn hình, chiều cao chỉnh trong Cài đặt
     if light:
         g["bg"] = "white"
         if g["frame"]:
