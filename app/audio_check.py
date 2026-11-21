@@ -64,6 +64,26 @@ def level(a: np.ndarray, sr: int, max_gain: float = 20.0) -> np.ndarray:
     return _limit(a * gain).astype(np.float32)
 
 
+def longest_gap(a: np.ndarray, sr: int) -> tuple[float, float]:
+    """Khoảng lặng dài nhất NẰM GIỮA lời đọc → (độ dài giây, bắt đầu ở giây thứ mấy)."""
+    r = _frames(clean(a), sr)
+    if r.size < 3 or r.max() < 1e-4:
+        return 0.0, 0.0
+    voiced = r > max(np.percentile(r, 95) * 0.03, 2e-4)
+    idx = np.where(voiced)[0]
+    if idx.size < 2:
+        return 0.0, 0.0
+    best, at, run_start = 0, 0, None
+    for i in range(idx[0], idx[-1] + 1):
+        if not voiced[i]:
+            run_start = i if run_start is None else run_start
+            if i - run_start + 1 > best:
+                best, at = i - run_start + 1, run_start
+        else:
+            run_start = None
+    return best * FRAME_SEC, at * FRAME_SEC
+
+
 def problem(a: np.ndarray, sr: int, expect_sec: float, min_ratio: float = 0.4) -> str:
     """Trả về mô tả lỗi (tiếng Việt) nếu đoạn đọc có vẻ hỏng, rỗng nếu ổn."""
     raw = np.asarray(a, dtype=np.float32)
@@ -72,6 +92,9 @@ def problem(a: np.ndarray, sr: int, expect_sec: float, min_ratio: float = 0.4) -
     st = stats(clean(raw), sr)
     if st["voiced_sec"] < 0.3:
         return "gần như không có tiếng"
+    gap, at = longest_gap(raw, sr)
+    if gap >= 1.2:
+        return f"có khoảng lặng {gap:.1f}s giữa câu (từ giây {at:.1f} của cảnh)"
     if expect_sec > 2 and st["voiced_sec"] < expect_sec * min_ratio:
         return f"chỉ có {st['voiced_sec']:.1f}s tiếng nói (dự kiến ~{expect_sec:.0f}s) → có thể bị đọc thiếu"
     return ""

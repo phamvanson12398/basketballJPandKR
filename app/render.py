@@ -173,6 +173,60 @@ def video_part(src: Path, start: float, dur: float, out: Path, g: dict) -> None:
          str(out)])
 
 
+def _bgm_track(path: Path, sr: int, n: int) -> np.ndarray:
+    """Giải mã nhạc nền → stereo, lặp cho đủ độ dài, fade vào 0.5s / fade ra 2s."""
+    raw = subprocess.run([ffmpeg_bin(), "-v", "error", "-i", str(path), "-ac", "2", "-ar", str(sr),
+                          "-f", "f32le", "-"], capture_output=True, check=True).stdout
+    b = np.nan_to_num(np.frombuffer(raw, dtype=np.float32).reshape(-1, 2))
+    if len(b) < sr // 2:
+        raise RuntimeError("file nhạc quá ngắn")
+    if len(b) < n:   # nối vòng: đan chéo 1 giây để chỗ nối không bị giật / hở
+        xf = min(sr, len(b) // 4)
+        ramp = np.linspace(0, 1, xf, dtype=np.float32)[:, None]
+        out = b.copy()
+        while len(out) < n:
+            out = np.concatenate([out[:-xf], out[-xf:] * (1 - ramp) + b[:xf] * ramp, b[xf:]])
+        b = out
+    b = b[:n].copy()
+    fi, fo = min(n, int(sr * 0.5)), min(n, int(sr * 2))
+    b[:fi] *= np.linspace(0, 1, fi, dtype=np.float32)[:, None]
+    b[n - fo:] *= np.linspace(1, 0, fo, dtype=np.float32)[:, None]
+    return b
+
+
+def _check_gaps(final: Path, mix: np.ndarray, sr: int, log) -> None:
+    """So sánh tiếng trong video xuất ra với bản trộn: báo chỗ nào bị mất tiếng (để dễ tìm lỗi)."""
+    try:
+        raw = subprocess.run([ffmpeg_bin(), "-v", "error", "-i", str(final), "-ac", "1", "-ar", str(sr),
+                              "-f", "f32le", "-"], capture_output=True, check=True).stdout
+    except Exception:  # noqa: BLE001
+        return
+    out = np.frombuffer(raw, dtype=np.float32)
+    ref = mix.mean(axis=1)
+    w = int(sr * 0.25)
+    n = min(len(out), len(ref)) // w
+    if n == 0:
+        return
+    r_out = np.sqrt((out[: n * w].reshape(n, w) ** 2).mean(1))
+    r_ref = np.sqrt((ref[: n * w].reshape(n, w) ** 2).mean(1))
+    lost = (r_ref > 0.01) & (r_out < 0.002)
+    spans, i = [], 0
+    while i < n:
+        if lost[i]:
+            j = i
+            while j < n and lost[j]:
+                j += 1
+            if j - i >= 2:
+                spans.append(f"{i * 0.25:.1f}–{j * 0.25:.1f}s")
+            i = j
+        else:
+            i += 1
+    if spans:
+        log(f"  ⚠️ video xuất ra bị mất tiếng ở: {', '.join(spans[:10])} (bản trộn có tiếng) – gửi dòng này cho mình nhé")
+    else:
+        log("  ✓ Đã kiểm tra: âm thanh video xuất ra liền mạch, không bị mất đoạn nào")
+
+
 def blank_part(dur: float, out: Path, g: dict | None = None) -> None:
     n = max(2, round(dur * FPS))
     bg = (g or {}).get("bg", "white")
@@ -298,13 +352,15 @@ def render(pid: str, log) -> None:
     # 1) ghép giọng đọc
     from . import audio_check as AC
     from .languages import est_seconds
-    audios, sr = [], None
+    audios, sr, t_at = [], None, 0.0
     for s in scenes:
         a, asr = sf.read(base / s["audio"], dtype="float32")
         sr = sr or asr
         bad = AC.problem(a, asr, est_seconds(P.scene_plain_text(s)), 0.25)
         if bad:
-            log(f"  ⚠️ giọng cảnh {s['id']}: {bad} → nên vào bước Giọng đọc, đọc lại cảnh này")
+            log(f"  ⚠️ giọng cảnh {s['id']} (giây {t_at:.0f} của video): {bad}"
+                f" → nên vào bước Giọng đọc, đọc lại cảnh này")
+        t_at += len(a) / asr
         a = AC.resample(AC.level(a, asr), asr, sr)   # mọi cảnh to đều nhau, cùng tần số mẫu
         audios.append(a)
         s["duration"] = len(a) / sr
@@ -384,20 +440,23 @@ def render(pid: str, log) -> None:
     log("Chèn sub, trộn nhạc nền và xuất video cuối...", 0.85)
     rel = rdir.relative_to(ROOT).as_posix()
     fonts_rel = FONTS.relative_to(ROOT).as_posix()
-    cmd = [ffmpeg_bin(), "-v", "error", "-y", "-i", f"{rel}/video.mp4", "-i", f"{rel}/narration.wav"]
+    cmd = [ffmpeg_bin(), "-v", "error", "-y", "-i", f"{rel}/video.mp4", "-i", f"{rel}/mix.wav"]
     from .bgm_gen import resolve as resolve_bgm
     bgm = p.get("bgm", {})
     bgm_name = resolve_bgm(p)
     bgm_file = BGM / bgm_name if bgm_name else None
     if bgm_name:
         log(f"Nhạc nền: {bgm_name}")
+    # Trộn giọng + nhạc nền ngay trong Python (lặp nhạc chính xác từng mẫu, không bị hở khi nối vòng)
+    mix = np.repeat(narration[:, None], 2, axis=1)
     if bgm_file and bgm_file.exists():
         vol = float(bgm.get("volume", 0.15))
-        cmd += ["-stream_loop", "-1", "-i", str(bgm_file)]
-        afc = (f"[2:a]volume={vol:.3f},afade=t=in:d=0.5,afade=t=out:st={max(0, total - 2):.2f}:d=2[b];"
-               f"[1:a][b]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
-    else:
-        afc = "[1:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]"   # âm lượng chuẩn -14 LUFS như video trên TikTok
+        try:
+            mix = mix + vol * _bgm_track(bgm_file, sr, len(narration))
+        except Exception as e:  # noqa: BLE001
+            log(f"  ⚠️ không đọc được nhạc nền ({e}) → xuất không nhạc nền")
+    sf.write(rdir / "mix.wav", mix.astype(np.float32), sr, subtype="FLOAT")
+    afc = "[1:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]"   # âm lượng chuẩn -14 LUFS như video trên TikTok
     fc = f"[0:v]ass={rel}/subs.ass:fontsdir={fonts_rel}[v];{afc}"
     safe_title = re.sub(r'[\\/:*?"<>|]+', "_", p.get("title") or p["id"])[:60].strip() or p["id"]
     final_rel = f"{rel}/{safe_title}.mp4"
@@ -405,6 +464,7 @@ def render(pid: str, log) -> None:
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-t", f"{total:.3f}",
             "-movflags", "+faststart", final_rel]
     run(cmd, cwd=ROOT)
+    _check_gaps(ROOT / final_rel, mix, sr, log)
     for f in rdir.glob("part_*.mp4"):
         f.unlink()
     for f in rdir.glob("img_*.jpg"):
