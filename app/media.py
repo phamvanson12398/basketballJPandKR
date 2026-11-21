@@ -50,6 +50,49 @@ def search_images(query: str, log=None, recent: str | None = None) -> list[dict]
     return sorted(uniq, key=lambda x: not x["w"])
 
 
+# ---------------------------------------------------------------- ĐÚNG NGƯỜI / ĐÚNG CHỦ ĐỀ
+def _norm(s: str) -> str:
+    import urllib.parse
+    s = urllib.parse.unquote(s or "").lower()
+    return re.sub(r"[\s　・･·\-_/.,()（）「」\[\]'\"]+", "", s)
+
+
+def names_of(scene: dict) -> list[str]:
+    """Tên người/đối tượng của cảnh (field "who" do AI ghi, bạn sửa được ở bước Content)."""
+    who = scene.get("who") or ""
+    return [n for n in (_norm(x) for x in re.split(r"[・,、/|]+", who)) if len(n) >= 2]
+
+
+def relevance(res: dict, names: list[str]) -> int:
+    """2 = tiêu đề/link có tên → chắc đúng người · 1 = không có tiêu đề để biết · 0 = có tiêu đề mà không nhắc tên."""
+    if not names:
+        return 1
+    text = _norm(" ".join(str(res.get(k) or "") for k in ("title", "page", "url", "channel")))
+    if any(n in text for n in names):
+        return 2
+    return 1 if not (res.get("title") or "").strip() else 0
+
+
+def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
+    """Đưa kết quả nhắc đúng tên lên trước (giữ thứ tự gốc trong cùng nhóm)."""
+    return sorted(results, key=lambda r: -relevance(r, names))
+
+
+def scene_queries(scene: dict, kind: str, query: str | None = None) -> list[str]:
+    """Danh sách từ khóa thử lần lượt: từ khóa chính → dự phòng → tên người."""
+    if query:
+        return [query]
+    main = [scene.get("video_query"), scene.get("image_query")] if kind == "video" \
+        else [scene.get("image_query")]
+    qs = main + [scene.get("query_alt"), (scene.get("who") or "").split("・")[0]]
+    out = []
+    for q in qs:
+        q = (q or "").strip()
+        if q and q not in out:
+            out.append(q)
+    return out or [P.scene_plain_text(scene)[:30]]
+
+
 def download_image(url: str, dest: Path, loose: bool = False) -> bool:
     """loose=True (ảnh báo chí): nhận cả ảnh ngang 3:2, 4:3… vì khung video tự cắt vừa (ưu tiên giữ người)."""
     try:
@@ -76,7 +119,9 @@ def n_images_for(dur: float) -> int:
 
 def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
                 recent: str | None = None) -> None:
-    q = query or scene.get("image_query") or P.scene_plain_text(scene)
+    queries = scene_queries(scene, "image", query)
+    q = queries[0]
+    names = names_of(scene)
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
         for pat in ("c*.jpg", "f*.jpg"):   # c*.jpg gồm cả c2_*.jpg
@@ -86,20 +131,38 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     cands = []
     k = n_images_for(P.scene_est_sec(scene))
     want = max(N_CANDIDATES, k + 2)
-    tried = 0
-    for res in search_images(q, log, recent):
-        if res["url"] in used:
-            continue
-        tried += 1
-        if tried > 40:
-            break
-        f = d / f"c{len(cands) + 1}.jpg"
-        if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
-            cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
-                          "page": res.get("page", ""), "src": res.get("src", "")})
-            used.add(res["url"])
+    weak = []     # ảnh có tiêu đề nhưng KHÔNG nhắc tên người → chỉ dùng khi thiếu
+    for qi, qq in enumerate(queries):
         if len(cands) >= want:
             break
+        if qi:
+            log(f"    ít ảnh đúng → thử từ khóa dự phòng “{qq}”")
+        tried = 0
+        for res in rank_by_names(search_images(qq, log, recent), names):
+            if res["url"] in used or len(cands) >= want:
+                continue
+            if relevance(res, names) == 0:
+                weak.append(res)
+                continue
+            tried += 1
+            if tried > 40:
+                break
+            f = d / f"c{len(cands) + 1}.jpg"
+            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
+                cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
+                              "page": res.get("page", ""), "src": res.get("src", "")})
+                used.add(res["url"])
+    if names and weak:
+        log(f"    bỏ {len(weak)} ảnh không nhắc tới “{scene.get('who')}” (dễ sai người)")
+    if len(cands) < k:
+        for res in weak[:20]:      # vẫn thiếu → dùng tạm ảnh “không chắc”, xếp sau cùng
+            if len(cands) >= k + 1 or res["url"] in used:
+                continue
+            f = d / f"c{len(cands) + 1}.jpg"
+            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
+                cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
+                              "page": res.get("page", ""), "src": res.get("src", ""), "unsure": True})
+                used.add(res["url"])
     if len(cands) < k + 2:
         # Thiếu ảnh 16:9 → chụp khung hình nét từ video liên quan (luôn đúng 16:9)
         try:
@@ -132,12 +195,12 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
 
 
 def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None = None) -> list[dict]:
-    q = scene.get("image_query") or scene.get("video_query") or P.scene_plain_text(scene)
+    q = scene_queries(scene, "video")[0]
     sources = P.pdir(pid) / "sources"
     sources.mkdir(exist_ok=True)
     d = P.pdir(pid) / "media" / scene["id"]
     log(f"    ảnh 16:9 chưa đủ → chụp khung hình từ video YouTube “{q}”")
-    for r in search_videos(q, 5, recent)[:2]:
+    for r in rank_by_names(search_videos(q, 5, recent), names_of(scene))[:2]:
         try:
             v = download_video(r["url"], sources, log)
         except Exception:
@@ -191,7 +254,67 @@ def search_videos(query: str, n: int = 8, recent: str | None = None) -> list[dic
             out = naver_tv_search(query) + out   # clip KBO / KBL… chủ yếu nằm trên Naver
         except Exception:
             pass
+    if load_settings().get("facebook_video", True):
+        try:
+            out += facebook_video_search(query, recent=recent)
+        except Exception:
+            pass
     return out
+
+
+# ---------------------------------------------------------------- FACEBOOK
+FB_VIDEO = re.compile(r"https?://(?:www\.|m\.|web\.)?(?:facebook\.com/(?:[^/?#]+/videos/|watch/?\?v=|video\.php\?v=)"
+                      r"[^\s\"'<>&]*(?:&[^\s\"'<>]*)?|fb\.watch/[\w-]+)")
+
+
+def _fb_clean(u: str) -> str:
+    import html as _html
+    import urllib.parse
+    u = urllib.parse.unquote(_html.unescape(u))
+    u = u.replace("://m.", "://www.").replace("://web.", "://www.")
+    if "watch" in u or "video.php" in u:
+        v = re.search(r"[?&]v=(\d+)", u)
+        return f"https://www.facebook.com/watch/?v={v.group(1)}" if v else u
+    return u.split("?")[0].rstrip("/")
+
+
+def facebook_video_search(query: str, n: int = 4, recent: str | None = None) -> list[dict]:
+    """Facebook không cho tìm khi chưa đăng nhập → tìm qua DuckDuckGo / Bing với "site:facebook.com".
+    Chỉ lấy video công khai (trang báo, đội bóng, đài TV); bỏ Reels (video dọc)."""
+    q = f"site:facebook.com {query} video"
+    found: list[tuple[str, str]] = []
+    pages = []
+    try:
+        r = requests.post("https://html.duckduckgo.com/html/", data={"q": q, "df": {"week": "w", "month": "m"}.get(recent or "", "")},
+                          headers={"User-Agent": UA, "Accept-Language": "ja,ko;q=0.9,en;q=0.8"}, timeout=15)
+        pages.append(r.text)
+    except Exception:
+        pass
+    try:
+        r = requests.get("https://www.bing.com/search", params={"q": q, "count": 20},
+                         headers={"User-Agent": UA, "Accept-Language": "ja,ko;q=0.9,en;q=0.8"}, timeout=15)
+        pages.append(r.text)
+    except Exception:
+        pass
+    seen = set()
+    for page in pages:
+        import html as _html
+        import urllib.parse
+        # DuckDuckGo bọc link thật trong uddg=...
+        text = page + " " + " ".join(urllib.parse.unquote(m) for m in re.findall(r"uddg=([^&\"']+)", page))
+        for m in FB_VIDEO.finditer(text):
+            u = _fb_clean(m.group(0))
+            if "/reel" in u or u in seen:
+                continue
+            seen.add(u)
+            # tiêu đề: đoạn chữ gần link nhất (để lọc đúng tên người)
+            i = page.find(m.group(0)[:60])
+            title = re.sub(r"<[^>]+>", " ", page[i:i + 600]) if i >= 0 else ""
+            found.append((u, _html.unescape(re.sub(r"\s+", " ", title))[:200]))
+            if len(found) >= n:
+                break
+    return [{"id": u, "title": t, "duration": 0, "channel": "Facebook", "official": False, "url": u, "src": "facebook"}
+            for u, t in found[:n]]
 
 
 OFFICIAL_HINTS = ("公式", "official", "공식", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
@@ -270,11 +393,18 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
     if url:
         results = [{"url": url, "title": url}]
     else:
-        q = query or scene.get("video_query") or scene.get("image_query")
-        results = search_videos(q, recent=recent)
+        names = names_of(scene)
+        results = []
+        for qi, q in enumerate(scene_queries(scene, "video", query)):
+            if qi:
+                log(f"    chưa có video nhắc đúng tên → thử “{q}”")
+            got = search_videos(q, recent=recent)
+            results += [r for r in got if r["url"] not in {x["url"] for x in results}]
+            if any(relevance(r, names) == 2 for r in results):
+                break
+        # đúng tên lên trước → kênh chính thức → video chưa dùng
+        results.sort(key=lambda r: (-relevance(r, names), not r.get("official"), r["url"] in used_urls))
         scene["video_results"] = results
-        # tránh dùng lại cùng một video quá nhiều lần
-        results = sorted(results, key=lambda r: r["url"] in used_urls)
     last_err = None
     for r in results[:3]:
         try:

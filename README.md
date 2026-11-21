@@ -178,6 +178,15 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   nên không còn cảnh bị "mất tiếng" khi ghép. Cảnh đọc lỗi (im lặng / đọc thiếu) được tự đọc lại tối đa 2 lần;
   nếu vẫn lỗi, nhật ký sẽ báo ⚠️ tên cảnh để bạn đọc lại.
 
+### 🔎 Tìm ảnh / video đúng người
+- AI ghi cho mỗi cảnh: **người trong cảnh** (tên đầy đủ), từ khóa chính (tên đầy đủ + đội lúc đó + năm/cảnh cụ thể,
+  không dùng từ trừu tượng) và **từ khóa dự phòng**.
+- Ảnh/video có tiêu đề **không nhắc tên người đó** bị xếp xuống cuối / bỏ (dễ sai người). Ít kết quả đúng → tự thử
+  từ khóa dự phòng → tên người. Bạn sửa được "Người trong cảnh" và các từ khóa ở bước Content.
+- **Facebook**: tự tìm thêm *video công khai* (trang báo, đội bóng, đài TV) qua DuckDuckGo/Bing (Facebook không cho
+  tìm khi chưa đăng nhập). Ảnh trên Facebook thì không lấy được (cần đăng nhập). Bạn cũng có thể dán link video
+  Facebook vào ô "dán link" của cảnh. Tắt/bật trong Cài đặt.
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).

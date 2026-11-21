@@ -354,8 +354,19 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 - tts: 読み上げ用テキスト。基本は字幕と同じだが、{tts_rule}。
 - action: そのシーンの内容が「動き」のある映像向きかを0〜10で評価
   （{action_rule}）。
+- who: そのシーンの画面に映すべき人物・チーム・対象の正式名（フルネーム。複数なら「・」区切り）。
+  検索結果がその人物かどうかの判定に使う。人物がいない場面は空文字。
 - image_query: その場面に合う写真を探す検索語（{query_lang}。{image_rule}）。
-- video_query: その場面に合う動画（YouTube等）を探す検索語（{query_lang}。{video_rule}）。
+- video_query: その場面に合う動画（YouTube / Facebook 等）を探す検索語（{query_lang}。{video_rule}）。
+- query_alt: image_query で見つからない時の、もっと広い予備の検索語（例:「人物名 + 当時のチーム名」だけ）。
+
+## 検索語のルール（重要。検索結果が別人・無関係にならないように）
+- 人物が映る場面は、検索語の先頭に必ずその人物のフルネーム（{query_lang}の一般的な表記）を入れる。
+  名字だけ・あだ名だけ・「監督」「彼」などの代名詞は使わない。
+- 2〜4語に絞る。「名前 + 当時の所属 + 年 or 具体的な場面」（例:「田畑一也 ヤクルト 1997」「野村克也 ヤクルト 監督」）。
+- その場面の時代に合わせる（現役当時の話なら当時のチーム名・年。現在の話なら現在の所属）。
+- 「苦悩」「転機」「努力」「感動」「名言」のような抽象語・感情語は検索語に入れない（写真に写らないため）。
+- 実在の写真・映像が見つかりそうな、報道で使われる言葉にする（試合/会見/入団会見/優勝/引退会見/トレード など）。
 - voice: このテーマに合うナレーターの声。次の候補からそれぞれ1つ選ぶ:
   gender {genders} / age {ages} / pitch {pitches}
 
@@ -372,8 +383,10 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
       "chunks": ["日ハムから\\n返品不可の刻印を\\n押された男"],
       "tts": "にちハムから、返品不可の刻印を押された男。",
       "action": 2,
+      "who": "上沢直之",
       "image_query": "上沢直之 ソフトバンク 投球",
-      "video_query": "上沢直之 オープン戦 日本ハム 2024"
+      "video_query": "上沢直之 オープン戦 日本ハム 2024",
+      "query_alt": "上沢直之 日本ハム"
     }}
   ]
 }}
@@ -434,6 +447,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
             "action": int(s.get("action") or 0),
             "image_query": s.get("image_query", ""),
             "video_query": s.get("video_query", ""),
+            "who": str(s.get("who") or "").strip(),
+            "query_alt": str(s.get("query_alt") or "").strip(),
             "kind": "image",
             **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "", False)},
         })
