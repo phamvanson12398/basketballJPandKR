@@ -260,25 +260,31 @@ def news_photos(query: str, n: int = 30, recent: str | None = None) -> list[dict
     return out
 
 
-SOURCES = {"duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan, "naver": naver, "news": news_photos}
+def google(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
+    from .google_images import search
+    return search(query, n, recent, korean=_hangul(query))
+
+
+SOURCES = {"google": google, "duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan, "naver": naver,
+           "news": news_photos}
 ALL_SOURCES = list(SOURCES)
 
 
 def route(sources: list[str], query: str) -> list[str]:
     """Thứ tự nguồn theo ngôn ngữ từ khóa: tiếng Hàn → Naver trước (bỏ Yahoo! JAPAN);
     tiếng Nhật → Yahoo! JAPAN + báo Nhật trước (bỏ Naver Image)."""
-    order = (["news", "naver", "bing", "duckduckgo"] if _hangul(query)
-             else ["news", "yahoo", "bing", "duckduckgo"])
+    order = (["news", "google", "naver", "bing", "duckduckgo"] if _hangul(query)
+             else ["news", "google", "yahoo", "bing", "duckduckgo"])
     return [s for s in order if s in sources]
 
 
 # Nguồn nào lỗi (bị chặn tạm thời, mất mạng...) thì nghỉ một lúc, không gọi lại ở các cảnh sau
 COOLDOWN_SEC = 15 * 60
-MIN_GAP_SEC = {"duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5, "naver": 1.0, "news": 1.0}   # giãn cách giữa 2 lượt tìm
+MIN_GAP_SEC = {"google": 3.0, "duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5, "naver": 1.0, "news": 1.0}   # giãn cách giữa 2 lượt tìm
 _paused_until: dict[str, float] = {}
 _last_call: dict[str, float] = {}
 _lock = threading.Lock()
-NAMES = {"duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN", "naver": "Naver",
+NAMES = {"google": "Google", "duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN", "naver": "Naver",
          "news": "Ảnh từ báo"}
 
 

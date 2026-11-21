@@ -28,6 +28,10 @@ echo ==== 2/4 Cai thu vien (OmniVoice, yt-dlp, ...) ====
 pip install -r requirements.txt || (echo [LOI] Cai thu vien that bai & pause & exit /b 1)
 
 echo.
+echo ==== Cai trinh duyet chay an cho Google Images (~150MB) ====
+python -m playwright install chromium || echo [CANH BAO] Khong cai duoc Chromium - tool se dung Microsoft Edge co san
+
+echo.
 echo ==== 3/4 Tai font chu Nhat ====
 python scripts\download_font.py
 

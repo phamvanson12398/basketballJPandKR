@@ -8,4 +8,5 @@ numpy
 pillow>=10
 requests>=2.31
 soundfile>=0.12
+playwright>=1.45
 omnivoice>=0.2.1

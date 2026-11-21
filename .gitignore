@@ -9,3 +9,4 @@ library/bgm/*
 fonts/*.otf
 fonts/*.ttf
 settings.json
+library/google_profile/

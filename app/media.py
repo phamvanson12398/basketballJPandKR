@@ -34,6 +34,8 @@ def search_images(query: str, log=None, recent: str | None = None) -> list[dict]
     sources = st.get("image_sources") or ALL_SOURCES
     if not st.get("sources_v2"):      # cài đặt cũ (chưa có Naver / ảnh từ báo) → tự bật nguồn mới
         sources = list(dict.fromkeys(list(sources) + ["naver", "news"]))
+    if not st.get("sources_v3"):      # cài đặt cũ (chưa có Google) → tự bật Google
+        sources = list(dict.fromkeys(list(sources) + ["google"]))
     out = search_all(query, sources, log, recent)
     if recent and len(out) < 15:   # tin mới mà ít ảnh → lấy thêm ảnh không lọc thời gian
         out += search_all(query, sources, log)

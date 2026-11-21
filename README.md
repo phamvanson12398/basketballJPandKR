@@ -183,6 +183,10 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   không dùng từ trừu tượng) và **từ khóa dự phòng**.
 - Ảnh/video có tiêu đề **không nhắc tên người đó** bị xếp xuống cuối / bỏ (dễ sai người). Ít kết quả đúng → tự thử
   từ khóa dự phòng → tên người. Bạn sửa được "Người trong cảnh" và các từ khóa ở bước Content.
+- **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
+  (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
+  Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.
+  Cần chạy lại `install.bat` một lần (cài Playwright + Chromium ~150MB; không cài được thì dùng Edge có sẵn).
 - **Facebook**: tự tìm thêm *video công khai* (trang báo, đội bóng, đài TV) qua DuckDuckGo/Bing (Facebook không cho
   tìm khi chưa đăng nhập). Ảnh trên Facebook thì không lấy được (cần đăng nhập). Bạn cũng có thể dán link video
   Facebook vào ô "dán link" của cảnh. Tắt/bật trong Cài đặt.
