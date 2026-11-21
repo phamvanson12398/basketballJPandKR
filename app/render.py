@@ -194,7 +194,7 @@ def _bgm_track(path: Path, sr: int, n: int) -> np.ndarray:
     return b
 
 
-def _check_gaps(final: Path, mix: np.ndarray, sr: int, log) -> None:
+def _check_gaps(final: Path, mix: np.ndarray, sr: int, log, total: float) -> None:
     """So sánh tiếng trong video xuất ra với bản trộn: báo chỗ nào bị mất tiếng (để dễ tìm lỗi)."""
     try:
         raw = subprocess.run([ffmpeg_bin(), "-v", "error", "-i", str(final), "-ac", "1", "-ar", str(sr),
@@ -203,8 +203,18 @@ def _check_gaps(final: Path, mix: np.ndarray, sr: int, log) -> None:
         return
     out = np.frombuffer(raw, dtype=np.float32)
     ref = mix.mean(axis=1)
+    if len(out) < len(ref):          # âm thanh kết thúc sớm hơn hình → coi phần thiếu là mất tiếng
+        out = np.concatenate([out, np.zeros(len(ref) - len(out), dtype=np.float32)])
+    try:
+        adur = float(subprocess.run([ffprobe_bin(), "-v", "error", "-select_streams", "a:0", "-show_entries",
+                                     "stream=duration", "-of", "csv=p=0", str(final)],
+                                    capture_output=True, text=True).stdout.strip() or 0)
+        if adur and adur < total - 0.3:
+            log(f"  ⚠️ luồng âm thanh chỉ dài {adur:.1f}s trong khi video {total:.1f}s")
+    except Exception:  # noqa: BLE001
+        pass
     w = int(sr * 0.25)
-    n = min(len(out), len(ref)) // w
+    n = len(ref) // w
     if n == 0:
         return
     r_out = np.sqrt((out[: n * w].reshape(n, w) ** 2).mean(1))
@@ -455,16 +465,18 @@ def render(pid: str, log) -> None:
             mix = mix + vol * _bgm_track(bgm_file, sr, len(narration))
         except Exception as e:  # noqa: BLE001
             log(f"  ⚠️ không đọc được nhạc nền ({e}) → xuất không nhạc nền")
-    sf.write(rdir / "mix.wav", mix.astype(np.float32), sr, subtype="FLOAT")
-    afc = "[1:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]"   # âm lượng chuẩn -14 LUFS như video trên TikTok
-    fc = f"[0:v]ass={rel}/subs.ass:fontsdir={fonts_rel}[v];{afc}"
+    # âm lượng chuẩn -14 LUFS như video trên TikTok – tự tính, KHÔNG dùng loudnorm của FFmpeg
+    # (một số bản FFmpeg trên Windows làm cụt mấy giây âm thanh cuối khi dùng loudnorm)
+    mix = AC.normalize_lufs(mix, sr)
+    sf.write(rdir / "mix.wav", mix, sr, subtype="FLOAT")
+    fc = f"[0:v]ass={rel}/subs.ass:fontsdir={fonts_rel}[v]"
     safe_title = re.sub(r'[\\/:*?"<>|]+', "_", p.get("title") or p["id"])[:60].strip() or p["id"]
     final_rel = f"{rel}/{safe_title}.mp4"
-    cmd += ["-filter_complex", fc, "-map", "[v]", "-map", "[a]", *venc(True), "-r", str(FPS),
+    cmd += ["-filter_complex", fc, "-map", "[v]", "-map", "1:a", *venc(True), "-r", str(FPS),
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-t", f"{total:.3f}",
             "-movflags", "+faststart", final_rel]
     run(cmd, cwd=ROOT)
-    _check_gaps(ROOT / final_rel, mix, sr, log)
+    _check_gaps(ROOT / final_rel, mix, sr, log, total)
     for f in rdir.glob("part_*.mp4"):
         f.unlink()
     for f in rdir.glob("img_*.jpg"):

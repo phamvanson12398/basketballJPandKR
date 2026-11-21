@@ -98,3 +98,50 @@ def problem(a: np.ndarray, sr: int, expect_sec: float, min_ratio: float = 0.4) -
     if expect_sec > 2 and st["voiced_sec"] < expect_sec * min_ratio:
         return f"chỉ có {st['voiced_sec']:.1f}s tiếng nói (dự kiến ~{expect_sec:.0f}s) → có thể bị đọc thiếu"
     return ""
+
+
+# ---------------------------------------------------------------- CHUẨN HÓA -14 LUFS (thay loudnorm của FFmpeg)
+# Một số bản FFmpeg trên Windows: loudnorm làm cụt vài giây âm thanh cuối video → tự tính theo ITU-R BS.1770.
+def _biquad_mag(f: np.ndarray, sr: int, kind: str, fc: float, q: float, gain_db: float = 0.0) -> np.ndarray:
+    A = 10 ** (gain_db / 40)
+    w0 = 2 * np.pi * fc / sr
+    c, alpha = np.cos(w0), np.sin(w0) / (2 * q)
+    if kind == "shelf":
+        b = [A * ((A + 1) + (A - 1) * c + 2 * np.sqrt(A) * alpha), -2 * A * ((A - 1) + (A + 1) * c),
+             A * ((A + 1) + (A - 1) * c - 2 * np.sqrt(A) * alpha)]
+        a = [(A + 1) - (A - 1) * c + 2 * np.sqrt(A) * alpha, 2 * ((A - 1) - (A + 1) * c),
+             (A + 1) - (A - 1) * c - 2 * np.sqrt(A) * alpha]
+    else:  # high-pass
+        b = [(1 + c) / 2, -(1 + c), (1 + c) / 2]
+        a = [1 + alpha, -2 * c, 1 - alpha]
+    z = np.exp(-2j * np.pi * f / sr)
+    return np.abs((b[0] + b[1] * z + b[2] * z * z) / (a[0] + a[1] * z + a[2] * z * z))
+
+
+def loudness(x: np.ndarray, sr: int) -> float:
+    """Độ to tích hợp (LUFS) theo BS.1770: lọc K-weighting + cổng -70 / -10."""
+    x = np.atleast_2d(x.T).T if x.ndim == 1 else x          # (n, kênh)
+    n = len(x)
+    f = np.fft.rfftfreq(n, 1 / sr)
+    k = _biquad_mag(f, sr, "shelf", 1681.97, 0.7072, 3.99984) * _biquad_mag(f, sr, "hp", 38.135, 0.5003)
+    y = np.fft.irfft(np.fft.rfft(x, axis=0) * k[:, None], n=n, axis=0)
+    blk, hop = int(0.4 * sr), int(0.1 * sr)
+    if n < blk:
+        return -70.0
+    p2 = np.cumsum(np.concatenate([np.zeros((1, y.shape[1])), y ** 2]), axis=0)
+    starts = np.arange(0, n - blk + 1, hop)
+    z = ((p2[starts + blk] - p2[starts]) / blk).sum(axis=1)
+    lk = -0.691 + 10 * np.log10(z + 1e-12)
+    g = z[lk > -70]
+    if g.size == 0:
+        return -70.0
+    rel = -0.691 + 10 * np.log10(g.mean()) - 10
+    g = z[(lk > -70) & (lk > rel)]
+    return float(-0.691 + 10 * np.log10(g.mean() + 1e-12))
+
+
+def normalize_lufs(x: np.ndarray, sr: int, target: float = -14.0, ceiling_db: float = -1.5) -> np.ndarray:
+    """Đưa cả bản trộn về -14 LUFS (chuẩn TikTok/YouTube), đỉnh không vượt -1.5 dB."""
+    gain = min(30.0, 10 ** ((target - loudness(x, sr)) / 20))
+    c = 10 ** (ceiling_db / 20)
+    return (_limit(x * gain / c) * c).astype(np.float32)
