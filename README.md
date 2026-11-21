@@ -174,6 +174,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Tin tức / Top / Chung** – câu đầu có con số / sự thật gây sốc, đưa kết luận lên trước, kết bằng câu hỏi.
 - **Cảnh đầu ưu tiên video** (có chuyển động). Ảnh đổi ~3 giây/lần; cảnh video dài được cắt thành nhiều đoạn hay.
 - Âm lượng video xuất ra được chuẩn hóa **-14 LUFS** như video trên TikTok/YouTube.
+- **Giọng đọc đều nhau giữa các cảnh**: mỗi cảnh được cân âm lượng theo giọng nói (không theo tiếng lách tách),
+  nên không còn cảnh bị "mất tiếng" khi ghép. Cảnh đọc lỗi (im lặng / đọc thiếu) được tự đọc lại tối đa 2 lần;
+  nếu vẫn lỗi, nhật ký sẽ báo ⚠️ tên cảnh để bạn đọc lại.
 
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.

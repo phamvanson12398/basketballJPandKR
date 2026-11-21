@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import audio_check as AC
 from . import languages as LG
 from . import project as P
 from .config import VOICES, load_settings
@@ -155,10 +156,22 @@ def synth(pid: str, log, only: list[str] | None = None) -> None:
     for i, s in enumerate(todo):
         text = s.get("tts") or P.scene_plain_text(s)
         log(f"Đọc cảnh {s['id']} ({i + 1}/{len(todo)}): {text[:30]}...", i / len(todo))
-        gen = model.generate(text=text, language=lang, speed=speed, num_step=num_step, **kwargs)
-        audio = _trim(np.asarray(gen[0], dtype=np.float32))
-        peak = float(np.abs(audio).max() or 1)
-        audio = audio * min(1.0, 0.95 / peak)
+        expect = LG.est_seconds(P.scene_plain_text(s)) / max(speed, 0.3)
+        best, best_bad = None, None
+        for attempt in range(3):   # đọc lỗi (im lặng / thiếu / mẫu hỏng) → tự đọc lại tối đa 2 lần
+            gen = model.generate(text=text, language=lang, speed=speed, num_step=num_step, **kwargs)
+            raw = np.asarray(gen[0], dtype=np.float32)
+            bad = AC.problem(raw, SR, expect)
+            cand = _trim(AC.clean(raw))
+            if best is None or (best_bad and not bad) or \
+                    (bad and AC.stats(cand, SR)["voiced_sec"] > AC.stats(best, SR)["voiced_sec"]):
+                best, best_bad = cand, bad
+            if not bad:
+                break
+            log(f"  ⚠️ cảnh {s['id']}: {bad} → đọc lại (lần {attempt + 2})")
+        if best_bad:
+            log(f"  ⚠️ cảnh {s['id']} vẫn {best_bad} – hãy nghe lại cảnh này, nếu thiếu thì bấm đọc lại")
+        audio = AC.level(best, SR)   # cân bằng âm lượng theo giọng nói, không theo tiếng lách tách
         audio = np.concatenate([audio, np.zeros(int(SR * PAUSE_SEC), dtype=np.float32)])
         f = adir / f"{s['id']}.wav"
         sf.write(f, audio, SR)

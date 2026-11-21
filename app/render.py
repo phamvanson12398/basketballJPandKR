@@ -296,11 +296,16 @@ def render(pid: str, log) -> None:
     log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 
     # 1) ghép giọng đọc
-    audios = []
+    from . import audio_check as AC
+    from .languages import est_seconds
+    audios, sr = [], None
     for s in scenes:
-        a, sr = sf.read(base / s["audio"], dtype="float32")
-        if a.ndim > 1:
-            a = a.mean(axis=1)
+        a, asr = sf.read(base / s["audio"], dtype="float32")
+        sr = sr or asr
+        bad = AC.problem(a, asr, est_seconds(P.scene_plain_text(s)), 0.25)
+        if bad:
+            log(f"  ⚠️ giọng cảnh {s['id']}: {bad} → nên vào bước Giọng đọc, đọc lại cảnh này")
+        a = AC.resample(AC.level(a, asr), asr, sr)   # mọi cảnh to đều nhau, cùng tần số mẫu
         audios.append(a)
         s["duration"] = len(a) / sr
     narration = np.concatenate(audios + [np.zeros(int(sr * 0.6), dtype=np.float32)])
