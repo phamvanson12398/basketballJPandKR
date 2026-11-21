@@ -48,6 +48,37 @@ def venc(final: bool) -> list[str]:
 
 
 # ------------------------------------------------------------------ ảnh
+def smart_offset(im: Image.Image, cw: int, ch: int) -> tuple[int, int]:
+    """Chọn vị trí cắt (cw x ch trên ảnh im) giữ được người: ưu tiên vùng có màu da + nhiều chi tiết,
+    hơi nghiêng lên nửa trên (mặt thường ở trên). Không cần model nhận diện khuôn mặt."""
+    if cw >= im.width and ch >= im.height:
+        return 0, 0
+    sw = 160
+    sc = sw / im.width
+    small = im.resize((sw, max(1, round(im.height * sc))))
+    a = np.asarray(small.convert("YCbCr"), dtype=np.float32)
+    cb, cr = a[..., 1], a[..., 2]
+    skin = ((cr > 135) & (cr < 180) & (cb > 85) & (cb < 135)).astype(np.float32)
+    gray = a[..., 0]
+    gx = np.abs(np.diff(gray, axis=1, prepend=gray[:, :1]))
+    gy = np.abs(np.diff(gray, axis=0, prepend=gray[:1, :]))
+    detail = np.clip((gx + gy) / 60, 0, 1)
+    hh = small.height
+    rows = np.linspace(1.15, 0.75, hh)[:, None]        # nửa trên được ưu tiên hơn
+    score = (1.8 * skin + detail) * rows
+    integ = np.pad(score, ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+    w, h = max(1, round(cw * sc)), max(1, round(ch * sc))
+    best, bx, by = -1.0, 0, 0
+    for y in range(0, max(1, small.height - h + 1), 2):
+        for x in range(0, max(1, sw - w + 1), 2):
+            v = integ[y + h, x + w] - integ[y, x + w] - integ[y + h, x] + integ[y, x]
+            # phạt nhẹ khi lệch xa giữa ảnh, tránh cắt sát mép không cần thiết
+            v -= 0.02 * score.sum() * abs((x + w / 2) / sw - 0.5)
+            if v > best:
+                best, bx, by = v, x, y
+    return (min(im.width - cw, max(0, round(bx / sc))), min(im.height - ch, max(0, round(by / sc))))
+
+
 def prepare_image(src: Path, dst: Path, g: dict) -> Path:
     """Đưa ảnh vào khung (không làm mờ).
     Ảnh ngang (16:9...) được phóng cho kín khung, chỉ hụt chút ít ở mép trái/phải.
@@ -58,13 +89,26 @@ def prepare_image(src: Path, dst: Path, g: dict) -> Path:
     if ar >= (tw / th) * 0.97:
         s = max(tw / im.width, th / im.height)
         r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
-        x, y = (r.width - tw) // 2, (r.height - th) // 2
+        x, y = smart_offset(r, tw, th)     # cắt vào chỗ có người thay vì luôn cắt giữa
         out = r.crop((x, y, x + tw, y + th))
     else:
         s = min(tw / im.width, th / im.height)
         fg = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
         out = Image.new("RGB", (tw, th), "white")
         out.paste(fg, ((tw - fg.width) // 2, (th - fg.height) // 2))
+    out.save(dst, "JPEG", quality=93)
+    return dst
+
+
+def prepare_split(src1: Path, src2: Path, dst: Path, g: dict) -> Path:
+    """2 ảnh đặt cạnh nhau (so sánh 2 người), mỗi nửa được cắt thông minh vào người."""
+    gap = 6
+    half = dict(g, w=(g["w"] - gap) // 2)
+    a = Image.open(prepare_image(src1, dst.with_name(dst.stem + "_a.jpg"), half))
+    b = Image.open(prepare_image(src2, dst.with_name(dst.stem + "_b.jpg"), half))
+    out = Image.new("RGB", (g["w"] * ZOOM_SCALE, g["h"] * ZOOM_SCALE), "black")
+    out.paste(a, (0, 0))
+    out.paste(b, (out.width - b.width, 0))
     out.save(dst, "JPEG", quality=93)
     return dst
 
@@ -274,6 +318,8 @@ def render(pid: str, log) -> None:
             pieces = [("blank", None, D)]
         elif items[0]["kind"] == "video":
             pieces = [("video", items[0], D)]
+        elif lay == "korea" and s.get("split") and len(items) >= 2 and items[1]["kind"] == "image":
+            pieces = [("split", (items[0], items[1]), D)]   # so sánh 2 người: chia đôi khung
         else:
             k = n_images_for(D)
             imgs = [items[i % len(items)] for i in range(k)]
@@ -283,6 +329,10 @@ def render(pid: str, log) -> None:
             try:
                 if kind == "image":
                     prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
+                    image_part(prep, d, out, variant, g)
+                    variant += 1
+                elif kind == "split":
+                    prep = prepare_split(base / it[0]["file"], base / it[1]["file"], rdir / f"img_{len(parts):03d}.jpg", g)
                     image_part(prep, d, out, variant, g)
                     variant += 1
                 elif kind == "video":

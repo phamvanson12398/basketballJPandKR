@@ -65,6 +65,11 @@ Riêng **Bóng đá**: thuật ngữ chuẩn (ハットトリック・VAR・移�
 tên cầu thủ/CLB nước ngoài có cách đọc, ưu tiên góc cầu thủ Nhật/Hàn ở châu Âu, và nhạc nền riêng **Sân vận động / Hào hùng**
 (vỗ tay cổ động, tiếng khán đài, kèn đồng).
 
+### 🇰🇷 Bố cục kiểu Shorts Hàn Quốc (video tiếng Hàn, thể loại Thể thao)
+Nền đen · tiêu đề 2 dòng cố định (vàng / đỏ) · ảnh lớn gần vuông (tự cắt vào chỗ có người) · phụ đề trắng viền đen
+1 cụm ngắn đè giữa ảnh · hộp số liệu (타율… / 평균자책점…) khi nhắc tới thành tích · cảnh so sánh 2 người tự chia đôi khung.
+Tự dùng cho video tiếng Hàn + Thể thao (trừ Idol/K-pop giữ nền trắng); chọn tay ở ô 🎨 Bố cục cho video khác.
+
 ### 🤼⚽ Bố cục Sumo / Bóng đá (thể loại Thể thao)
 Vẫn là bố cục bóng chày (kể chuyện, sub đen trên/dưới khung), thêm nhãn riêng **chỉ ở cảnh nói về trận đấu**:
 - **Sumo**: nền giấy washi + vạch vàng, nhãn giải đấu (九州場所 13日目), thẻ cấp bậc (横綱…), biển tên + thành tích,

@@ -67,7 +67,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     q = query or scene.get("image_query") or P.scene_plain_text(scene)
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
-        for pat in ("c*.jpg", "f*.jpg"):
+        for pat in ("c*.jpg", "f*.jpg"):   # c*.jpg gồm cả c2_*.jpg
             for f in d.glob(pat):
                 f.unlink()
     d.mkdir(parents=True, exist_ok=True)
@@ -98,6 +98,24 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         raise RuntimeError(f"Không tìm được ảnh 16:9 cho “{q}” – thử từ khóa khác")
     scene["candidates"] = cands
     scene["items"] = cands[:k]
+    # cảnh so sánh 2 người (bố cục Hàn): tìm thêm ảnh người thứ hai
+    if scene.get("split") and scene.get("image_query2"):
+        q2 = scene["image_query2"]
+        c2 = []
+        for res in search_images(q2, log, recent):
+            if res["url"] in used:
+                continue
+            f = d / f"c2_{len(c2) + 1}.jpg"
+            if download_image(res["url"], f):
+                c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
+                           "page": res.get("page", ""), "src": res.get("src", "")})
+                used.add(res["url"])
+            if len(c2) >= 4:
+                break
+        if c2:
+            scene["candidates"] = cands[:4] + c2 + cands[4:]
+            scene["items"] = [cands[0], c2[0]]
+            log(f"    chia đôi khung: {q} | {q2}")
     log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh")
 
 

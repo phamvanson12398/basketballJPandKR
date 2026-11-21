@@ -112,10 +112,12 @@ function renderSources() {
     `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.date || '')} · ${esc(s.title || s.url)}</a>`).join('');
 }
 // ---- bố cục & chữ trên màn hình
-const LAYOUT_NAMES = ['sports', 'news', 'ranking', 'biography', 'general'];
+const LAYOUT_NAMES = ['sports', 'news', 'ranking', 'biography', 'general', 'korea'];
 function effLayout() {
   if (P.layout && P.layout !== 'auto') return P.layout;
-  return LAYOUT_NAMES.includes(P.genre) ? P.genre : 'sports';
+  const g = P.genre || 'sports';
+  if (g === 'sports' && P.lang === 'ko' && !['idol', 'kpop'].includes(P.sport)) return 'korea';
+  return LAYOUT_NAMES.includes(g) ? g : 'sports';
 }
 function renderScreenBox() {
   const lay = effLayout(), box = $('#screenBox');
@@ -126,7 +128,10 @@ function renderScreenBox() {
   if (lay === 'sports' && !sportV) return;
   const inp = (k, label, ph = '') => `<div><label>${label}</label><input data-s="${k}" value="${esc(S[k] || '')}" placeholder="${esc(ph)}"></div>`;
   let html = '<h3>🖥️ Chữ trên màn hình (tiêu đề cố định, nhãn…)</h3>';
-  if (sportV === 'sumo') {
+  if (lay === 'korea') {
+    html += `<div class="two">${inp('title1', 'Tiêu đề dòng trên (chữ vàng)', '롯데가 정철원 먼저')}${inp('title2', 'Tiêu đề dòng dưới (chữ đỏ)', '팔아넘긴 진짜 이유')}</div>
+      <p class="hint">Hộp số liệu và chia đôi khung (so sánh 2 người): chỉnh ở từng cảnh bên dưới.</p>`;
+  } else if (sportV === 'sumo') {
     html += `${inp('basho', 'Nhãn giải đấu ở góc ảnh (để trống nếu không nói về giải cụ thể)', '九州場所 13日目')}
       <p class="hint">Cấp bậc, tên + thành tích, con dấu kỹ thuật thắng: chỉnh ở từng cảnh bên dưới. Cảnh nào để trống thì chỉ có ảnh + sub như bóng chày.</p>`;
   } else if (sportV === 'soccer') {
@@ -164,6 +169,10 @@ function sceneLabelFields(s) {
   const f = (k, label, type = 'text', ph = '') => `<div class="lbl"><label>${label}</label>
     <input data-k="${k}" type="${type}" value="${esc(s[k] ?? '')}" placeholder="${esc(ph)}"></div>`;
   if (lay === 'news') return f('story', 'Tin số', 'number', '1');
+  if (lay === 'korea')
+    return f('stat', 'Hộp số liệu', 'text', '타율 2할 8리 / 1홈런') +
+      `<div class="lbl"><label>Chia đôi khung</label><label class="check" style="margin:0"><input type="checkbox" data-k="split" ${s.split ? 'checked' : ''}> So sánh 2 người (2 ảnh cạnh nhau)</label></div>` +
+      (s.split ? f('image_query2', 'Từ khóa người thứ 2', 'text', '정철원 두산') : '');
   if (lay === 'ranking') return f('rank', 'Hạng', 'number', 'trống = mở đầu/kết') + f('rank_label', 'Dải tên', 'text', '渡邊雄太 875得点');
   if (lay === 'biography') return f('year', 'Năm', 'text', '2010') + f('chapter', 'Chương', 'text', '第2章・高校時代');
   if (lay === 'sports' && P.sport === 'sumo')
@@ -179,7 +188,9 @@ function renderScript() {
   renderSources();
   renderScreenBox();
   $('#pLayout').value = P.layout || 'auto';
-  $('#subHint').innerHTML = effLayout() === 'sports'
+  $('#subHint').innerHTML = effLayout() === 'korea'
+    ? 'Kiểu Shorts Hàn: mỗi dòng trong ô sub = 1 cụm ngắn hiện giữa ảnh (chữ trắng viền đen). Dùng dấu <code>/</code> để chia nhỏ thêm.'
+    : effLayout() === 'sports'
     ? 'Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng. Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).'
     : 'Mỗi dòng trong ô sub = 1 lần hiện chữ (bật ra dưới khung ảnh, tối đa 2 dòng). Dùng dấu <code>/</code> để gợi ý chỗ xuống dòng.';
   const tv = P.video_pct ?? 30;
@@ -220,6 +231,7 @@ function renderScript() {
   $$('#scenes .scene').forEach(el => {
     const i = +el.dataset.i;
     el.querySelectorAll('[data-k]').forEach(inp => inp.oninput = () => { readScene(el, i); ratioBar($('#ratio')); el.querySelector('.est').textContent = '~' + est(P.scenes[i]).toFixed(1) + 's'; });
+    el.querySelectorAll('input[type=checkbox][data-k]').forEach(inp => inp.onchange = () => { readScene(el, i); renderScript(); });
     el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
       const a = b.dataset.act, s = P.scenes;
       if (a === 'kind') { s[i].kind = s[i].kind === 'video' ? 'image' : 'video'; s[i].locked_kind = true; }
@@ -236,6 +248,7 @@ function readScene(el, i) {
   el.querySelectorAll('[data-k]').forEach(inp => {
     const k = inp.dataset.k;
     if (k === 'chunks') s.chunks = inp.value.split('\n').map(x => x.trim()).filter(Boolean).map(x => x.replace(/\s*\/\s*/g, '\n'));
+    else if (inp.type === 'checkbox') s[k] = inp.checked;
     else if (k === 'action') s.action = +inp.value || 0;
     else if (k === 'story') s.story = inp.value === '' ? null : +inp.value;
     else if (k === 'rank') s.rank = inp.value === '' ? null : +inp.value;
@@ -427,6 +440,10 @@ const CROP = {sid: null, file: null, box: null, ratio: null};
 async function openCrop(sid, file, isCropped) {
   CROP.sid = sid; CROP.file = file;
   try { const st = await api('/api/settings'); CROP.ratio = 1080 / (+st.media_height || 680); } catch { CROP.ratio = 1080 / 680; }
+  if (effLayout() === 'korea') {
+    const sc = P.scenes.find(x => x.id === sid);
+    CROP.ratio = sc && sc.split ? 537 / 1140 : 1080 / 1140;   // khung gần vuông / nửa khung khi chia đôi
+  }
   $('#cropReset').classList.toggle('hidden', !isCropped);
   const img = $('#cropImg');
   img.onload = () => {

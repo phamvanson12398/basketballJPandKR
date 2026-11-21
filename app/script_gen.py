@@ -269,7 +269,15 @@ SPORT_SCREEN_RULES = {
   試合の経過を語るシーンにだけ入れ、生い立ち・移籍・背景などのシーンには入れない。
 - 各シーンの "player": そのシーンの主役の選手名、"team": 所属と背番号（例: 「コヴェントリー #7」）。主役が映らない場面は入れない。""",
 }
-SCENE_LABELS = ("story", "rank", "rank_label", "year", "chapter",
+KOREA_SCREEN_RULE = """## 画面表示用テキスト（韓国式ショート: 黒背景・上部に2行の固定タイトル・大きな写真）
+- screen.title1: 上段の黄色タイトル（最大12文字。例: 「롯데가 정철원 먼저」）、screen.title2: 下段の赤タイトル（最大12文字。例: 「팔아넘긴 진짜 이유」）。
+  2行で1つの強いフックになるようにする。
+- 字幕チャンクは短いフレーズ: 1チャンク=1〜2行、1行は最大10文字（2〜4語）。テンポよく切り替わるように細かく区切る。
+- 各シーンの "stat": ナレーションで成績・数字を語るシーンにだけ、要点の数字（最大16文字。例: 「타율 2할 8리 / 1홈런」「평균자책점 6.75」）。
+- 2人の選手を比べる・トレードで交換するなど「2人」が主題のシーンは "split": true にし、
+  image_query に1人目、"image_query2" に2人目の検索語を入れる（画面を左右に分けて2人を並べる）。"""
+SCENE_LABELS = ("stat", "split", "image_query2",
+                "story", "rank", "rank_label", "year", "chapter",
                 "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team")
 
 
@@ -336,6 +344,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
         old = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
         feedback = f"\n## 前回の台本\n{old}\n\n## 修正リクエスト（ベトナム語の場合あり。内容を理解して反映）\n{feedback}\n"
     gen = GENRES.get(p.get("genre") or "sports", GENRES["sports"])
+    from .layouts import resolve as resolve_layout
+    korea_layout = resolve_layout(p) == "korea"
     if p.get("genre") == "news":
         style = news_context(p.get("news") or {}, p.get("lang"))
     elif p.get("genre") == "ranking":
@@ -346,9 +356,10 @@ def generate(pid: str, log, feedback: str = "") -> None:
              if p.get("genre") == "news" else "")
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
-        lang_rules=L["rules"], line_max=L["line_max"], tts_rule=L["tts_rule"], query_lang=L["query_lang"],
-        screen_rule=SCREEN_RULES.get(p.get("genre"), "") or
-        (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else ""),
+        lang_rules=L["rules"], line_max=10 if korea_layout else L["line_max"], tts_rule=L["tts_rule"],
+        query_lang=L["query_lang"],
+        screen_rule=(KOREA_SCREEN_RULE if korea_layout else SCREEN_RULES.get(p.get("genre"), "") or
+                     (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else "")),
         sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"].replace("{country}", L["country"]),
         image_rule=gen["image"], video_rule=gen["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
@@ -375,7 +386,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
             "image_query": s.get("image_query", ""),
             "video_query": s.get("video_query", ""),
             "kind": "image",
-            **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "")},
+            **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "", False)},
         })
     if not scenes:
         raise RuntimeError("Claude không trả về cảnh nào, thử lại nhé.")

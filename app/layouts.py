@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .config import H, W, layout as frame_layout, load_settings
 
-LAYOUTS = ["sports", "news", "ranking", "biography", "general"]
+LAYOUTS = ["sports", "news", "ranking", "biography", "general", "korea"]
 K = 1.45          # đổi cỡ chữ px → cỡ ASS
 FPS_FLASH = 0.12  # chớp chuyển cảnh (giây)
 
@@ -30,6 +30,9 @@ def resolve(p: dict) -> str:
     if lay in LAYOUTS:
         return lay
     g = p.get("genre") or "sports"
+    # video thể thao tiếng Hàn → bố cục kiểu Shorts Hàn (idol / K-pop vẫn giữ nền trắng)
+    if g == "sports" and p.get("lang") == "ko" and p.get("sport") not in ("idol", "kpop"):
+        return "korea"
     return g if g in LAYOUTS else "sports"
 
 
@@ -64,6 +67,9 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
     elif name == "biography":
         # ảnh nhỏ lại, viền trắng 20px như ảnh in, rơi nhẹ + nghiêng khi vào cảnh
         g.update(bg="0xf4ecdf", x=60, y=my + 20, w=960, h=mh - 40, frame=20, drop=True)
+    if name == "korea":
+        # khung ảnh lớn gần vuông giữa màn hình (theo video mẫu Hàn)
+        g.update(bg="black", x=0, y=380, w=W, h=1140)
     if light:
         g["bg"] = "white"
         if g["frame"]:
@@ -354,13 +360,53 @@ def general(e: Ev, p, scenes, starts, total, g):
     captions(e, scenes, starts, mb + 40, WHITE, box=DARKBOX)
 
 
-BUILDERS = {"news": news, "ranking": ranking, "biography": biography, "general": general}
+# ------------------------------------------------------------------ 🇰🇷 KIỂU SHORTS HÀN QUỐC
+KR_YELLOW, KR_RED = "&H32F5F5&", "&H2E26E8&"
+
+
+def korea(e: Ev, p, scenes, starts, total, g):
+    """Nền đen · tiêu đề 2 dòng cố định (vàng / đỏ) · ảnh lớn gần vuông ·
+    phụ đề trắng viền đen 1 dòng ngắn đè giữa ảnh · hộp số liệu khi nhắc tới thành tích."""
+    scr = p.get("screen") or {}
+    my, mh = g["y"], g["h"]
+    t1, t2 = scr.get("title1", ""), scr.get("title2", p.get("title", ""))
+    e.add(0, total, f"\\an5\\pos(540,{my - 178})\\fs{86 * K:.0f}\\c{KR_YELLOW}\\bord3\\3c{BLACK}{fit(t1, 86, 1020)}"
+                    f"\\fad(200,0)", esc(t1), 3)
+    e.add(0, total, f"\\an5\\pos(540,{my - 70})\\fs{86 * K:.0f}\\c{KR_RED}\\bord3\\3c{BLACK}{fit(t2, 86, 1020)}"
+                    f"\\fad(200,0)", esc(t2), 3)
+    cy = my + int(mh * 0.6)
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        end = starts[i + 1] if i + 1 < len(starts) else total
+        # hộp số liệu (VD: 타율 2할 8리 / 1홈런)
+        if sc.get("stat"):
+            s = str(sc["stat"])
+            wpx = min(1000, text_width(s, 54) + 80)
+            pop = "\\fscx80\\fscy80\\alpha&HFF&\\t(0,150,\\fscx100\\fscy100\\alpha&H00&)"
+            e.shape(st + 0.3, end, 540 - wpx / 2, my + 40, rrect(wpx, 100, 24), "&H1A1A1A&", layer=4,
+                    extra="\\1a&H30&" + pop)
+            e.add(st + 0.3, end, f"\\an5\\pos(540,{my + 90})\\fs{54 * K:.0f}\\c{WHITE}\\i1{fit(s, 54, wpx - 60)}{pop}",
+                  esc(s), 5)
+        # phụ đề: mỗi dòng của chunk là 1 cụm ngắn hiện riêng
+        for chunk, a, b in chunk_timing(sc, st):
+            lines = [x.strip() for x in chunk.split("\n") if x.strip()] or [chunk]
+            tot = sum(max(1, len(x.replace(" ", ""))) for x in lines)
+            t = a
+            for k, ln in enumerate(lines):
+                d = (b - a) * max(1, len(ln.replace(" ", ""))) / tot
+                e.add(t, t + d if k < len(lines) - 1 else b,
+                      f"\\an5\\pos(540,{cy})\\fs{56 * K:.0f}\\c{WHITE}\\bord6\\3c{BLACK}\\shad2\\4c{BLACK}"
+                      f"{fit(ln, 56, 980)}", esc(ln), 6)
+                t += d
+
+
+BUILDERS = {"news": news, "ranking": ranking, "biography": biography, "general": general, "korea": korea}
 
 
 def build_ass(name: str, p: dict, scenes: list, starts: list, total: float, out: Path) -> None:
     g = geometry(name, light=is_light(p))
     e = Ev()
-    scene_flash(e, starts, g)
+    if name != "korea":          # kiểu Hàn: cắt cảnh thẳng, không chớp
+        scene_flash(e, starts, g)
     BUILDERS[name](e, p, scenes, starts, total, g)
     font = load_settings().get("subtitle_font") or "Noto Sans CJK JP Black"
     out.write_text(HEAD.format(W=W, H=H, font=font) + "\n".join(e.rows) + "\n", encoding="utf-8")
