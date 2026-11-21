@@ -134,16 +134,152 @@ def yahoo_japan(query: str, n: int = 60, recent: str | None = None) -> list[dict
     return out
 
 
-SOURCES = {"duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan}
+# ---------------------------------------------------------------- 🇰🇷 NAVER IMAGE
+def _hangul(s: str) -> bool:
+    return bool(re.search(r"[\uac00-\ud7a3]", s or ""))
+
+
+def _walk_images(obj, acc: list, url_keys=("originalUrl", "originalImageUrl", "imgUrl", "url"),
+                 w_keys=("orgWidth", "width", "imageWidth"), h_keys=("orgHeight", "height", "imageHeight")):
+    """Tìm mọi object có link ảnh + kích thước trong JSON (cấu trúc trang có thể thay đổi)."""
+    if isinstance(obj, dict):
+        url = next((obj[k] for k in url_keys if isinstance(obj.get(k), str) and obj[k].startswith("http")), None)
+        w = next((obj[k] for k in w_keys if str(obj.get(k, "")).isdigit()), 0)
+        h = next((obj[k] for k in h_keys if str(obj.get(k, "")).isdigit()), 0)
+        if url:
+            acc.append((url, int(w or 0), int(h or 0), obj.get("title", "") or "", obj.get("link", "") or ""))
+        for v in obj.values():
+            _walk_images(v, acc, url_keys, w_keys, h_keys)
+    elif isinstance(obj, list):
+        for v in obj:
+            _walk_images(v, acc, url_keys, w_keys, h_keys)
+
+
+def naver(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
+    """Naver 이미지 검색 (máy tìm kiếm số 1 Hàn Quốc) – mạnh với ảnh KBO / KBL / K League / K-pop."""
+    out, found = [], []
+    period = {"day": "1d", "week": "1w", "month": "1m"}.get(recent or "")
+    for start in (1, 51):
+        params = {"query": query, "json_type": 6, "display": 50, "start": start, "where": "image"}
+        if period:
+            params["nso"] = f"so:r,p:{period}"
+        try:
+            r = requests.get("https://s.search.naver.com/p/c/image/search.naver", params=params,
+                             headers=dict(HEADERS, **{"Accept-Language": "ko,en;q=0.8",
+                                                      "Referer": "https://search.naver.com/"}), timeout=20)
+            data = json.loads(r.text[r.text.find("{"):]) if "{" in r.text else {}
+            _walk_images(data, found)
+        except ValueError:
+            pass
+        if not found:   # dự phòng: đọc trang HTML
+            r = requests.get("https://search.naver.com/search.naver", headers=HEADERS, timeout=20,
+                             params={"where": "image", "query": query})
+            for u in re.findall(r'"originalUrl"\s*:\s*"([^"]+)"', r.text):
+                found.append((u.encode().decode("unicode_escape"), 0, 0, "", ""))
+        if len(found) >= n:
+            break
+    seen = set()
+    for url, w, h, title, link in found:
+        if url in seen or "pstatic.net/static" in url:
+            continue
+        seen.add(url)
+        if w and w < 640:
+            continue
+        out.append({"url": url, "w": w, "h": h, "title": title, "page": link, "src": "naver"})
+    return out[:n]
+
+
+# ---------------------------------------------------------------- 📰 ẢNH TỪ BÁO (Yahoo!ニュース / Naver News)
+def _og_images(html_text: str) -> list[str]:
+    urls = re.findall(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)', html_text)
+    urls += re.findall(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image', html_text)
+    return [html.unescape(u) for u in urls]
+
+
+def _yahoo_news_photos(query: str, n: int, recent: str | None) -> list[dict]:
+    r = requests.get("https://news.yahoo.co.jp/search", headers=HEADERS, timeout=20,
+                     params={"p": query, "ei": "utf-8"})
+    links = []
+    for u in re.findall(r'https://news\.yahoo\.co\.jp/articles/[0-9a-f]{20,}', r.text):
+        if u not in links:
+            links.append(u)
+    out = []
+    for link in links[:8]:
+        try:
+            a = requests.get(link, headers=HEADERS, timeout=20).text
+        except Exception:
+            continue
+        imgs = _og_images(a) + re.findall(r'https://newsatcl-pctr\.c\.yimg\.jp/t/amd-img/[^"\'\s]+', a)
+        # ảnh Yahoo!ニュース: bỏ tham số cũ, xin bản lớn → mỗi ảnh chỉ còn 1 link
+        imgs = [u.split("?")[0] + "?pri=l&w=1280" if "yimg.jp" in u else u for u in imgs]
+        title = (re.search(r"<title>([^<]+)</title>", a) or [None, ""])[1]
+        for u in dict.fromkeys(imgs):
+            out.append({"url": u, "w": 0, "h": 0, "title": html.unescape(title), "page": link, "src": "news-photo"})
+        if len(out) >= n:
+            break
+    return out
+
+
+def _naver_news_photos(query: str, n: int, recent: str | None) -> list[dict]:
+    params = {"where": "news", "query": query, "sort": 0}
+    period = {"day": "1d", "week": "1w", "month": "1m"}.get(recent or "")
+    if period:
+        params["pd"] = {"1d": 4, "1w": 1, "1m": 2}[period]
+    r = requests.get("https://search.naver.com/search.naver", headers=dict(HEADERS, **{"Accept-Language": "ko"}),
+                     timeout=20, params=params)
+    links = []
+    for u in re.findall(r'https://n\.news\.naver\.com/(?:mnews/)?article/\d+/\d+|https://m\.sports\.naver\.com/[a-z]+/article/\d+/\d+',
+                        r.text):
+        if u not in links:
+            links.append(u)
+    out = []
+    for link in links[:8]:
+        try:
+            a = requests.get(link, headers=dict(HEADERS, **{"Accept-Language": "ko"}), timeout=20).text
+        except Exception:
+            continue
+        imgs = _og_images(a) + re.findall(r'https://imgnews\.pstatic\.net/image/[^"\'\s]+', a)
+        # ảnh gốc của bài: imgnews.pstatic.net (bỏ ?type=… để lấy bản lớn nhất) → mỗi ảnh chỉ còn 1 link
+        imgs = [u.split("?")[0] if "pstatic.net" in u else u for u in imgs]
+        title = (re.search(r"<title>([^<]+)</title>", a) or [None, ""])[1]
+        for u in dict.fromkeys(imgs):
+            out.append({"url": u, "w": 0, "h": 0, "title": html.unescape(title), "page": link, "src": "news-photo"})
+        if len(out) >= n:
+            break
+    return out
+
+
+def news_photos(query: str, n: int = 30, recent: str | None = None) -> list[dict]:
+    """Ảnh báo chí độ phân giải cao: tiếng Hàn → Naver News, còn lại → Yahoo!ニュース."""
+    res = (_naver_news_photos if _hangul(query) else _yahoo_news_photos)(query, n, recent)
+    seen, out = set(), []
+    for x in res:                      # cùng 1 ảnh xuất hiện ở nhiều bài → chỉ giữ 1
+        if x["url"] not in seen:
+            seen.add(x["url"])
+            out.append(x)
+    return out
+
+
+SOURCES = {"duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan, "naver": naver, "news": news_photos}
+ALL_SOURCES = list(SOURCES)
+
+
+def route(sources: list[str], query: str) -> list[str]:
+    """Thứ tự nguồn theo ngôn ngữ từ khóa: tiếng Hàn → Naver trước (bỏ Yahoo! JAPAN);
+    tiếng Nhật → Yahoo! JAPAN + báo Nhật trước (bỏ Naver Image)."""
+    order = (["news", "naver", "bing", "duckduckgo"] if _hangul(query)
+             else ["news", "yahoo", "bing", "duckduckgo"])
+    return [s for s in order if s in sources]
 
 
 # Nguồn nào lỗi (bị chặn tạm thời, mất mạng...) thì nghỉ một lúc, không gọi lại ở các cảnh sau
 COOLDOWN_SEC = 15 * 60
-MIN_GAP_SEC = {"duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5}   # giãn cách giữa 2 lượt tìm
+MIN_GAP_SEC = {"duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5, "naver": 1.0, "news": 1.0}   # giãn cách giữa 2 lượt tìm
 _paused_until: dict[str, float] = {}
 _last_call: dict[str, float] = {}
 _lock = threading.Lock()
-NAMES = {"duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN"}
+NAMES = {"duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN", "naver": "Naver",
+         "news": "Ảnh từ báo"}
 
 
 def _short_error(e: Exception) -> str:
@@ -154,9 +290,9 @@ def _short_error(e: Exception) -> str:
 
 
 def search_all(query: str, sources: list[str], log=None, recent: str | None = None) -> list[dict]:
-    """Gọi các nguồn rồi trộn xen kẽ để ảnh đa dạng."""
+    """Gọi các nguồn (theo thứ tự hợp với ngôn ngữ) rồi trộn xen kẽ để ảnh đa dạng."""
     results = []
-    for name in sources:
+    for name in route(sources, query):
         fn = SOURCES.get(name)
         if not fn:
             continue

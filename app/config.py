@@ -31,7 +31,8 @@ VIDEO_RATIO = 0.30       # 70% ảnh / 30% video
 
 DEFAULT_SETTINGS = {
     "claude_model": "",          # để trống = model mặc định của Claude CLI
-    "image_sources": ["duckduckgo", "bing", "yahoo"],   # nguồn ảnh miễn phí, không cần key
+    "image_sources": ["duckduckgo", "bing", "yahoo", "naver", "news"],   # nguồn ảnh miễn phí, không cần key
+    "sources_v2": False,         # đã lưu cài đặt có Naver / ảnh từ báo chưa
     "video_encoder": "auto",     # auto | libx264 | h264_nvenc
     "tts_num_step": 32,
     "subtitle_font": "Noto Sans CJK JP Black",

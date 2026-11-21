@@ -937,7 +937,8 @@ $('#lnkSettings').onclick = async e => {
   e.preventDefault();
   const s = await api('/api/settings');
   $('#sModel').value = s.claude_model;
-  $$('.src').forEach(c => c.checked = (s.image_sources || []).includes(c.value));
+  const srcOn = s.sources_v2 ? (s.image_sources || []) : [...(s.image_sources || []), 'naver', 'news'];
+  $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
   $('#sHL').checked = s.use_claude_for_highlight; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
@@ -950,7 +951,7 @@ $('#lnkSettings').onclick = async e => {
 };
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
-    image_sources: $$('.src').filter(c => c.checked).map(c => c.value), video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
+    image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };

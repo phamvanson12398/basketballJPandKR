@@ -7,6 +7,7 @@ Video: YouTube (yt-dlp tìm kiếm). Bạn cũng có thể dán link YouTube / X
 """
 import hashlib
 import io
+import re
 from pathlib import Path
 
 import requests
@@ -28,7 +29,11 @@ def is_16_9(w: int, h: int) -> bool:
 
 def search_images(query: str, log=None, recent: str | None = None) -> list[dict]:
     from .image_sources import search_all
-    sources = load_settings().get("image_sources") or ["duckduckgo", "bing", "yahoo"]
+    from .image_sources import ALL_SOURCES
+    st = load_settings()
+    sources = st.get("image_sources") or ALL_SOURCES
+    if not st.get("sources_v2"):      # cài đặt cũ (chưa có Naver / ảnh từ báo) → tự bật nguồn mới
+        sources = list(dict.fromkeys(list(sources) + ["naver", "news"]))
     out = search_all(query, sources, log, recent)
     if recent and len(out) < 15:   # tin mới mà ít ảnh → lấy thêm ảnh không lọc thời gian
         out += search_all(query, sources, log)
@@ -36,21 +41,27 @@ def search_images(query: str, log=None, recent: str | None = None) -> list[dict]
     seen, uniq = set(), []
     for x in out:
         # chỉ giữ ảnh 16:9 (theo thông tin kích thước của kết quả tìm kiếm; tải về sẽ kiểm tra lại)
-        if x["url"] and x["url"] not in seen and (not x["w"] or is_16_9(x["w"], x["h"])):
+        ok_ratio = (not x["w"] or is_16_9(x["w"], x["h"]) or
+                    (x.get("src") == "news-photo" and 1.3 <= x["w"] / max(1, x["h"]) <= 2.0))
+        if x["url"] and x["url"] not in seen and ok_ratio:
             seen.add(x["url"])
             uniq.append(x)
     # ưu tiên ảnh đã biết chắc là 16:9 (giữ thứ tự xen kẽ giữa các nguồn)
     return sorted(uniq, key=lambda x: not x["w"])
 
 
-def download_image(url: str, dest: Path) -> bool:
+def download_image(url: str, dest: Path, loose: bool = False) -> bool:
+    """loose=True (ảnh báo chí): nhận cả ảnh ngang 3:2, 4:3… vì khung video tự cắt vừa (ưu tiên giữ người)."""
     try:
         r = requests.get(url, headers={"User-Agent": UA, "Referer": url}, timeout=20)
         r.raise_for_status()
         im = Image.open(io.BytesIO(r.content))
         im = im.convert("RGB")
-        if im.width < 640 or not is_16_9(*im.size):
-            return False   # chỉ nhận ảnh 16:9, đủ nét
+        if im.width < 640:
+            return False
+        ar = im.width / max(1, im.height)
+        if not (is_16_9(*im.size) or (loose and 1.3 <= ar <= 2.0)):
+            return False   # ảnh thường: chỉ 16:9 · ảnh báo: ảnh ngang
         dest.parent.mkdir(parents=True, exist_ok=True)
         im.save(dest, "JPEG", quality=92)
         return True
@@ -83,7 +94,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         if tried > 40:
             break
         f = d / f"c{len(cands) + 1}.jpg"
-        if download_image(res["url"], f):
+        if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
             cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                           "page": res.get("page", ""), "src": res.get("src", "")})
             used.add(res["url"])
@@ -107,7 +118,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             if res["url"] in used:
                 continue
             f = d / f"c2_{len(c2) + 1}.jpg"
-            if download_image(res["url"], f):
+            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
                 c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                            "page": res.get("page", ""), "src": res.get("src", "")})
                 used.add(res["url"])
@@ -169,9 +180,40 @@ def search_videos(query: str, n: int = 8, recent: str | None = None) -> list[dic
             continue
         if "/shorts/" in (e.get("url") or ""):
             continue   # bỏ YouTube Shorts (video dọc)
-        out.append({"id": e.get("id"), "title": e.get("title", ""), "duration": dur,
+        ch = e.get("channel") or e.get("uploader") or ""
+        out.append({"id": e.get("id"), "title": e.get("title", ""), "duration": dur, "channel": ch,
+                    "official": is_official(ch),
                     "url": e.get("url") or f"https://www.youtube.com/watch?v={e.get('id')}"})
+    # kênh chính thức (giải đấu, đội bóng, đài truyền hình) lên trước – video nét, đúng trận
+    out.sort(key=lambda r: not r["official"])
+    if re.search(r"[\uac00-\ud7a3]", query):
+        try:
+            out = naver_tv_search(query) + out   # clip KBO / KBL… chủ yếu nằm trên Naver
+        except Exception:
+            pass
     return out
+
+
+OFFICIAL_HINTS = ("公式", "official", "공식", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
+                  "jリーグ", "j.league", "b.league", "bリーグ", "kbo", "kbl", "k리그", "k league", "spotv", "tving",
+                  "쿠팡플레이", "sbs", "kbs", "mbc", "jtbc", "ytn", "tbs", "日テレ", "テレ朝", "フジテレビ", "テレビ東京")
+
+
+def is_official(channel: str) -> bool:
+    c = (channel or "").lower()
+    return any(h.lower() in c for h in OFFICIAL_HINTS)
+
+
+def naver_tv_search(query: str, n: int = 5) -> list[dict]:
+    """Tìm clip trên Naver TV (네이버 동영상). yt-dlp tải được link dạng tv.naver.com/v/…"""
+    r = requests.get("https://search.naver.com/search.naver", timeout=20,
+                     headers={"User-Agent": UA, "Accept-Language": "ko"}, params={"where": "video", "query": query})
+    ids = []
+    for vid in re.findall(r'tv\.naver\.com/v/(\d+)', r.text):
+        if vid not in ids:
+            ids.append(vid)
+    return [{"id": v, "title": f"Naver TV {v}", "duration": 0, "channel": "Naver TV", "official": True,
+             "url": f"https://tv.naver.com/v/{v}"} for v in ids[:n]]
 
 
 def download_video(url: str, sources: Path, log) -> Path:

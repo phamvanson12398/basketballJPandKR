@@ -137,10 +137,12 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ### Bước 3 – Ảnh & video
 - Bấm **🔎 Tự tìm…**. Tool sẽ:
-  - Tìm ảnh **miễn phí, không cần key** từ DuckDuckGo + Bing + Yahoo! JAPAN. **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
+  - Tìm ảnh **miễn phí, không cần key**, tự chọn nguồn theo ngôn ngữ: video tiếng Nhật → **ảnh báo Nhật (Yahoo!ニュース)**
+    + Yahoo! JAPAN + Bing + DuckDuckGo; video tiếng Hàn → **ảnh báo Hàn (Naver News)** + **Naver** + Bing + DuckDuckGo. **Chỉ lấy ảnh 16:9**, hiện nguyên vẹn,
     không cắt, không làm mờ. **Cứ ~3 giây đổi ảnh một lần** (mỗi cảnh dùng nhiều ảnh khác nhau, không lặp ảnh).
   - Nếu vẫn thiếu ảnh 16:9, tool tự chụp **khung hình nét nhất** từ video YouTube liên quan (luôn đúng 16:9).
-  - Tìm video trên YouTube, tải về, tự chấm điểm **chuyển động + tiếng khán giả + độ nét**,
+  - Tìm video trên YouTube (**ưu tiên kênh chính thức**: パ・リーグTV, NPB, 日本相撲協会, Jリーグ, KBO, SPOTV…;
+    video tiếng Hàn tìm thêm **Naver TV** – nơi có clip KBO), tải về, tự chấm điểm **chuyển động + tiếng khán giả + độ nét**,
     nhờ Claude xem các đoạn tốt nhất rồi chọn đoạn **hợp với câu đang đọc**.
 - Click ảnh ứng viên để thêm hoặc bỏ. Với video, click khung hình để đổi sang đoạn khác.
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
@@ -169,7 +171,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
-- **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN (đều miễn phí).
+- **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).
 - **Bộ mã hóa**: mặc định tự dùng card NVIDIA (NVENC) cho nhanh.
 - **Chiều cao khung ảnh & video** (dùng chung cho cả ảnh và video; 608 = đúng 16:9) và **khoảng cách chữ ↔ khung**.
 - **Cỡ chữ / font sub**, số bước tạo giọng (16 = nhanh, 32 = hay).
