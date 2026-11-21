@@ -164,8 +164,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
 ### 📈 Giữ chân người xem (đã cài sẵn)
-- AI viết **câu đầu có con số / sự thật gây sốc + tên người** (không mở đầu kiểu triết lý hay kể lý lịch),
-  **đưa kết luận lên trước**, cứ 15–20 giây có một câu "mồi", kết bằng câu hỏi để kéo bình luận.
+- **Thể thao & Tiểu sử** – AI viết theo khung "kể chuyện" của kênh có hiệu suất tốt:
+  1. Hook bằng **câu thoại thật** (đã được báo chí đăng) hoặc **con số sốc** – chưa giải thích ngay.
+  2. Thân phận chật vật 2–3 câu có số liệu → "không ai kỳ vọng".
+  3. Cứ 10–15 giây **đảo chiều** một lần (ところが / しかし…).
+  4. Giữa video **quay lại câu hook** và giải thích → cao trào cảm xúc.
+  5. Dồn dập thành tích → **câu kết so sánh trước – sau** (VD: "4 năm thắng 2 trận… trở thành kiệt tác").
+  - AI không tự bịa lời thoại: không tìm được nguồn thì kể bằng lời người dẫn chuyện.
+- **Tin tức / Top / Chung** – câu đầu có con số / sự thật gây sốc, đưa kết luận lên trước, kết bằng câu hỏi.
 - **Cảnh đầu ưu tiên video** (có chuyển động). Ảnh đổi ~3 giây/lần; cảnh video dài được cắt thành nhiều đoạn hay.
 - Âm lượng video xuất ra được chuẩn hóa **-14 LUFS** như video trên TikTok/YouTube.
 
