@@ -6,6 +6,7 @@ Video: YouTube (yt-dlp tìm kiếm). Bạn cũng có thể dán link YouTube / X
        Instagram / Facebook... cho từng cảnh, yt-dlp tải được hầu hết các nền tảng.
 """
 import hashlib
+import secrets
 import io
 import re
 from pathlib import Path
@@ -161,6 +162,8 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             for f in d.glob(pat):
                 f.unlink()
     d.mkdir(parents=True, exist_ok=True)
+    # tên file mới mỗi lần tìm (không dùng lại c1.jpg…) → trình duyệt không hiện nhầm ảnh cũ còn trong bộ nhớ đệm
+    tok = secrets.token_hex(3)
     cands = []
     k = n_images_for(P.scene_est_sec(scene))
     want = max(N_CANDIDATES, k + 2)
@@ -180,7 +183,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             tried += 1
             if tried > 40:
                 break
-            f = d / f"c{len(cands) + 1}.jpg"
+            f = d / f"c{len(cands) + 1}_{tok}.jpg"
             if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
                 cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                               "page": res.get("page", ""), "src": res.get("src", "")})
@@ -191,7 +194,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         for res in weak[:20]:      # vẫn thiếu → dùng tạm ảnh “không chắc”, xếp sau cùng
             if len(cands) >= k + 1 or res["url"] in used:
                 continue
-            f = d / f"c{len(cands) + 1}.jpg"
+            f = d / f"c{len(cands) + 1}_{tok}.jpg"
             if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
                 cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                               "page": res.get("page", ""), "src": res.get("src", ""), "unsure": True})
@@ -214,7 +217,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         for res in search_images(q2, log, recent):
             if res["url"] in used:
                 continue
-            f = d / f"c2_{len(c2) + 1}.jpg"
+            f = d / f"c2_{len(c2) + 1}_{tok}.jpg"
             if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
                 c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                            "page": res.get("page", ""), "src": res.get("src", "")})
@@ -250,7 +253,7 @@ def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None
             continue
         out = []
         for i, t in enumerate(HL.best_stills(HL.analyze(v), count)):
-            f = HL.frame_at(v, t, d / f"f{len(out) + 1}_{int(t)}.jpg", width=1920)
+            f = HL.frame_at(v, t, d / f"f{len(out) + 1}_{int(t)}_{secrets.token_hex(3)}.jpg", width=1920)
             if f.exists():
                 out.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}",
                             "url": f"{r['url']}&t={int(t)}", "page": r["url"], "src": "video-frame"})
@@ -419,8 +422,9 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
     cands = []
     for f in d.glob("v*.jpg"):
         f.unlink()
+    tok = secrets.token_hex(3)
     for i, w in enumerate(wins):
-        th = HL.frame_at(video, w["start"] + w["dur"] / 2, d / f"v{i + 1}.jpg", 480)
+        th = HL.frame_at(video, w["start"] + w["dur"] / 2, d / f"v{i + 1}_{tok}.jpg", 480)
         cands.append({"kind": "video", "file": rel, "start": w["start"], "url": url,
                       "thumb": f"media/{scene['id']}/{th.name}", "score": w["score"]})
     scene["candidates"] = cands

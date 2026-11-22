@@ -383,7 +383,16 @@ def check():
     return out
 
 
-app.mount("/files", StaticFiles(directory=PROJECTS), name="files")
+class NoCacheFiles(StaticFiles):
+    """Ảnh/video của dự án hay bị thay (tìm lại, cắt ảnh…) → bắt trình duyệt hỏi lại mỗi lần,
+    không hiện nhầm bản cũ trong bộ nhớ đệm (file không đổi thì trả 304, vẫn nhanh)."""
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
+app.mount("/files", NoCacheFiles(directory=PROJECTS), name="files")
 app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
 
 
