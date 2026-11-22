@@ -193,6 +193,12 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Nhận mọi tỉ lệ ảnh** (ngang, vuông, dọc) – tự phóng kín khung, cắt vào chỗ có người (ưu tiên ảnh ngang vì ít bị cắt). Muốn giữ vùng khác thì dùng ✂️ Cắt ảnh.
 - **Lọc ảnh/video lạc đề** (thể thao): tiêu đề về chính trị, môn thể thao khác (VD đang làm bóng chày mà ra sumo),
   ảnh bài báo không nhắc tên người trong cảnh → bỏ. Nhật ký ghi số kết quả của từng nguồn (Google, Bing…) và số ảnh bị bỏ.
+- **Video đúng nhân vật** (2 lớp thông minh):
+  1. **Phụ đề**: tải phụ đề tự động của video YouTube, tìm lúc bình luận viên gọi tên nhân vật (田畑、タバタ…)
+     → ưu tiên cắt đoạn quanh lúc đó.
+  2. **Claude xem hình**: AI ghi đội + số áo của nhân vật lúc đó; tool đưa khung hình các đoạn ứng viên + 1 ảnh chân dung
+     cho Claude xác nhận đoạn nào có đúng người (số áo, màu áo, khuôn mặt). Không có đoạn nào đúng → thử video khác.
+     Thêm ~20–40 giây mỗi cảnh video, tắt được trong Cài đặt. Link bạn tự dán thì không bị loại.
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
   (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
   Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.

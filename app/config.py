@@ -41,7 +41,8 @@ DEFAULT_SETTINGS = {
     "media_height_korea": 1140,  # chiều cao khung ảnh/video của bố cục Hàn Quốc (px), khung luôn nằm giữa màn hình
     "sub_gap": 40,               # khoảng cách giữa chữ và khung ảnh/video (px)
     "use_claude_for_highlight": True,
-    "facebook_video": True,     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
+    "facebook_video": True,
+    "verify_person_video": True,   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }
 

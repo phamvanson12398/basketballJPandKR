@@ -225,6 +225,8 @@ function renderScript() {
           <div><label>Từ khóa tìm video</label><input data-k="video_query" value="${esc(s.video_query)}"></div>
           <div><label>Người trong cảnh <span class="opt">(tên đầy đủ – lọc ảnh/video sai người)</span></label><input data-k="who" value="${esc(s.who || '')}"></div>
           <div><label>Từ khóa dự phòng <span class="opt">(khi từ khóa chính ít kết quả)</span></label><input data-k="query_alt" value="${esc(s.query_alt || '')}"></div>
+          <div><label>Đội / số áo lúc đó <span class="opt">(AI xem video nhận người)</span></label><input data-k="uniform" value="${esc(s.uniform || '')}" placeholder="ヤクルト 背番号23"></div>
+          <div><label>Tên bình luận viên gọi <span class="opt">(tìm trong phụ đề video)</span></label><input data-k="call" value="${esc(s.call || '')}" placeholder="田畑・タバタ"></div>
           <div><label>Độ "hành động" <span class="opt">(0–10, cao → ưu tiên video)</span></label>
             <input data-k="action" type="number" min="0" max="10" value="${s.action ?? 0}"></div>
         </div>
@@ -943,7 +945,7 @@ $('#lnkSettings').onclick = async e => {
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
   $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
-  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
+  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -956,7 +958,7 @@ $('#lnkSettings').onclick = async e => {
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
-    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
+    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };
 // ---- thư viện kịch bản mẫu

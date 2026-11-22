@@ -62,10 +62,32 @@ def _norm(s: str) -> str:
     return re.sub(r"[\s　・･·\-_/.,()（）「」\[\]'\"]+", "", s)
 
 
+KATAKANA = re.compile(r"^[\u30a0-\u30ffー]+$")
+
+
+def split_people(who: str) -> list[str]:
+    """Tách nhiều người trong "who". Ngăn cách chuẩn: 「、」.
+    「・」 chỉ dùng để tách khi KHÔNG phải tên nước ngoài viết katakana (マリアノ・リベラ là 1 người)."""
+    who = (who or "").strip()
+    if not who:
+        return []
+    if re.search(r"[、,/|／]", who):
+        parts = re.split(r"[、,/|／]+", who)
+    else:
+        bits = who.split("・")
+        parts = [who] if all(KATAKANA.match(b) for b in bits if b) else bits
+    return [x.strip() for x in parts if x.strip()]
+
+
 def names_of(scene: dict) -> list[str]:
     """Tên người/đối tượng của cảnh (field "who" do AI ghi, bạn sửa được ở bước Content)."""
-    who = scene.get("who") or ""
-    return [n for n in (_norm(x) for x in re.split(r"[・,、/|]+", who)) if len(n) >= 2]
+    out = []
+    for person in split_people(scene.get("who") or ""):
+        out.append(_norm(person))
+        bits = person.split("・")
+        if len(bits) > 1 and len(bits[-1]) >= 3:     # マリアノ・リベラ → cũng nhận "リベラ"
+            out.append(_norm(bits[-1]))
+    return [n for n in dict.fromkeys(out) if len(n) >= 2]
 
 
 def relevance(res: dict, names: list[str]) -> int:
@@ -148,7 +170,7 @@ def scene_queries(scene: dict, kind: str, query: str | None = None) -> list[str]
         return [query]
     main = [scene.get("video_query"), scene.get("image_query")] if kind == "video" \
         else [scene.get("image_query")]
-    qs = main + [scene.get("query_alt"), (scene.get("who") or "").split("・")[0]]
+    qs = main + [scene.get("query_alt"), (split_people(scene.get("who") or "") or [""])[0]]
     out = []
     for q in qs:
         q = (q or "").strip()
@@ -440,19 +462,138 @@ def download_video(url: str, sources: Path, log) -> Path:
     return files[0]
 
 
+# ---------------------------------------------------------------- PHỤ ĐỀ: lúc bình luận viên gọi tên
+def _parse_vtt(text: str) -> list[tuple[float, float, str]]:
+    def ts(s):
+        p = s.strip().replace(",", ".").split(":")
+        p = [0.0] * (3 - len(p)) + [float(x) for x in p]
+        return p[0] * 3600 + p[1] * 60 + p[2]
+    cues, cur = [], None
+    for line in text.splitlines():
+        m = re.match(r"\s*([\d:.,]+)\s+-->\s+([\d:.,]+)", line)
+        if m:
+            cur = [ts(m.group(1)), ts(m.group(2)), ""]
+            cues.append(cur)
+        elif cur is not None and line.strip():
+            cur[2] += re.sub(r"<[^>]+>", "", line).strip()
+    out, last = [], ""
+    for a, b, t in cues:          # phụ đề tự động hay lặp lại dòng trước → bỏ trùng
+        if t and t != last:
+            out.append((a, b, t))
+        last = t
+    return out
+
+
+def fetch_subs(url: str, sources: Path, log=None) -> list[tuple[float, float, str]]:
+    """Tải phụ đề (tự động) tiếng Nhật/Hàn của video YouTube – không tải lại video."""
+    if not re.search(r"youtube\.com|youtu\.be", url or ""):
+        return []
+    import yt_dlp
+    key = hashlib.md5(url.encode()).hexdigest()[:12]
+    found = list(sources.glob(f"{key}*.vtt"))
+    if not found and not (sources / f"{key}.nosubs").exists():
+        opts = {"quiet": True, "skip_download": True, "writesubtitles": True, "writeautomaticsub": True,
+                "subtitleslangs": ["ja", "ko", "ja-orig", "ko-orig"], "subtitlesformat": "vtt",
+                "outtmpl": str(sources / f"{key}.%(ext)s"), "noplaylist": True}
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+        except Exception:  # noqa: BLE001
+            pass
+        found = list(sources.glob(f"{key}*.vtt"))
+        if not found:
+            (sources / f"{key}.nosubs").write_text("", encoding="utf-8")
+    cues = []
+    for f in found:
+        cues += _parse_vtt(f.read_text(encoding="utf-8", errors="ignore"))
+    return sorted(cues)
+
+
+def call_names(scene: dict) -> list[str]:
+    """Tên bình luận viên hay gọi: field "call" (AI ghi, VD 田畑・タバタ) + họ trong "who"."""
+    out = [x.strip() for x in re.split(r"[・,、/|]+", scene.get("call") or "") if len(x.strip()) >= 2]
+    for n in split_people(scene.get("who") or ""):
+        if len(n) >= 2:
+            out.append(n)
+            if "・" in n:
+                out.append(n.split("・")[-1])           # マリアノ・リベラ → リベラ
+            if re.fullmatch(r"[\u4e00-\u9fff]{3,4}", n):      # 田畑一也 → 田畑 (họ 2 chữ Hán)
+                out.append(n[:2])
+            if re.fullmatch(r"[\uac00-\ud7a3]{3}", n):        # 이승엽 → 승엽 (gọi tên) / 이승엽
+                out.append(n[1:])
+    return list(dict.fromkeys(out))
+
+
+def name_hits(cues: list[tuple[float, float, str]], names: list[str]) -> list[float]:
+    names = [re.sub(r"\s+", "", n) for n in names if n]
+    return [a for a, b, t in cues if any(n in re.sub(r"\s+", "", t) for n in names)]
+
+
+# ---------------------------------------------------------------- ẢNH CHÂN DUNG THAM CHIẾU (để AI so người)
+def reference_photo(pid: str, scene: dict, log) -> Path | None:
+    who = (split_people(scene.get("who") or "") or [""])[0]
+    if not who:
+        return None
+    d = P.pdir(pid) / "refs"
+    d.mkdir(exist_ok=True)
+    f = d / f"{hashlib.md5(who.encode()).hexdigest()[:10]}.jpg"
+    if f.exists():
+        return f
+    try:
+        names = names_of({"who": who})
+        for r in search_images(who, None):
+            if relevance(r, names) == 2 and download_image(r["url"], f, loose=True):
+                return f
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
 def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict, log,
-                need_field: bool = False) -> None:
+                need_field: bool = False, strict: bool = True) -> None:
+    """strict=False (link bạn tự dán): không loại video vì không thấy người, chỉ ưu tiên đoạn đúng người."""
     d = P.pdir(pid) / "media" / scene["id"]
     d.mkdir(parents=True, exist_ok=True)
     dur = P.scene_est_sec(scene)
     an = HL.analyze(video, need_field=need_field)
-    wins = HL.best_windows(an, dur, k=6, exclude=used_windows.get(str(video), []), need_field=need_field)
+    # (1) phụ đề: lúc bình luận viên gọi tên nhân vật → ưu tiên các đoạn quanh đó
+    focus = []
+    if url and url != "upload" and (scene.get("who") or scene.get("call")):
+        try:
+            hits = name_hits(fetch_subs(url, video.parent, log), call_names(scene))
+            if hits:
+                focus = hits
+                log(f"    phụ đề: bình luận viên nhắc tên {len(hits)} lần → ưu tiên các đoạn quanh "
+                    + ", ".join(f"{t:.0f}s" for t in hits[:6]))
+        except Exception:  # noqa: BLE001
+            pass
+    wins = HL.best_windows(an, dur, k=6, exclude=used_windows.get(str(video), []), need_field=need_field,
+                           focus=focus)
     if not wins and need_field:
         raise RuntimeError("Video không có đoạn nào là cảnh trên sân")
     if not wins:
         raise RuntimeError("Video quá ngắn")
     pick = 0
-    if load_settings().get("use_claude_for_highlight") and len(wins) > 1:
+    verified = False
+    # (2) Claude xem hình + ảnh chân dung → chỉ giữ đoạn có ĐÚNG nhân vật
+    if load_settings().get("verify_person_video", True) and scene.get("who") and url != "upload":
+        log(f"  {scene['id']}: nhờ Claude xem {len(wins)} đoạn để xác nhận đúng “{scene.get('who')}”...")
+        v = HL.verify_person(video, wins, P.scene_plain_text(scene), scene.get("who", ""),
+                             scene.get("uniform", ""), reference_photo(pid, scene, log), d)
+        if v.get("checked"):
+            if not v["ok"]:
+                if strict:
+                    raise RuntimeError(f"không thấy “{scene.get('who')}” trong video này")
+                log(f"    ⚠️ Claude không thấy “{scene.get('who')}” trong link bạn dán – vẫn dùng theo ý bạn")
+                v["ok"] = list(range(len(wins)))
+            log(f"    đúng người ở {len(v['ok'])}/{len(wins)} đoạn"
+                + (f" – chọn đoạn {v['best'] + 1}: {v['why'].get(v['best'], '')}" if v.get("best") is not None else ""))
+            keep = sorted(v["ok"], key=lambda i: (i != v.get("best"), i))
+            wins = [wins[i] for i in keep]
+            verified = True
+        else:
+            log(f"    (không xác nhận được bằng Claude: {v.get('error', '')} → chọn như bình thường)")
+    if not verified and load_settings().get("use_claude_for_highlight") and len(wins) > 1:
         log(f"  {scene['id']}: nhờ Claude xem {len(wins)} đoạn hay nhất để chọn đoạn hợp nội dung...")
         pick = HL.ask_claude_pick(video, wins, P.scene_plain_text(scene), d)
     rel = video.relative_to(P.pdir(pid)).as_posix()
@@ -512,7 +653,8 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
                 if share < 0.3:
                     log(f"    bỏ “{r.get('title', '')[:30]}”: chỉ {share:.0%} là cảnh trên sân (talkshow / phòng thu?)")
                     continue
-            choose_clip(pid, scene, v, r["url"], used_windows, log, need_field=field_check and not url)
+            choose_clip(pid, scene, v, r["url"], used_windows, log, need_field=field_check and not url,
+                        strict=not url)
             scene["picked"] = bool(url)     # link bạn tự dán → coi như bạn đã chọn
             used_urls.add(r["url"])
             return

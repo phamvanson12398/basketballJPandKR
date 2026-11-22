@@ -383,11 +383,15 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
 - tts: 読み上げ用テキスト。基本は字幕と同じだが、{tts_rule}。
 - action: そのシーンの内容が「動き」のある映像向きかを0〜10で評価
   （{action_rule}）。
-- who: そのシーンの画面に映すべき人物・チーム・対象の正式名（フルネーム。複数なら「・」区切り）。
+- who: そのシーンの画面に映すべき人物・チーム・対象の正式名（フルネーム。複数なら「、」区切り。
+  外国人名の「・」はそのまま: 例「マリアノ・リベラ」「野村克也、田畑一也」）。主役を先に書く。
   検索結果がその人物かどうかの判定に使う。人物がいない場面は空文字。
 - image_query: その場面に合う写真を探す検索語（{query_lang}。{image_rule}）。
 - video_query: その場面に合う動画（YouTube / Facebook 等）を探す検索語（{query_lang}。{video_rule}）。
 - query_alt: image_query で見つからない時の、もっと広い予備の検索語（例:「人物名 + 当時のチーム名」だけ）。
+- uniform: （スポーツの人物がいる場面のみ）その場面の時代の所属チーム・背番号・ユニフォームの特徴
+  （例:「ヤクルト 背番号23 白地に紺」「ヤンキース 背番号42 縦縞」）。動画の中で本人を見分けるのに使う。不明なら空。
+- call: 試合の実況・字幕で呼ばれる呼び名（例:「田畑、タバタ」「イチロー」「リベラ、Rivera」「이승엽」）。「、」区切り。
 
 ## 検索語のルール（重要。検索結果が別人・無関係にならないように）
 - 人物が映る場面は、検索語の先頭に必ずその人物のフルネーム（{query_lang}の一般的な表記）を入れる。
@@ -415,7 +419,9 @@ PROMPT = """あなたは{role}の人気ナレーション作家です。
       "who": "上沢直之",
       "image_query": "上沢直之 ソフトバンク 投球",
       "video_query": "上沢直之 オープン戦 日本ハム 2024",
-      "query_alt": "上沢直之 日本ハム"
+      "query_alt": "上沢直之 日本ハム",
+      "uniform": "ソフトバンク 背番号10",
+      "call": "上沢、ウワサワ"
     }}
   ]
 }}
@@ -479,6 +485,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
             "video_query": s.get("video_query", ""),
             "who": str(s.get("who") or "").strip(),
             "query_alt": str(s.get("query_alt") or "").strip(),
+            "uniform": str(s.get("uniform") or "").strip(),
+            "call": str(s.get("call") or "").strip(),
             "kind": "image",
             **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "", False)},
         })

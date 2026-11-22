@@ -100,7 +100,8 @@ def _z(x: np.ndarray) -> np.ndarray:
 
 
 def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = None,
-                 need_field: bool = False) -> list[dict]:
+                 need_field: bool = False, focus: list[float] | None = None) -> list[dict]:
+    """focus = các thời điểm (giây) bình luận viên gọi tên nhân vật → ưu tiên mạnh các đoạn quanh đó."""
     sps = an["sps"]
     n = an["n"]
     L = max(1, int(round(length * sps)))
@@ -109,6 +110,12 @@ def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = Non
     m_ = np.where(cuts == 1, np.median(motion), motion)   # đừng tính cú cắt cảnh là chuyển động
     per = 1.0 * _z(m_) + 0.6 * _z(audio) + 0.3 * _z(np.log1p(sharp))
     per = per - 2.0 * (bright < 25) - 2.0 * (bright > 235)        # màn đen / trắng
+    if focus:
+        near = np.zeros(n, dtype=np.float32)
+        for t in focus:
+            a, b = max(0, int((t - 1.0) * sps)), min(n, int((t + 6.0) * sps))
+            near[a:b] = 1.0
+        per = per + 2.5 * near
     fld = None
     if need_field and an.get("field"):
         # chỉ lấy cảnh trên sân: phạt nặng khung phòng thu / bình luận viên / khán đài
@@ -235,3 +242,43 @@ def ask_claude_pick(video: Path, windows: list[dict], scene_text: str, workdir: 
     finally:
         sheet.unlink(missing_ok=True)
     return 0
+
+
+def verify_person(video: Path, windows: list[dict], scene_text: str, who: str, uniform: str,
+                  ref: Path | None, workdir: Path) -> dict:
+    """Claude xem khung hình các đoạn ứng viên (+ ảnh chân dung tham chiếu) và xác nhận đoạn nào có ĐÚNG nhân vật.
+    Trả về {"ok": [chỉ số đoạn đúng người], "best": chỉ số đoạn hợp nhất hoặc None}."""
+    from .claude_cli import ask, extract_json
+    sheet = contact_sheet(video, windows, workdir / "_verify_sheet.jpg")
+    refline = ""
+    if ref and ref.exists():
+        rp = workdir / "_verify_ref.jpg"
+        rp.write_bytes(ref.read_bytes())
+        refline = f"- 参考写真（この人物本人）: {rp.as_posix()}\n"
+    prompt = (
+        "次の画像ファイルを Read ツールで開いてください。\n"
+        f"- 候補シート: {sheet.as_posix()}（各行 1〜{len(windows)} が動画クリップ候補の 始め/中間/終わり のフレーム）\n"
+        + refline +
+        f"\n探している人物: {who}\n"
+        + (f"当時のユニフォーム・背番号など: {uniform}\n" if uniform else "")
+        + f"このクリップが流れる時のナレーション:「{scene_text}」\n\n"
+        "各候補について、この人物本人がはっきり映っているか判定してください"
+        "（背番号・ユニフォームの色やチーム名・顔・体格で判断。別の選手、観客、解説者、スタジオだけなら false）。\n"
+        "そのうえで、人物が映っていてナレーションの内容に最も合う候補を best に。\n"
+        'JSONのみで答える: {"windows": [{"no": 1, "person": true, "why": "背番号23が投球"}], "best": 1}\n'
+        "人物が映っている候補が1つもなければ best は null。")
+    try:
+        data = extract_json(ask(prompt, tools=["Read"], add_dirs=[str(workdir)], timeout=300))
+        ok = [int(w["no"]) - 1 for w in data.get("windows", [])
+              if w.get("person") and 1 <= int(w.get("no", 0)) <= len(windows)]
+        best = data.get("best")
+        best = int(best) - 1 if isinstance(best, (int, float)) and 1 <= int(best) <= len(windows) else None
+        if best is not None and best not in ok:
+            ok.append(best)
+        return {"ok": ok, "best": best, "checked": True,
+                "why": {int(w["no"]) - 1: str(w.get("why", ""))[:60] for w in data.get("windows", []) if "no" in w}}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": list(range(len(windows))), "best": None, "checked": False, "error": str(e)[:120]}
+    finally:
+        sheet.unlink(missing_ok=True)
+        (workdir / "_verify_ref.jpg").unlink(missing_ok=True)
