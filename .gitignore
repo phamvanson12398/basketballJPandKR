@@ -10,3 +10,4 @@ fonts/*.otf
 fonts/*.ttf
 settings.json
 library/google_profile/
+library/reference_scripts.json

@@ -945,6 +945,7 @@ $('#lnkSettings').onclick = async e => {
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
   $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
+  loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
   const c = await api('/api/check');
   $('#checkOut').textContent = [
@@ -957,6 +958,28 @@ $('#btnSaveSettings').onclick = async () => {
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
+};
+// ---- thư viện kịch bản mẫu
+async function loadRefs() {
+  const list = await api('/api/refs');
+  $('#refList').innerHTML = list.length ? list.map(r => `<details class="ref"><summary><b>${esc(r.title)}</b>
+      <span class="muted">· ${r.lang === 'ko' ? '🇰🇷' : '🇯🇵'} ${GENRE_VI[r.genre] || r.genre}${r.views ? ' · ' + esc(r.views) + ' view' : ''} · ${r.text.length} chữ</span>
+      <button class="ghost small" data-del="${r.id}" title="Xóa">🗑</button></summary>
+      ${r.note ? `<p class="hint">${esc(r.note)}</p>` : ''}<p class="ref-text">${esc(r.text)}</p></details>`).join('')
+    : '<p class="muted">Chưa có kịch bản mẫu.</p>';
+  $$('#refList [data-del]').forEach(b => b.onclick = async e => {
+    e.preventDefault();
+    if (!confirm('Xóa kịch bản mẫu này?')) return;
+    await api('/api/refs/' + b.dataset.del, {method: 'DELETE'}); loadRefs();
+  });
+}
+$('#refAdd').onclick = async () => {
+  const text = $('#refText').value.trim();
+  if (text.length < 40) return alert('Kịch bản quá ngắn');
+  await api('/api/refs', {method: 'POST', json: {title: $('#refTitle').value.trim(), views: $('#refViews').value.trim(),
+    lang: $('#refLang').value, genre: $('#refGenre').value, text}});
+  $('#refTitle').value = $('#refViews').value = $('#refText').value = '';
+  loadRefs();
 };
 $('#btnCloseSettings').onclick = () => showOnly(P ? '#proj' : '#empty');
 

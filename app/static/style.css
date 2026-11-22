@@ -274,3 +274,10 @@ label.radio.mode:has(input:checked){border-color:var(--pri);background:var(--pri
 #cropBox i[data-h=nw]{left:-2px;top:-2px;cursor:nwse-resize}#cropBox i[data-h=ne]{right:-2px;top:-2px;cursor:nesw-resize}
 #cropBox i[data-h=sw]{left:-2px;bottom:-2px;cursor:nesw-resize}#cropBox i[data-h=se]{right:-2px;bottom:-2px;cursor:nwse-resize}
 .actions input[type=checkbox]{flex:none;min-width:0}
+
+/* thư viện kịch bản mẫu */
+#refList details.ref { border: 1px solid var(--line, #e5e5e5); border-radius: 10px; padding: 8px 12px; margin: 6px 0; }
+#refList details.ref summary { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+#refList details.ref summary .muted { flex: 1; }
+#refList .ref-text { white-space: pre-wrap; font-size: 13px; line-height: 1.7; max-height: 260px; overflow: auto; margin: 8px 0 2px; }
+#refText { width: 100%; }

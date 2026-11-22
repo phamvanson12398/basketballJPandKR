@@ -164,13 +164,16 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
 ### 📈 Giữ chân người xem (đã cài sẵn)
-- **Thể thao & Tiểu sử** – AI viết theo khung "kể chuyện" của kênh có hiệu suất tốt:
-  1. Hook bằng **câu thoại thật** (đã được báo chí đăng) hoặc **con số sốc** – chưa giải thích ngay.
-  2. Thân phận chật vật 2–3 câu có số liệu → "không ai kỳ vọng".
-  3. Cứ 10–15 giây **đảo chiều** một lần (ところが / しかし…).
-  4. Giữa video **quay lại câu hook** và giải thích → cao trào cảm xúc.
-  5. Dồn dập thành tích → **câu kết so sánh trước – sau** (VD: "4 năm thắng 2 trận… trở thành kiệt tác").
-  - AI không tự bịa lời thoại: không tìm được nguồn thì kể bằng lời người dẫn chuyện.
+- **Thể thao & Tiểu sử** – AI viết theo kiểu "雑学・裏話" của các kênh nhiều view (học từ 3 video đối thủ):
+  0. Chọn **1 góc khuất** của nhân vật nổi tiếng (không kể cả sự nghiệp).
+  1. Hook: **so sánh với mốc ai cũng biết** (岩瀬407 → リベラ652) / **"có một người đã…"** rồi mới nói tên /
+     **câu thoại thật** / **con số sốc**.
+  2. Hình ảnh ai cũng biết → **「しかし実は」** lật ngược (giây 15–20).
+  3. **Nói rõ nguồn** (phỏng vấn, báo chí) + chi tiết cụ thể + câu thoại thật (không bịa).
+  4. Câu hỏi **「なぜ〜のか」** giữa video → giải thích, có thể so sánh với người khác.
+  5. Kết bằng câu **định nghĩa lại hook** hoặc so sánh trước–sau (〜のだった), không hỏi khán giả.
+- **📚 Thư viện kịch bản mẫu** (Cài đặt): dán kịch bản video nhiều view, AI đọc 3 kịch bản gần nhất để học
+  bố cục & giọng văn (không chép câu chữ). Có sẵn 3 mẫu: 田畑一也 / マリアノ・リベラ / 落合博満.
 - **Tin tức / Top / Chung** – câu đầu có con số / sự thật gây sốc, đưa kết luận lên trước, kết bằng câu hỏi.
 - **Cảnh đầu ưu tiên video** (có chuyển động). Ảnh đổi ~3 giây/lần; cảnh video dài được cắt thành nhiều đoạn hay.
 - Âm lượng video xuất ra được chuẩn hóa **-14 LUFS** như video trên TikTok/YouTube.

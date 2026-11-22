@@ -353,6 +353,29 @@ def library_file(kind: str, name: str):
 
 
 # ---------------------------------------------------------------- cài đặt & kiểm tra
+# ---------------------------------------------------------------- thư viện kịch bản mẫu
+@app.get("/api/refs")
+def refs_list():
+    from . import refs as REFS
+    return REFS.load()
+
+
+@app.post("/api/refs")
+def refs_add(data: dict = Body(...)):
+    from . import refs as REFS
+    try:
+        return REFS.add(data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/refs/{rid}")
+def refs_delete(rid: str):
+    from . import refs as REFS
+    REFS.delete(rid)
+    return {"ok": True}
+
+
 @app.get("/api/settings")
 def settings():
     return load_settings()
