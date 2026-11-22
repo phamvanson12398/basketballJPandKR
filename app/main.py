@@ -207,6 +207,7 @@ def pick(pid: str, sid: str, data: dict = Body(...)):
                 cands.insert(0, it)
         s["candidates"] = cands
         c = cands[int(data["index"])]
+        s["picked"] = True          # bạn đã tự chọn → khi xuất video chỉ dùng đúng những gì đã chọn
         if c["kind"] == "video" or not items or items[0]["kind"] == "video" or data.get("mode") == "replace":
             s["items"] = [c]
         else:
@@ -285,6 +286,7 @@ async def upload_scene(pid: str, sid: str, file: UploadFile = File(...)):
             s["kind"] = "video"
             s["locked_kind"] = True
             M.choose_clip(pid_, s, res["path"], "upload", {}, log)
+            s["picked"] = True
             P.update(pid_, lambda pp: [pp["scenes"].__setitem__(i, s) for i, x in enumerate(pp["scenes"])
                                        if x["id"] == sid])
         return jobs.start(pid, "media", job_fn)
@@ -296,6 +298,7 @@ async def upload_scene(pid: str, sid: str, file: UploadFile = File(...)):
             s["kind"] = "image"
             s["locked_kind"] = True
         s["items"] = [res]
+        s["picked"] = True
     return P.update(pid, apply)
 
 

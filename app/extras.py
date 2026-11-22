@@ -42,7 +42,7 @@ def create_twin(pid: str, lang: str) -> dict:
     keep = ("id", "kind", "locked_kind", "action", "image_query", "video_query", "items", "candidates",
             "video_results", "story", "rank", "rank_label", "year", "chapter",
             "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team",
-            "stat", "split", "image_query2", "who", "query_alt")
+            "stat", "split", "image_query2", "who", "query_alt", "picked")
 
     def apply(p):
         p["scenes"] = [{k: s[k] for k in keep if k in s} | {"chunks": s.get("chunks", []), "tts": ""}

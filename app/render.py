@@ -393,6 +393,7 @@ def render(pid: str, log) -> None:
 
     # 2) từng phần hình
     parts, starts, t = [], [], 0.0
+    topped: dict = {}
     variant = random.randint(0, 3)
     for si, s in enumerate(scenes):
         starts.append(t)
@@ -403,18 +404,20 @@ def render(pid: str, log) -> None:
             pieces = [("blank", None, D)]
         elif items[0]["kind"] == "video":
             # cảnh video dài → cắt thành nhiều đoạn hay (~3 giây/đoạn) từ các đoạn ứng viên
-            clips = [items[0]] + [c for c in (s.get("candidates") or [])
-                                  if c.get("kind") == "video" and c is not items[0]
-                                  and (c.get("file"), c.get("start")) != (items[0].get("file"), items[0].get("start"))]
+            clips = [items[0]] + ([] if s.get("picked") is not False else   # bạn đã chọn đoạn → chỉ dùng đoạn đó
+                                  [c for c in (s.get("candidates") or [])
+                                   if c.get("kind") == "video" and c is not items[0]
+                                   and (c.get("file"), c.get("start")) != (items[0].get("file"), items[0].get("start"))])
             k = max(1, min(len(clips), round(D / SWITCH_SEC)))
             pieces = [("video", clips[i], D / k) for i in range(k)]
         elif lay == "korea" and s.get("split") and len(items) >= 2 and items[1]["kind"] == "image":
             pieces = [("split", (items[0], items[1]), D)]   # so sánh 2 người: chia đôi khung
         else:
-            k = n_images_for(D)
             imgs = [it for it in items if it["kind"] == "image"]
-            if len(imgs) < k:
-                # cảnh dài hơn dự tính → lấy thêm ảnh KHÁC trong danh sách ứng viên, hết mới lặp lại
+            k = n_images_for(D)
+            if s.get("picked") is False and len(imgs) < k:
+                # tool tự chọn (bạn chưa đụng tới cảnh này): giọng đọc dài hơn dự tính → chọn thêm ảnh khác
+                # trong danh sách ứng viên, và LƯU LẠI để giao diện hiện đúng những ảnh có trong video
                 seen = {it["file"] for it in imgs}
                 for c in s.get("candidates") or []:
                     if len(imgs) >= k:
@@ -422,10 +425,11 @@ def render(pid: str, log) -> None:
                     if c.get("kind") == "image" and c["file"] not in seen and (base / c["file"]).exists():
                         imgs.append(c)
                         seen.add(c["file"])
-                if len(imgs) < k:
-                    log(f"  {s['id']}: chỉ có {len(imgs)} ảnh cho {k} lần đổi → có ảnh lặp lại (nên tìm thêm ảnh)")
-            imgs = [imgs[i % len(imgs)] for i in range(k)]
-            pieces = [("image", it, D / k) for it in imgs]
+                topped[s["id"]] = list(imgs)
+            elif len(imgs) < k:
+                # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
+                log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
+            pieces = [("image", it, D / len(imgs)) for it in imgs]
         for kind, it, d in pieces:
             out = rdir / f"part_{len(parts):03d}.mp4"
             try:
@@ -446,6 +450,13 @@ def render(pid: str, log) -> None:
                 blank_part(d, out, g)
             parts.append(out)
         t += float(s["duration"])
+
+    if topped:
+        def _save_items(pp):
+            for sc in pp["scenes"]:
+                if sc["id"] in topped:
+                    sc["items"] = topped[sc["id"]]
+        P.update(pid, _save_items)
 
     lst = rdir / "parts.txt"
     lst.write_text("".join(f"file '{x.name}'\n" for x in parts), encoding="utf-8")

@@ -206,6 +206,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         raise RuntimeError(f"Không tìm được ảnh 16:9 cho “{q}” – thử từ khóa khác")
     scene["candidates"] = cands
     scene["items"] = cands[:k]
+    scene["picked"] = False     # tool tự chọn
     # cảnh so sánh 2 người (bố cục Hàn): tìm thêm ảnh người thứ hai
     if scene.get("split") and scene.get("image_query2"):
         q2 = scene["image_query2"]
@@ -424,6 +425,7 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
                       "thumb": f"media/{scene['id']}/{th.name}", "score": w["score"]})
     scene["candidates"] = cands
     scene["items"] = [cands[pick]]
+    scene["picked"] = url in ("upload",)
     used_windows.setdefault(str(video), []).append((wins[pick]["start"], wins[pick]["start"] + dur))
     log(f"  {scene['id']}: dùng đoạn {wins[pick]['start']:.1f}s–{wins[pick]['start'] + dur:.1f}s")
 
@@ -468,6 +470,7 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
                     log(f"    bỏ “{r.get('title', '')[:30]}”: chỉ {share:.0%} là cảnh trên sân (talkshow / phòng thu?)")
                     continue
             choose_clip(pid, scene, v, r["url"], used_windows, log, need_field=field_check and not url)
+            scene["picked"] = bool(url)     # link bạn tự dán → coi như bạn đã chọn
             used_urls.add(r["url"])
             return
         except Exception as e:  # noqa: BLE001
@@ -523,6 +526,7 @@ def _replace_scene(pp: dict, s: dict) -> None:
         if sc["id"] == s["id"]:
             sc["candidates"] = s.get("candidates", [])
             sc["items"] = s.get("items", [])
+            sc["picked"] = bool(s.get("picked"))
             if "video_results" in s:
                 sc["video_results"] = s["video_results"]
 
