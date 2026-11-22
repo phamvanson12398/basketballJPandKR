@@ -986,7 +986,7 @@ $('#refAdd').onclick = async () => {
 $('#btnGVerify').onclick = async e => {
   e.preventDefault();
   await api('/api/google/verify', {method: 'POST'});
-  alert('Đã mở cửa sổ Google. Nếu Google hỏi “Tôi không phải robot” thì tích vào, thấy kết quả ảnh là xong (tự đóng).');
+  alert('Cửa sổ Google (chính là cửa sổ tool dùng để tìm ảnh) sẽ hiện lên.\n• Nếu Google hỏi “Tôi không phải robot” → tích vào, thấy kết quả ảnh là xong, cửa sổ tự ẩn đi.\n• Nếu không bị hỏi → cửa sổ hiện 2–3 giây rồi tự ẩn: Google đang chạy tốt.\nĐừng đóng cửa sổ đó bằng dấu ✕ nhé (tool vẫn đang dùng).');
 };
 $('#btnCloseSettings').onclick = () => showOnly(P ? '#proj' : '#empty');
 
