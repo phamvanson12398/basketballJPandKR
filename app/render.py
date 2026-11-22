@@ -237,6 +237,21 @@ def _check_gaps(final: Path, mix: np.ndarray, sr: int, log, total: float) -> Non
         log("  ✓ Đã kiểm tra: âm thanh video xuất ra liền mạch, không bị mất đoạn nào")
 
 
+def _clean_render_dir(rdir: Path, log) -> None:
+    """Xóa file của lần xuất trước. Trên Windows, video đang mở (khung xem trong tool, trình phát…) bị khóa
+    → không xóa được thì bỏ qua file đó thay vì báo lỗi dừng cả quá trình."""
+    rdir.mkdir(parents=True, exist_ok=True)
+    locked = []
+    for f in sorted(rdir.rglob("*"), key=lambda x: -len(x.parts)):
+        try:
+            f.rmdir() if f.is_dir() else f.unlink()
+        except OSError:
+            if f.is_file():
+                locked.append(f.name)
+    if locked:
+        log(f"  (video cũ đang được mở nên chưa xóa được: {', '.join(locked[:3])} → bản mới sẽ lưu tên khác)")
+
+
 def blank_part(dur: float, out: Path, g: dict | None = None) -> None:
     n = max(2, round(dur * FPS))
     bg = (g or {}).get("bg", "white")
@@ -345,9 +360,7 @@ def render(pid: str, log) -> None:
     p = P.load(pid)
     base = P.pdir(pid)
     rdir = base / "render"
-    if rdir.exists():
-        shutil.rmtree(rdir)
-    rdir.mkdir()
+    _clean_render_dir(rdir, log)
     scenes = p["scenes"]
     missing = [s["id"] for s in scenes if not s.get("audio") or not (base / s["audio"]).exists()]
     if missing:
@@ -472,6 +485,10 @@ def render(pid: str, log) -> None:
     fc = f"[0:v]ass={rel}/subs.ass:fontsdir={fonts_rel}[v]"
     safe_title = re.sub(r'[\\/:*?"<>|]+', "_", p.get("title") or p["id"])[:60].strip() or p["id"]
     final_rel = f"{rel}/{safe_title}.mp4"
+    k = 2
+    while (ROOT / final_rel).exists():     # bản cũ đang mở (Windows khóa file) → lưu tên mới, không ghi đè
+        final_rel = f"{rel}/{safe_title} ({k}).mp4"
+        k += 1
     cmd += ["-filter_complex", fc, "-map", "[v]", "-map", "1:a", *venc(True), "-r", str(FPS),
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-t", f"{total:.3f}",
             "-movflags", "+faststart", final_rel]
