@@ -279,9 +279,9 @@ def news_photos(query: str, n: int = 30, recent: str | None = None) -> list[dict
     return out
 
 
-def google(query: str, n: int = 80, recent: str | None = None) -> list[dict]:
+def google(query: str, n: int = 80, recent: str | None = None, log=None) -> list[dict]:
     from .google_images import search
-    return search(query, n, recent, korean=_hangul(query))
+    return search(query, n, recent, korean=_hangul(query), log=log)
 
 
 SOURCES = {"google": google, "duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan, "naver": naver,
@@ -328,7 +328,7 @@ def search_all(query: str, sources: list[str], log=None, recent: str | None = No
         if wait > 0:
             time.sleep(wait)
         try:
-            res = fn(query, recent=recent)
+            res = fn(query, recent=recent, log=log) if name == "google" else fn(query, recent=recent)
         except Exception as e:  # noqa: BLE001
             res = []
             with _lock:

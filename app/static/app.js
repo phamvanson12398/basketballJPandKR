@@ -983,6 +983,11 @@ $('#refAdd').onclick = async () => {
   $('#refTitle').value = $('#refViews').value = $('#refText').value = '';
   loadRefs();
 };
+$('#btnGVerify').onclick = async e => {
+  e.preventDefault();
+  await api('/api/google/verify', {method: 'POST'});
+  alert('Đã mở cửa sổ Google. Nếu Google hỏi “Tôi không phải robot” thì tích vào, thấy kết quả ảnh là xong (tự đóng).');
+};
 $('#btnCloseSettings').onclick = () => showOnly(P ? '#proj' : '#empty');
 
 loadList();

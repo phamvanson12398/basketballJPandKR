@@ -353,6 +353,20 @@ def library_file(kind: str, name: str):
 
 
 # ---------------------------------------------------------------- cài đặt & kiểm tra
+@app.post("/api/google/verify")
+def google_verify():
+    """Mở Google trong cửa sổ Chrome thật để bạn tích "Tôi không phải robot" (chạy nền)."""
+    import threading
+    from . import google_images as GI
+    from . import image_sources as S
+
+    def run():
+        if GI.open_for_verify() == "ok":
+            S._paused_until.pop("google", None)     # xác minh xong → bỏ tạm nghỉ Google
+    threading.Thread(target=run, daemon=True).start()
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- thư viện kịch bản mẫu
 @app.get("/api/refs")
 def refs_list():
