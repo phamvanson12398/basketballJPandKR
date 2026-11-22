@@ -87,7 +87,7 @@ def prepare_image(src: Path, dst: Path, g: dict) -> Path:
     tw, th = g["w"] * ZOOM_SCALE, g["h"] * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
     ar = im.width / im.height
-    if ar >= (tw / th) * 0.97:
+    if ar >= min((tw / th) * 0.97, 1.25):   # ảnh ngang (16:9, 3:2, 4:3) → phóng kín khung, cắt vào chỗ có người
         s = max(tw / im.width, th / im.height)
         r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
         x, y = smart_offset(r, tw, th)     # cắt vào chỗ có người thay vì luôn cắt giữa

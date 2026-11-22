@@ -190,6 +190,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   phỏng vấn / đối đàm / kênh bình luận / 切り抜き bị bỏ; video highlight, trận đấu được ưu tiên.
   Riêng **bóng chày & bóng đá** còn kiểm tra hình: video có dưới 30% thời lượng là cảnh sân cỏ (phòng thu, trường quay)
   bị bỏ, và chỉ cắt những đoạn đang ở trên sân. Video bạn tự dán link / tự upload thì không bị lọc.
+- **Nhận cả ảnh ngang 3:2 / 4:3** (ảnh báo chí, Google đa số là vậy) – tự phóng kín khung, cắt vào chỗ có người.
+- **Lọc ảnh/video lạc đề** (thể thao): tiêu đề về chính trị, môn thể thao khác (VD đang làm bóng chày mà ra sumo),
+  ảnh bài báo không nhắc tên người trong cảnh → bỏ. Nhật ký ghi số kết quả của từng nguồn (Google, Bing…) và số ảnh bị bỏ.
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
   (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
   Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.

@@ -297,7 +297,7 @@ def _short_error(e: Exception) -> str:
 
 def search_all(query: str, sources: list[str], log=None, recent: str | None = None) -> list[dict]:
     """Gọi các nguồn (theo thứ tự hợp với ngôn ngữ) rồi trộn xen kẽ để ảnh đa dạng."""
-    results = []
+    results, counts = [], []
     for name in route(sources, query):
         fn = SOURCES.get(name)
         if not fn:
@@ -321,6 +321,9 @@ def search_all(query: str, sources: list[str], log=None, recent: str | None = No
             with _lock:
                 _last_call[name] = time.time()
         results.append(res)
+        counts.append(f"{NAMES.get(name, name)} {len(res)}")
+    if log and counts:
+        log(f"    “{query}”: " + " · ".join(counts))
     merged, i = [], 0
     while any(i < len(r) for r in results):
         for r in results:

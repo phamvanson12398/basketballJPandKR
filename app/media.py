@@ -43,13 +43,13 @@ def search_images(query: str, log=None, recent: str | None = None) -> list[dict]
 
     seen, uniq = set(), []
     for x in out:
-        # chỉ giữ ảnh 16:9 (theo thông tin kích thước của kết quả tìm kiếm; tải về sẽ kiểm tra lại)
-        ok_ratio = (not x["w"] or is_16_9(x["w"], x["h"]) or
-                    (x.get("src") == "news-photo" and 1.3 <= x["w"] / max(1, x["h"]) <= 2.0))
+        # nhận ảnh NGANG (3:2, 4:3, 16:9…) – ảnh báo chí / Google đa số là 3:2, 4:3.
+        # Khung video cao hơn 16:9 và có cắt ảnh thông minh (giữ người) nên không cần ép đúng 16:9.
+        ok_ratio = not x["w"] or 1.3 <= x["w"] / max(1, x["h"]) <= 2.0
         if x["url"] and x["url"] not in seen and ok_ratio:
             seen.add(x["url"])
             uniq.append(x)
-    # ưu tiên ảnh đã biết chắc là 16:9 (giữ thứ tự xen kẽ giữa các nguồn)
+    # ưu tiên ảnh đã biết kích thước (giữ thứ tự xen kẽ giữa các nguồn)
     return sorted(uniq, key=lambda x: not x["w"])
 
 
@@ -74,6 +74,34 @@ def relevance(res: dict, names: list[str]) -> int:
     if any(n in text for n in names):
         return 2
     return 1 if not (res.get("title") or "").strip() else 0
+
+
+POLITICS_WORDS = ("首相", "総理", "政府", "内閣", "国会", "議員", "選挙", "自民党", "立憲", "大臣", "知事", "外交", "政権",
+                  "政治", "大統領", "대통령", "국회", "의원", "선거", "정부", "장관", "정당", "정치", "총리")
+SPORT_WORDS = {
+    "baseball": ("野球", "投手", "打者", "本塁打", "ホームラン", "プロ野球", "NPB", "MLB", "甲子園", "야구", "투수", "타자", "홈런", "KBO"),
+    "sumo": ("大相撲", "相撲", "横綱", "大関", "関脇", "力士", "土俵", "씨름", "스모"),
+    "soccer": ("サッカー", "Jリーグ", "W杯", "ワールドカップ", "축구", "K리그", "월드컵"),
+    "basketball": ("バスケ", "NBA", "Bリーグ", "농구", "KBL"),
+}
+
+
+def off_topic(res: dict, p: dict, names: list[str]) -> str:
+    """Kết quả lạc đề (thể loại thể thao): tiêu đề nói về chính trị / môn thể thao khác mà không nhắc tên người
+    của cảnh → trả về lý do, rỗng nếu ổn."""
+    if (p.get("genre") or "sports") != "sports":
+        return ""
+    t = f"{res.get('title') or ''} {res.get('page') or ''}"
+    if not t.strip() or relevance(res, names) == 2:
+        return ""
+    if any(w in t for w in POLITICS_WORDS):
+        return "chính trị"
+    sport = p.get("sport") or ""
+    if sport in SPORT_WORDS:
+        for other, words in SPORT_WORDS.items():
+            if other != sport and any(w in t for w in words) and not any(w in t for w in SPORT_WORDS[sport]):
+                return "môn khác"
+    return ""
 
 
 def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
@@ -156,6 +184,8 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     queries = scene_queries(scene, "image", query)
     q = queries[0]
     names = names_of(scene)
+    proj = P.load(pid)
+    dropped = {"chính trị": 0, "môn khác": 0, "báo không nhắc tên": 0}
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
         for pat in ("c*.jpg", "f*.jpg"):   # c*.jpg gồm cả c2_*.jpg
@@ -177,6 +207,12 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         for res in rank_by_names(search_images(qq, log, recent), names):
             if res["url"] in used or len(cands) >= want:
                 continue
+            why = off_topic(res, proj, names)
+            if not why and names and res.get("src") == "news-photo" and relevance(res, names) < 2:
+                why = "báo không nhắc tên"    # ảnh đại diện bài báo không nhắc tên người → hay lạc đề
+            if why:
+                dropped[why] += 1
+                continue
             if relevance(res, names) == 0:
                 weak.append(res)
                 continue
@@ -184,18 +220,20 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             if tried > 40:
                 break
             f = d / f"c{len(cands) + 1}_{tok}.jpg"
-            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
+            if download_image(res["url"], f, loose=True):
                 cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                               "page": res.get("page", ""), "src": res.get("src", "")})
                 used.add(res["url"])
     if names and weak:
         log(f"    bỏ {len(weak)} ảnh không nhắc tới “{scene.get('who')}” (dễ sai người)")
+    if any(dropped.values()):
+        log("    bỏ ảnh lạc đề: " + ", ".join(f"{k} {v}" for k, v in dropped.items() if v))
     if len(cands) < k:
         for res in weak[:20]:      # vẫn thiếu → dùng tạm ảnh “không chắc”, xếp sau cùng
             if len(cands) >= k + 1 or res["url"] in used:
                 continue
             f = d / f"c{len(cands) + 1}_{tok}.jpg"
-            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
+            if download_image(res["url"], f, loose=True):
                 cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                               "page": res.get("page", ""), "src": res.get("src", ""), "unsure": True})
                 used.add(res["url"])
@@ -218,7 +256,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             if res["url"] in used:
                 continue
             f = d / f"c2_{len(c2) + 1}_{tok}.jpg"
-            if download_image(res["url"], f, loose=res.get("src") == "news-photo"):
+            if download_image(res["url"], f, loose=True):
                 c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                            "page": res.get("page", ""), "src": res.get("src", "")})
                 used.add(res["url"])
@@ -448,6 +486,8 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
             if qi:
                 log(f"    chưa có video nhắc đúng tên → thử “{q}”")
             got = search_videos(q, recent=recent)
+            proj = P.load(pid)
+            got = [r for r in got if not off_topic(r, proj, names)]
             if talk_filter:
                 drop = [r for r in got if game_score(r, q) < 0]
                 if drop:
