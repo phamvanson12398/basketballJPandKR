@@ -81,22 +81,15 @@ def smart_offset(im: Image.Image, cw: int, ch: int) -> tuple[int, int]:
 
 
 def prepare_image(src: Path, dst: Path, g: dict) -> Path:
-    """Đưa ảnh vào khung (không làm mờ).
-    Ảnh ngang (16:9...) được phóng cho kín khung, chỉ hụt chút ít ở mép trái/phải.
-    Ảnh dọc/vuông (do bạn tự upload) được đặt giữa, phần thừa để nền trắng."""
+    """Đưa ảnh vào khung (không làm mờ, không viền trắng).
+    Mọi tỉ lệ (ngang / vuông / dọc) được phóng cho kín khung rồi cắt vào chỗ có người (smart_offset).
+    Muốn giữ vùng khác thì dùng công cụ ✂️ Cắt ảnh."""
     tw, th = g["w"] * ZOOM_SCALE, g["h"] * ZOOM_SCALE
     im = Image.open(src).convert("RGB")
-    ar = im.width / im.height
-    if ar >= min((tw / th) * 0.97, 1.25):   # ảnh ngang (16:9, 3:2, 4:3) → phóng kín khung, cắt vào chỗ có người
-        s = max(tw / im.width, th / im.height)
-        r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
-        x, y = smart_offset(r, tw, th)     # cắt vào chỗ có người thay vì luôn cắt giữa
-        out = r.crop((x, y, x + tw, y + th))
-    else:
-        s = min(tw / im.width, th / im.height)
-        fg = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
-        out = Image.new("RGB", (tw, th), "white")
-        out.paste(fg, ((tw - fg.width) // 2, (th - fg.height) // 2))
+    s = max(tw / im.width, th / im.height)
+    r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
+    x, y = smart_offset(r, tw, th)     # cắt vào chỗ có người thay vì luôn cắt giữa
+    out = r.crop((x, y, x + tw, y + th))
     out.save(dst, "JPEG", quality=93)
     return dst
 

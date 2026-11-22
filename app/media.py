@@ -43,14 +43,16 @@ def search_images(query: str, log=None, recent: str | None = None) -> list[dict]
 
     seen, uniq = set(), []
     for x in out:
-        # nhận ảnh NGANG (3:2, 4:3, 16:9…) – ảnh báo chí / Google đa số là 3:2, 4:3.
-        # Khung video cao hơn 16:9 và có cắt ảnh thông minh (giữ người) nên không cần ép đúng 16:9.
-        ok_ratio = not x["w"] or 1.3 <= x["w"] / max(1, x["h"]) <= 2.0
-        if x["url"] and x["url"] not in seen and ok_ratio:
+        # nhận MỌI tỉ lệ ảnh (ngang, vuông, dọc) – khi dựng video tự cắt vào chỗ có người cho kín khung
+        if x["url"] and x["url"] not in seen:
             seen.add(x["url"])
             uniq.append(x)
-    # ưu tiên ảnh đã biết kích thước (giữ thứ tự xen kẽ giữa các nguồn)
-    return sorted(uniq, key=lambda x: not x["w"])
+    # ưu tiên ảnh ngang (ít bị cắt nhất) → ảnh chưa rõ kích thước → ảnh vuông/dọc; giữ thứ tự xen kẽ giữa các nguồn
+    def order(x):
+        if not x["w"]:
+            return 1
+        return 0 if x["w"] / max(1, x["h"]) >= 1.3 else 2
+    return sorted(uniq, key=order)
 
 
 # ---------------------------------------------------------------- ĐÚNG NGƯỜI / ĐÚNG CHỦ ĐỀ
@@ -162,11 +164,8 @@ def download_image(url: str, dest: Path, loose: bool = False) -> bool:
         r.raise_for_status()
         im = Image.open(io.BytesIO(r.content))
         im = im.convert("RGB")
-        if im.width < 640:
-            return False
-        ar = im.width / max(1, im.height)
-        if not (is_16_9(*im.size) or (loose and 1.3 <= ar <= 2.0)):
-            return False   # ảnh thường: chỉ 16:9 · ảnh báo: ảnh ngang
+        if im.width < 640 or im.height < 360:
+            return False   # ảnh quá nhỏ → mờ khi phóng to
         dest.parent.mkdir(parents=True, exist_ok=True)
         im.save(dest, "JPEG", quality=92)
         return True
