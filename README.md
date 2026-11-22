@@ -183,6 +183,10 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   không dùng từ trừu tượng) và **từ khóa dự phòng**.
 - Ảnh/video có tiêu đề **không nhắc tên người đó** bị xếp xuống cuối / bỏ (dễ sai người). Ít kết quả đúng → tự thử
   từ khóa dự phòng → tên người. Bạn sửa được "Người trong cảnh" và các từ khóa ở bước Content.
+- **Thể thao: chỉ lấy video thi đấu** (bóng chày, bóng đá, bóng rổ, sumo): video có tiêu đề kiểu talkshow /
+  phỏng vấn / đối đàm / kênh bình luận / 切り抜き bị bỏ; video highlight, trận đấu được ưu tiên.
+  Riêng **bóng chày & bóng đá** còn kiểm tra hình: video có dưới 30% thời lượng là cảnh sân cỏ (phòng thu, trường quay)
+  bị bỏ, và chỉ cắt những đoạn đang ở trên sân. Video bạn tự dán link / tự upload thì không bị lọc.
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
   (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
   Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.

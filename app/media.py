@@ -80,6 +80,37 @@ def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
     return sorted(results, key=lambda r: -relevance(r, names))
 
 
+# ---------------------------------------------------------------- CHỈ LẤY VIDEO THI ĐẤU (thể thao)
+# Video talkshow / phỏng vấn / kênh bình luận của cựu cầu thủ… → bỏ qua; ưu tiên highlight, cảnh trận đấu.
+TALK_WORDS = ("トーク", "対談", "鼎談", "ラジオ", "雑談", "語る", "語った", "激白", "告白", "本音", "暴露", "切り抜き",
+              "反応", "ゆっくり", "考察", "予想", "インタビュー", "会見", "密着", "ドキュメント", "チャンネル", "ちゃんねる",
+              "OB", "YouTuber", "ライブ配信", "生配信", "podcast", "ポッドキャスト", "番組", "スタジオ", "ワイドショー",
+              "토크", "인터뷰", "라디오", "썰", "반응", "예능", "기자회견", "분석", "예측", "다큐", "방송", "채널",
+              "talk", "interview", "podcast", "reaction")
+GAME_WORDS = ("ハイライト", "試合", "vs", "対", "投球", "奪三振", "本塁打", "ホームラン", "全球", "打席", "名場面",
+              "好プレー", "サヨナラ", "完封", "ノーヒット", "ゴール", "得点", "取組", "優勝決定",
+              "하이라이트", "경기", "홈런", "삼진", "골", "득점", "결승", "highlights", "game", "match")
+TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo")
+FIELD_SPORTS = ("baseball", "soccer")      # sân cỏ → kiểm tra bằng màu sân trong hình
+
+
+def video_mode(p: dict) -> tuple[bool, bool]:
+    """(lọc tiêu đề talkshow?, kiểm tra hình có sân cỏ?) theo môn thể thao của dự án."""
+    if (p.get("genre") or "sports") != "sports":
+        return False, False
+    sport = p.get("sport") or "other"
+    return sport in TITLE_FILTER_SPORTS, sport in FIELD_SPORTS
+
+
+def game_score(res: dict, query: str = "") -> int:
+    """-1 = video nói chuyện (bỏ) · 1 = có dấu hiệu video trận đấu · 0 = không rõ."""
+    t = (res.get("title") or "").lower()
+    q = (query or "").lower()
+    if any(w.lower() in t and w.lower() not in q for w in TALK_WORDS):
+        return -1
+    return 1 if any(w.lower() in t for w in GAME_WORDS) else 0
+
+
 def scene_queries(scene: dict, kind: str, query: str | None = None) -> list[str]:
     """Danh sách từ khóa thử lần lượt: từ khóa chính → dự phòng → tên người."""
     if query:
@@ -202,10 +233,16 @@ def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None
     sources.mkdir(exist_ok=True)
     d = P.pdir(pid) / "media" / scene["id"]
     log(f"    ảnh 16:9 chưa đủ → chụp khung hình từ video YouTube “{q}”")
-    for r in rank_by_names(search_videos(q, 5, recent), names_of(scene))[:2]:
+    talk_filter, field_check = video_mode(P.load(pid))
+    vids = search_videos(q, 5, recent)
+    if talk_filter:
+        vids = [r for r in vids if game_score(r, q) >= 0]
+    for r in rank_by_names(vids, names_of(scene))[:2]:
         try:
             v = download_video(r["url"], sources, log)
         except Exception:
+            continue
+        if field_check and HL.game_share(HL.analyze(v, need_field=True)) < 0.3:
             continue
         w, h = HL.video_size(v)
         if not is_16_9(w, h):
@@ -362,12 +399,15 @@ def download_video(url: str, sources: Path, log) -> Path:
     return files[0]
 
 
-def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict, log) -> None:
+def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict, log,
+                need_field: bool = False) -> None:
     d = P.pdir(pid) / "media" / scene["id"]
     d.mkdir(parents=True, exist_ok=True)
     dur = P.scene_est_sec(scene)
-    an = HL.analyze(video)
-    wins = HL.best_windows(an, dur, k=6, exclude=used_windows.get(str(video), []))
+    an = HL.analyze(video, need_field=need_field)
+    wins = HL.best_windows(an, dur, k=6, exclude=used_windows.get(str(video), []), need_field=need_field)
+    if not wins and need_field:
+        raise RuntimeError("Video không có đoạn nào là cảnh trên sân")
     if not wins:
         raise RuntimeError("Video quá ngắn")
     pick = 0
@@ -397,23 +437,37 @@ def fill_video(pid: str, scene: dict, used_urls: set, used_windows: dict, log,
     else:
         names = names_of(scene)
         results = []
+        talk_filter, _ = video_mode(P.load(pid))
         for qi, q in enumerate(scene_queries(scene, "video", query)):
             if qi:
                 log(f"    chưa có video nhắc đúng tên → thử “{q}”")
             got = search_videos(q, recent=recent)
+            if talk_filter:
+                drop = [r for r in got if game_score(r, q) < 0]
+                if drop:
+                    log(f"    bỏ {len(drop)} video kiểu talkshow/phỏng vấn: " +
+                        " · ".join(r["title"][:25] for r in drop[:3]))
+                got = [r for r in got if game_score(r, q) >= 0]
             results += [r for r in got if r["url"] not in {x["url"] for x in results}]
             if any(relevance(r, names) == 2 for r in results):
                 break
         # đúng tên lên trước → kênh chính thức → video chưa dùng
-        results.sort(key=lambda r: (-relevance(r, names), not r.get("official"), r["url"] in used_urls))
+        results.sort(key=lambda r: (-relevance(r, names), -(game_score(r) if talk_filter else 0),
+                                    not r.get("official"), r["url"] in used_urls))
         scene["video_results"] = results
     last_err = None
-    for r in results[:3]:
+    _, field_check = video_mode(P.load(pid))
+    for r in results[:5 if field_check else 3]:
         try:
             v = download_video(r["url"], sources, log)
             if HL.probe_duration(v) < P.scene_est_sec(scene) + 1:
                 continue
-            choose_clip(pid, scene, v, r["url"], used_windows, log)
+            if field_check and not url:
+                share = HL.game_share(HL.analyze(v, need_field=True))
+                if share < 0.3:
+                    log(f"    bỏ “{r.get('title', '')[:30]}”: chỉ {share:.0%} là cảnh trên sân (talkshow / phòng thu?)")
+                    continue
+            choose_clip(pid, scene, v, r["url"], used_windows, log, need_field=field_check and not url)
             used_urls.add(r["url"])
             return
         except Exception as e:  # noqa: BLE001

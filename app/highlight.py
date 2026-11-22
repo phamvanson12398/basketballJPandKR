@@ -28,10 +28,40 @@ def probe_duration(path: Path) -> float:
         return 0.0
 
 
-def analyze(video: Path) -> dict:
+FIELD_MIN = 0.12   # khung hình có ≥12% điểm ảnh màu cỏ → coi là cảnh trên sân
+
+
+def field_ratio(video: Path) -> list[float]:
+    """Tỉ lệ điểm ảnh "màu cỏ sân" của từng khung (SPS khung/giây).
+    Video trận đấu bóng chày / bóng đá: phần lớn khung có sân cỏ. Talkshow, phỏng vấn, phòng thu: gần như không."""
+    cmd = [ffmpeg_bin(), "-v", "error", "-i", str(video), "-vf", f"fps={SPS},scale={FW // 2}:{FH // 2}",
+           "-pix_fmt", "rgb24", "-f", "rawvideo", "-"]
+    raw = subprocess.run(cmd, capture_output=True).stdout
+    sz = (FW // 2) * (FH // 2) * 3
+    n = len(raw) // sz
+    if n == 0:
+        return []
+    fr = np.frombuffer(raw[: n * sz], dtype=np.uint8).reshape(n, FH // 2, FW // 2, 3).astype(np.int16)
+    r, g, b = fr[..., 0], fr[..., 1], fr[..., 2]
+    # cỏ tự nhiên / cỏ nhân tạo, cả trận đêm: xanh lá trội rõ hơn đỏ và xanh dương
+    green = (g >= 45) & (g - r >= 18) & (g - b >= 12)
+    return green.mean(axis=(1, 2)).round(3).tolist()
+
+
+def game_share(an: dict) -> float:
+    """Tỉ lệ thời lượng video là cảnh trên sân."""
+    f = np.array(an.get("field") or [])
+    return float((f >= FIELD_MIN).mean()) if f.size else 1.0
+
+
+def analyze(video: Path, need_field: bool = False) -> dict:
     cache = video.with_suffix(".analysis.json")
     if cache.exists():
-        return json.loads(cache.read_text())
+        data = json.loads(cache.read_text())
+        if need_field and "field" not in data:
+            data["field"] = field_ratio(video)
+            cache.write_text(json.dumps(data))
+        return data
     # khung hình xám nhỏ
     cmd = [ffmpeg_bin(), "-v", "error", "-i", str(video), "-vf",
            f"fps={SPS},scale={FW}:{FH},format=gray", "-f", "rawvideo", "-"]
@@ -58,6 +88,8 @@ def analyze(video: Path) -> dict:
     audio = np.resize(audio, n) if len(audio) else np.zeros(n)
     data = {"sps": SPS, "n": int(n), "motion": motion.round(2).tolist(), "sharp": sharp.round(1).tolist(),
             "bright": bright.round(1).tolist(), "cuts": cuts.tolist(), "audio": audio.round(1).tolist()}
+    if need_field:
+        data["field"] = field_ratio(video)
     cache.write_text(json.dumps(data))
     return data
 
@@ -67,7 +99,8 @@ def _z(x: np.ndarray) -> np.ndarray:
     return np.clip((x - x.mean()) / (s + 1e-6), -3, 3)
 
 
-def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = None) -> list[dict]:
+def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = None,
+                 need_field: bool = False) -> list[dict]:
     sps = an["sps"]
     n = an["n"]
     L = max(1, int(round(length * sps)))
@@ -76,6 +109,11 @@ def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = Non
     m_ = np.where(cuts == 1, np.median(motion), motion)   # đừng tính cú cắt cảnh là chuyển động
     per = 1.0 * _z(m_) + 0.6 * _z(audio) + 0.3 * _z(np.log1p(sharp))
     per = per - 2.0 * (bright < 25) - 2.0 * (bright > 235)        # màn đen / trắng
+    fld = None
+    if need_field and an.get("field"):
+        # chỉ lấy cảnh trên sân: phạt nặng khung phòng thu / bình luận viên / khán đài
+        fld = np.resize(np.array(an["field"]), n)
+        per = per - 4.0 * (fld < FIELD_MIN)
     cs = np.concatenate([[0], np.cumsum(per)])
     cc = np.concatenate([[0], np.cumsum(cuts)])
     head = int(min(8 * sps, n * 0.05))       # bỏ phần mở đầu (logo, intro)
@@ -98,6 +136,8 @@ def best_windows(an: dict, length: float, k: int = 6, exclude: list | None = Non
         if any(not (s + L <= a or s >= b) for a, b in ex):
             continue
         if any(abs(s - c["_s"]) < L for c in chosen):
+            continue
+        if fld is not None and (fld[s:s + L] >= FIELD_MIN).mean() < 0.6:
             continue
         chosen.append({"_s": s, "start": round(s / sps, 2), "dur": round(length, 2),
                        "score": round(float(score), 3)})
