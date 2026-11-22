@@ -128,9 +128,15 @@ def off_topic(res: dict, p: dict, names: list[str]) -> str:
     return ""
 
 
+SRC_NAMES = {"google": "Google", "yahoo.co.jp": "Yahoo", "bing": "Bing", "duckduckgo": "DuckDuckGo",
+             "naver": "Naver", "news-photo": "Ảnh báo", "video-frame": "Khung hình video"}
+SRC_RANK = {"news-photo": 0, "google": 0, "naver": 1, "yahoo.co.jp": 1, "bing": 1, "duckduckgo": 2}
+
+
 def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
-    """Đưa kết quả nhắc đúng tên lên trước (giữ thứ tự gốc trong cùng nhóm)."""
-    return sorted(results, key=lambda r: -relevance(r, names))
+    """Kết quả nhắc đúng tên lên trước; cùng mức thì Google / ảnh báo trước các nguồn khác
+    (giữ thứ tự xen kẽ gốc trong cùng nhóm)."""
+    return sorted(results, key=lambda r: (-relevance(r, names), SRC_RANK.get(r.get("src"), 1)))
 
 
 # ---------------------------------------------------------------- CHỈ LẤY VIDEO THI ĐẤU (thể thao)
@@ -287,7 +293,10 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             scene["candidates"] = cands[:4] + c2 + cands[4:]
             scene["items"] = [cands[0], c2[0]]
             log(f"    chia đôi khung: {q} | {q2}")
-    log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh")
+    from collections import Counter
+    srcs = Counter(SRC_NAMES.get(c.get("src"), c.get("src") or "?") for c in cands)
+    log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh · nguồn: "
+        + " · ".join(f"{k} {v}" for k, v in srcs.most_common()))
 
 
 def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None = None) -> list[dict]:

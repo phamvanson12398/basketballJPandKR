@@ -97,17 +97,36 @@ def bing(query: str, n: int = 70, recent: str | None = None) -> list[dict]:
     return out
 
 
-def _find_images(obj, acc: list):
-    """Tìm mọi object có url + width + height trong JSON của trang Yahoo."""
+TITLE_KEYS = ("title", "alt", "caption", "description")
+PAGE_KEYS = ("refererUrl", "refererLink", "referer", "pageUrl", "link", "sourceUrl", "host")
+
+
+def _ctx(*objs) -> tuple[str, str]:
+    """Tiêu đề + trang nguồn từ object ảnh và các object cha gần nhất."""
+    title = page = ""
+    for o in objs:
+        if not isinstance(o, dict):
+            continue
+        for k in TITLE_KEYS:
+            if not title and isinstance(o.get(k), str):
+                title = o[k]
+        for k in PAGE_KEYS:
+            if not page and isinstance(o.get(k), str):
+                page = o[k]
+    return re.sub(r"<[^>]+>", "", title), page
+
+
+def _find_images(obj, acc: list, parents: tuple = ()):
+    """Tìm mọi object có url + width + height trong JSON của trang Yahoo (kèm tiêu đề/trang của object cha)."""
     if isinstance(obj, dict):
         url, w, h = obj.get("url"), obj.get("width"), obj.get("height")
         if isinstance(url, str) and url.startswith("http") and str(w).isdigit() and str(h).isdigit():
-            acc.append((url, int(w), int(h), obj))
+            acc.append((url, int(w), int(h), _ctx(obj, *parents[-3:][::-1])))
         for v in obj.values():
-            _find_images(v, acc)
+            _find_images(v, acc, parents + (obj,))
     elif isinstance(obj, list):
         for v in obj:
-            _find_images(v, acc)
+            _find_images(v, acc, parents)
 
 
 def yahoo_japan(query: str, n: int = 60, recent: str | None = None) -> list[dict]:
@@ -124,11 +143,11 @@ def yahoo_japan(query: str, n: int = 60, recent: str | None = None) -> list[dict
                 pass
         if not found:   # dự phòng nếu Yahoo đổi cấu trúc trang
             for u in re.findall(r'"original"\s*:\s*\{\s*"url"\s*:\s*"([^"]+)"', r.text):
-                found.append((u.encode().decode("unicode_escape"), 0, 0, {}))
-        for url, w, h, _ in found:
+                found.append((u.encode().decode("unicode_escape"), 0, 0, ("", "")))
+        for url, w, h, (title, page) in found:
             if w and w < 640:
                 continue   # bỏ ảnh thumbnail
-            out.append({"url": url, "w": w, "h": h, "title": "", "page": "", "src": "yahoo.co.jp"})
+            out.append({"url": url, "w": w, "h": h, "title": title, "page": page, "src": "yahoo.co.jp"})
         if len(out) >= n:
             break
     return out
