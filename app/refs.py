@@ -115,7 +115,7 @@ def delete(rid: str) -> None:
         DELETED.write_text(json.dumps(sorted(deleted | {rid})), encoding="utf-8")
 
 
-STORY_GENRES = ("sports", "biography", "brand")
+STORY_GENRES = ("sports", "biography", "brand", "history")
 FORMAT_SPORTS = ("horse",)
 
 

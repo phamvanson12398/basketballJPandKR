@@ -232,6 +232,17 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Ảnh: logo, sản phẩm đời đầu, nhà sáng lập, nhà máy, quảng cáo xưa; video: CM, kênh chính thức, dây chuyền sản xuất.
 - Nhạc nền riêng: "Khởi nghiệp" (piano tươi sáng) và "Hoài niệm" (piano điện kiểu phim tài liệu ngày xưa).
 
+### 🏯 Lịch sử (🇯🇵 Chiến quốc, Mạc mạt, Edo… / 🇰🇷 Joseon, Goryeo, Tam quốc) – Thể loại: 🏯 Lịch sử
+- Kiểu "雑学・裏話": **1 góc khuất** của nhân vật / sự kiện ai cũng biết (VD: lá thư Nobunaga gọi Hideyoshi là "chuột hói";
+  Sejong không có thịt thì không ăn được cơm).
+- Hook: nói thẳng sự thật bất ngờ / "có một vị tướng / vua…" rồi mới nói tên / câu nói còn ghi trong sử liệu / con số sốc.
+  → 「しかし実は」 → **dẫn sử liệu** (『信長公記』, 『조선왕조실록』…) → 「なぜ」 → kết bằng câu định nghĩa lại hook.
+- Chuyện không chắc chắn → "tương truyền / có thuyết cho rằng", không lấy chuyện trong phim/truyện làm sự thật.
+  **Tránh** vấn đề lịch sử Nhật–Hàn, trách nhiệm chiến tranh, lãnh thổ, thời thuộc địa.
+- Ảnh: tranh chân dung, bình phong chiến trận, thư tịch cổ, thành quách, di tích, giáp trụ (thời chưa có ảnh chụp).
+- **Nền giấy washi/hanji**, tên nhân vật chữ đỏ. Nhạc nền tự chọn theo nước: 🇯🇵 Chiến quốc (taiko, shakuhachi) / Edo (koto);
+  🇰🇷 Cung đình (gayageum, janggu nhịp 3) / Chiến trận.
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).

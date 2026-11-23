@@ -198,7 +198,7 @@ function renderScript() {
   $('#pGenre').value = P.genre || 'sports';
   if ($('#pLang').options.length) $('#pLang').value = P.lang || 'ja';
   if ($('#pSport').options.length) $('#pSport').value = P.sport || 'other';
-  $('#pSport').classList.toggle('hidden', ['news', 'brand'].includes(P.genre));
+  $('#pSport').classList.toggle('hidden', ['news', 'brand', 'history'].includes(P.genre));
   $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
@@ -795,7 +795,7 @@ function newsParams() {
 function toggleNewsBox() {
   refreshChips();
   $('#rankBox').classList.toggle('hidden', $('#newGenre').value !== 'ranking');
-  $('#sportBox').classList.toggle('hidden', ['news', 'brand'].includes($('#newGenre').value));
+  $('#sportBox').classList.toggle('hidden', ['news', 'brand', 'history'].includes($('#newGenre').value));
   const isNews = $('#newGenre').value === 'news';
   $('#newsBox').classList.toggle('hidden', !isNews);
   $('#newTopic').placeholder = isNews ? 'Để trống = AI tự chọn tin nóng nhất. Hoặc chọn tin đã quét / gõ chủ đề tin.'
@@ -867,7 +867,7 @@ $('#btnCreate').onclick = async () => {
   const news = genre === 'news' ? newsParams() : null;
   try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news, lang})); } catch {}
   const ranking_n = genre === 'ranking' ? +$('#rankN').value : null;
-  const sport = ['news', 'brand'].includes(genre) ? 'other' : $('#newSport').value;
+  const sport = ['news', 'brand', 'history'].includes(genre) ? 'other' : $('#newSport').value;
   try { const d0 = JSON.parse(localStorage.getItem('shorts_defaults') || '{}'); d0.sport = $('#newSport').value; localStorage.setItem('shorts_defaults', JSON.stringify(d0)); } catch {}
   const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n, sport}});
   $('#newsList').innerHTML = '';
@@ -882,7 +882,7 @@ $('#btnDelete').onclick = async () => {
   P = null; $('#proj').classList.add('hidden'); $('#empty').classList.remove('hidden'); loadList();
 };
 // ------------------------------------------------------------- gợi ý ý tưởng
-const GENRE_VI = {sports: '⚾ Thể thao', biography: '👤 Tiểu sử', brand: '🏢 Thương hiệu', news: '📰 Tin tức', ranking: '🏆 Top', general: '💡 Chủ đề chung'};
+const GENRE_VI = {sports: '⚾ Thể thao', biography: '👤 Tiểu sử', brand: '🏢 Thương hiệu', history: '🏯 Lịch sử', news: '📰 Tin tức', ranking: '🏆 Top', general: '💡 Chủ đề chung'};
 function showOnly(id) {
   const changed = $(id).classList.contains('hidden');
   ['#empty', '#proj', '#settings', '#ideas', '#create'].forEach(x => $(x).classList.toggle('hidden', x !== id));

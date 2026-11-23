@@ -156,7 +156,10 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
   裏付けになる出典（本人インタビュー・報道）を書く。
 - brand（企業・ブランド）の企画は「今の姿と意外な過去のギャップ」1つに絞る
   （例:「任天堂は元々花札の会社だった」「チキンラーメンは裏庭の小屋で生まれた」「삼성의 시작은 대구의 작은 상회」）。
-- genre は sports / biography / brand / news / general / ranking のどれか。ranking の場合は ranking_n（3〜10）も入れる。
+- history（歴史）の企画は「教科書のイメージと意外な素顔・真相のギャップ」1つに絞る
+  （例:「織田信長は甘党だった」「伊達政宗は料理好き」「세종대왕은 고기 없이는 밥을 못 먹었다」）。
+  日韓の歴史認識問題・戦争責任・領土問題は避ける。
+- genre は sports / biography / brand / history / news / general / ranking のどれか。ranking の場合は ranking_n（3〜10）も入れる。
 
 ## 出力（JSONのみ、話題性の高い順）
 ```json
@@ -168,6 +171,7 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
 
 GENRE_RULE = {"any": "自由（企画に合うものを選ぶ）", "sports": "sports のみ", "biography": "biography のみ",
               "brand": "brand のみ（企業・ブランド・商品の誕生秘話・裏話）",
+              "history": "history のみ（歴史上の人物・出来事の意外な裏話）",
               "news": "news のみ（最新ニュース）", "general": "general のみ（雑学・解説）",
               "ranking": "ranking のみ（TOP N 形式）"}
 

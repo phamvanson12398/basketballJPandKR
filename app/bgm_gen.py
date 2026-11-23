@@ -41,6 +41,10 @@ TRACKS = [
     ("Đua ngựa - Chuyện vui (tool).m4a",      "horse",     "horse_cozy"),
     ("Thương hiệu - Khởi nghiệp (tool).m4a",  "brand",     "brand_startup"),
     ("Thương hiệu - Hoài niệm (tool).m4a",    "brand",     "brand_retro"),
+    ("Lịch sử Nhật - Chiến quốc (tool).m4a",  "history_ja", "history_sengoku"),
+    ("Lịch sử Nhật - Edo (tool).m4a",         "history_ja", "history_edo"),
+    ("Lịch sử Hàn - Cung đình (tool).m4a",    "history_ko", "history_joseon"),
+    ("Lịch sử Hàn - Chiến trận (tool).m4a",   "history_ko", "history_battle_ko"),
 ]
 
 
@@ -58,10 +62,12 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse") and tracks_for(p["sport"]):
+    if p.get("genre") == "history":
+        lay = "history_ko" if p.get("lang") == "ko" else "history_ja"   # nhạc cổ truyền theo nước
+    elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop", "owarai", "horse", "brand")
+                                      "kpop", "owarai", "horse", "brand", "history_ja", "history_ko")
                        else "sports")
     if not files:
         return ""
@@ -942,6 +948,103 @@ def brand_retro():
         if bar >= 16 and bar % 4 == 3:
             s.put("glock", glock(c[0] + 24, s.beat * 1.5, 0.4), b0 + 3)
     return s.mix({"ep": 1.0, "bass": 0.8, "drums": 0.5, "hats": 0.35, "glock": 0.6}, reverb=0.3)
+
+
+KOREAN_PENTA = [0, 2, 5, 7, 9]     # ngũ cung kiểu Hàn (평조)
+
+
+def gayageum(m, dur, vel=0.6):
+    """Đàn gayageum: gảy mềm + rung (농현) ở cuối nốt."""
+    x = pluck(m, dur, vel, bright=0.45)
+    t = np.arange(len(x)) / SR
+    vib = 1 + 0.004 * np.sin(2 * np.pi * 5.5 * t) * np.clip((t - 0.15) * 4, 0, 1)
+    idx = np.clip(np.cumsum(vib).astype(int), 0, len(x) - 1)
+    return x[idx]
+
+
+def janggu(strong=True):
+    """Trống janggu: mặt trầm (궁편) + tiếng roi tre (채편)."""
+    a, b = taiko(False) * (0.7 if strong else 0.35), clap() * (0.5 if strong else 0.25)
+    out = np.zeros(max(len(a), len(b)))
+    out[:len(a)] += a
+    out[:len(b)] += b
+    return out
+
+
+def history_sengoku():
+    """Chiến Quốc Nhật: taiko dồn dập, sáo shakuhachi hùng tráng, shamisen, pad trầm."""
+    s = Song(100, 32)
+    root = 50
+    for bar in range(s.bars):
+        b0 = bar * 4
+        s.put("taiko", taiko(True), b0, 1.0)
+        s.put("taiko", taiko(True), b0 + 2, 0.8)
+        if bar >= 4:
+            for k in (1, 1.5, 3, 3.5):
+                s.put("taiko", taiko(False), b0 + k, 0.6)
+        if bar >= 8 and bar % 4 == 3:
+            for k in range(8):
+                s.put("taiko", taiko(False), b0 + k / 2, 0.4 + k * 0.06)
+        if bar % 2 == 0:
+            for k, idx in enumerate([0, 1, 3, 4, 3, 1]):
+                s.put("shamisen", shamisen(root + MIYAKO[idx] + 12, s.beat * 0.5, 0.5), b0 + k * 0.5)
+        if bar >= 8:
+            line = [(0, 4, 1.5), (2, 3, 1.8)] if bar % 2 == 0 else [(0, 1, 3.5)]
+            for pos, idx, d in line:
+                s.put("flute", shakuhachi(root + MIYAKO[idx] + 24, s.beat * d, 0.13), b0 + pos)
+        s.put("drone", pad([root - 12, root - 5], s.beat * 4, 600, 0.09), b0)
+    return s.mix({"taiko": 0.9, "shamisen": 0.7, "flute": 0.9, "drone": 0.8}, reverb=0.4)
+
+
+def history_edo():
+    """Thời Edo: koto/shamisen thong thả, sáo, trống nhỏ – kể chuyện nhẹ nhàng."""
+    s = Song(84, 32)
+    root = 52
+    for bar in range(s.bars):
+        b0 = bar * 4
+        for k, idx in enumerate((0, 2, 4, 2) if bar % 2 == 0 else (1, 3, 4, 3)):
+            s.put("koto", pluck(root + MIYAKO[idx] + 12, s.beat * 0.9, 0.45, 0.35), b0 + k)
+        if bar >= 4:
+            s.put("taiko", taiko(False), b0, 0.4)
+            s.put("taiko", taiko(False), b0 + 2.5, 0.3)
+        if bar >= 8 and bar % 2 == 1:
+            s.put("flute", shakuhachi(root + MIYAKO[(bar // 2) % 5] + 24, s.beat * 3, 0.10), b0)
+        s.put("drone", pad([root - 12], s.beat * 4, 500, 0.06), b0)
+    return s.mix({"koto": 1.0, "taiko": 0.6, "flute": 0.8, "drone": 0.7}, reverb=0.45)
+
+
+def history_joseon():
+    """Cung đình Joseon: gayageum ngũ cung, janggu nhịp 3 (세마치), pad như đàn haegeum."""
+    s = Song(90, 36, beats_per_bar=3)
+    root = 50
+    for bar in range(s.bars):
+        b0 = bar * 3
+        s.put("janggu", janggu(True), b0)
+        s.put("janggu", janggu(False), b0 + 1.5)
+        s.put("janggu", janggu(False), b0 + 2)
+        for k, idx in enumerate((0, 2, 4) if bar % 2 == 0 else (3, 2, 1)):
+            s.put("gaya", gayageum(root + KOREAN_PENTA[idx] + 12, s.beat * 1.2, 0.55), b0 + k)
+        if bar >= 6:
+            s.put("haegeum", shakuhachi(root + KOREAN_PENTA[(bar // 2) % 5] + 24, s.beat * 2.6, 0.09), b0)
+        s.put("drone", pad([root - 12, root - 5], s.beat * 3, 500, 0.07), b0)
+    return s.mix({"janggu": 0.8, "gaya": 1.0, "haegeum": 0.8, "drone": 0.7}, reverb=0.4)
+
+
+def history_battle_ko():
+    """Chiến trận (Imjin, Goguryeo…): trống lớn dồn dập, gayageum nhanh, kèn nabal (brass)."""
+    s = Song(116, 32)
+    root = 50
+    for bar in range(s.bars):
+        b0 = bar * 4
+        for k in (0, 1.5, 2, 3):
+            s.put("drum", taiko(True), b0 + k, 0.8 if k in (0, 2) else 0.55)
+        if bar >= 4:
+            for k in range(8):
+                s.put("gaya", gayageum(root + KOREAN_PENTA[(k + bar) % 5] + 12, s.beat * 0.4, 0.45), b0 + k / 2)
+        if bar >= 8 and bar % 4 == 0:
+            s.put("nabal", brass([root + 12, root + 19], s.beat * 3, 0.10), b0)
+        s.put("drone", pad([root - 12, root - 5], s.beat * 4, 650, 0.08), b0)
+    return s.mix({"drum": 0.9, "gaya": 0.8, "nabal": 0.8, "drone": 0.8}, reverb=0.35)
 
 
 def ensure_all(log=print, force: bool = False) -> int:
