@@ -35,7 +35,7 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "title": title.strip(),
         "topic": topic.strip(),
         "duration": int(duration),
-        "genre": genre if genre in ("sports", "biography", "general", "news", "ranking") else "sports",
+        "genre": genre if genre in ("sports", "biography", "general", "news", "ranking", "brand") else "sports",
         "ranking_n": max(3, min(10, int(ranking_n))) if genre == "ranking" and ranking_n else None,
         "sport": sport or "other",   # môn thể thao: baseball / basketball / sumo / soccer / other
         "news": news or {},       # tin tức: {region, days, category}

@@ -65,6 +65,7 @@
       <select id="newGenre">
         <option value="sports">⚾ Thể thao</option>
         <option value="biography">👤 Tiểu sử</option>
+        <option value="brand">🏢 Thương hiệu / Doanh nghiệp</option>
         <option value="news">📰 Tin tức</option>
         <option value="ranking">🏆 Top / Xếp hạng</option>
         <option value="general">💡 Chủ đề chung</option>
@@ -165,7 +166,7 @@
           <div><label>Ngôn ngữ</label><select id="pLang" title="Áp dụng khi viết lại content"></select></div>
           <div><label>Thể loại</label>
             <select id="pGenre" title="Áp dụng khi viết lại content">
-              <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
+              <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="brand">🏢 Thương hiệu</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
             </select></div>
           <div><label>Lĩnh vực</label><select id="pSport" title="Áp dụng khi viết lại content"></select></div>
           <div><label>Bố cục</label>
@@ -316,7 +317,7 @@
         <div><label>Khán giả</label><select id="ideaLang"></select></div>
         <div><label>Thể loại</label>
           <select id="ideaGenre"><option value="any">Tất cả</option><option value="sports">⚾ Thể thao</option>
-            <option value="biography">👤 Tiểu sử</option><option value="news">📰 Tin tức</option>
+            <option value="biography">👤 Tiểu sử</option><option value="brand">🏢 Thương hiệu</option><option value="news">📰 Tin tức</option>
             <option value="ranking">🏆 Top / Xếp hạng</option><option value="general">💡 Chủ đề chung</option></select></div>
         <div><label>Số ý tưởng</label><select id="ideaCount"><option>5</option><option selected>10</option><option>15</option></select></div>
       </div>
@@ -379,7 +380,7 @@
           <div><label>Tên / chủ đề</label><input id="refTitle" placeholder="VD: 落合博満が無表情だった理由"></div>
           <div><label>Lượt xem <span class="opt">(không bắt buộc)</span></label><input id="refViews" placeholder="VD: 120万"></div>
           <div><label>Ngôn ngữ</label><select id="refLang"><option value="ja">Tiếng Nhật</option><option value="ko">Tiếng Hàn</option></select></div>
-          <div><label>Thể loại</label><select id="refGenre"><option value="sports">Thể thao</option><option value="biography">Tiểu sử</option><option value="ranking">Top / xếp hạng</option><option value="news">Tin tức</option><option value="general">Chung</option></select></div>
+          <div><label>Thể loại</label><select id="refGenre"><option value="sports">Thể thao</option><option value="biography">Tiểu sử</option><option value="brand">Thương hiệu</option><option value="ranking">Top / xếp hạng</option><option value="news">Tin tức</option><option value="general">Chung</option></select></div>
         </div>
         <label>Kịch bản</label><textarea id="refText" rows="7" placeholder="Dán toàn bộ lời đọc / phụ đề của video..."></textarea>
         <div class="actions"><button id="refAdd" class="primary">➕ Thêm vào thư viện</button></div>

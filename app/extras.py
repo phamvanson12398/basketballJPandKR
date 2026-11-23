@@ -154,7 +154,9 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
   「4年で2勝の男が野村再生工場の最高傑作になるまで」）。経歴紹介だけの企画は避ける。
   topic には、その切り口・使えるフックの型（比較 / 「〜した人がいる」 / 実際のセリフ / 衝撃の数字）・
   裏付けになる出典（本人インタビュー・報道）を書く。
-- genre は sports / biography / news / general / ranking のどれか。ranking の場合は ranking_n（3〜10）も入れる。
+- brand（企業・ブランド）の企画は「今の姿と意外な過去のギャップ」1つに絞る
+  （例:「任天堂は元々花札の会社だった」「チキンラーメンは裏庭の小屋で生まれた」「삼성의 시작은 대구의 작은 상회」）。
+- genre は sports / biography / brand / news / general / ranking のどれか。ranking の場合は ranking_n（3〜10）も入れる。
 
 ## 出力（JSONのみ、話題性の高い順）
 ```json
@@ -165,6 +167,7 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
 """
 
 GENRE_RULE = {"any": "自由（企画に合うものを選ぶ）", "sports": "sports のみ", "biography": "biography のみ",
+              "brand": "brand のみ（企業・ブランド・商品の誕生秘話・裏話）",
               "news": "news のみ（最新ニュース）", "general": "general のみ（雑学・解説）",
               "ranking": "ranking のみ（TOP N 形式）"}
 

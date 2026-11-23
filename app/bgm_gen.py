@@ -39,6 +39,8 @@ TRACKS = [
     ("Hài - Hồi hộp M-1 (tool).m4a",          "owarai",    "owarai_tension"),
     ("Đua ngựa - Fanfare phi nước đại (tool).m4a", "horse", "horse_fanfare"),
     ("Đua ngựa - Chuyện vui (tool).m4a",      "horse",     "horse_cozy"),
+    ("Thương hiệu - Khởi nghiệp (tool).m4a",  "brand",     "brand_startup"),
+    ("Thương hiệu - Hoài niệm (tool).m4a",    "brand",     "brand_retro"),
 ]
 
 
@@ -59,7 +61,7 @@ def resolve(p: dict) -> str:
     if p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop", "owarai", "horse")
+                                      "kpop", "owarai", "horse", "brand")
                        else "sports")
     if not files:
         return ""
@@ -893,6 +895,53 @@ def horse_cozy():
                 if k % 2 == 0 or bar % 4 == 0:
                     s.put("glock", glock(c[0] + iv, s.beat * 0.4), b0 + k / 2)
     return s.mix({"uke": 0.9, "bass": 0.8, "hats": 0.5, "drums": 0.6, "glock": 0.8}, reverb=0.22)
+
+
+def brand_startup():
+    """Nhạc doanh nghiệp tươi sáng (kiểu video khởi nghiệp): piano nảy, pluck, kick nhẹ, vỗ tay."""
+    s = Song(112, 32)
+    prog = ["C", "G", "Am", "F"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 4)
+        b0 = bar * 4
+        for k in range(8):                                            # piano móc 8 nốt
+            s.put("piano", piano(c[(0, 2, 1, 2)[k % 4]] + 12, s.beat * 0.4, 0.4), b0 + k / 2)
+        s.put("bass", bass(c[0] - 24, s.beat * 1.8, vol=0.28, cutoff=450), b0)
+        s.put("bass", bass(c[0] - 24, s.beat * 1.8, vol=0.25, cutoff=450), b0 + 2)
+        if bar >= 4:
+            for k in range(4):
+                s.put("drums", kick(0.55), b0 + k)
+                s.put("hats", hat(), b0 + k + 0.5, 0.45)
+            s.put("drums", clap(), b0 + 1, 0.5)
+            s.put("drums", clap(), b0 + 3, 0.5)
+        if bar >= 8:
+            s.put("pad", pad(c, s.beat * 4, 2000, 0.07), b0)
+            if bar % 2 == 0:
+                for k, iv in enumerate((12, 16, 19, 24)):
+                    s.put("pluck", pluck(c[0] + iv, s.beat * 0.3, 0.35, 0.6), b0 + 2 + k / 2)
+    return s.mix({"piano": 0.9, "bass": 0.8, "drums": 0.55, "hats": 0.4, "pad": 0.7, "pluck": 0.7}, reverb=0.25)
+
+
+def brand_retro():
+    """Hoài niệm kiểu phim tài liệu Showa / ngày xưa: piano điện, nhịp chậm swing, bass gảy."""
+    s = Song(88, 32)
+    prog = ["Dm7", "G7", "C", "A7"]
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 4)
+        b0 = bar * 4
+        s.put("ep", sum(epiano(m, s.beat * 1.6, 0.4) for m in c), b0)
+        s.put("ep", sum(epiano(m + 12, s.beat * 0.8, 0.25) for m in c[1:3]), b0 + 2.5, swing=0.5)
+        s.put("bass", pluck(c[0] - 24, s.beat * 0.9, 0.7, 0.1), b0)
+        s.put("bass", pluck(c[2] - 24, s.beat * 0.9, 0.6, 0.1), b0 + 2)
+        if bar >= 8:
+            s.put("drums", kick(0.4), b0)
+            s.put("drums", snare(), b0 + 2, 0.3)
+            for k in range(4):
+                s.put("hats", hat(), b0 + k + 0.5, 0.3, swing=0.6)
+        if bar >= 16 and bar % 4 == 3:
+            s.put("glock", glock(c[0] + 24, s.beat * 1.5, 0.4), b0 + 3)
+    return s.mix({"ep": 1.0, "bass": 0.8, "drums": 0.5, "hats": 0.35, "glock": 0.6}, reverb=0.3)
 
 
 def ensure_all(log=print, force: bool = False) -> int:

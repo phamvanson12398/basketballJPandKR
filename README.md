@@ -223,6 +223,15 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Nhạc nền riêng**: "Fanfare phi nước đại" và "Chuyện vui". Video ưu tiên kênh JRA / グリーンチャンネル; Claude nhận ngựa
   theo màu lông, đốm trắng trên mặt, màu áo nài.
 
+### 🏢 Thương hiệu / Doanh nghiệp (🇯🇵 🇰🇷) – chọn Thể loại: 🏢 Thương hiệu / Doanh nghiệp
+- Kiểu "雑学・裏話" về công ty: **1 góc khuất** – khởi nguồn bất ngờ, nguồn gốc tên/logo, suýt phá sản rồi lội ngược dòng,
+  sản phẩm ra đời do tình cờ… (VD: 任天堂 từng làm hoa bài; 신라면 và họ của chủ tịch).
+- Hook: "có một công ty từng…" rồi mới nói tên / tương phản hiện tại – quá khứ / con số sốc / câu nói của nhà sáng lập.
+  → 「しかし実は」 quay về quá khứ → bước ngoặt → 「なぜ」 → kết bằng câu định nghĩa lại hook. Không quảng cáo, không tin đồn.
+- **Tên thương hiệu chữ đỏ** (〔〕) trong phụ đề. Bố cục chữ trên/dưới khung, nền trắng.
+- Ảnh: logo, sản phẩm đời đầu, nhà sáng lập, nhà máy, quảng cáo xưa; video: CM, kênh chính thức, dây chuyền sản xuất.
+- Nhạc nền riêng: "Khởi nghiệp" (piano tươi sáng) và "Hoài niệm" (piano điện kiểu phim tài liệu ngày xưa).
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).
