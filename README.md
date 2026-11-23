@@ -199,6 +199,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   2. **Claude xem hình**: AI ghi đội + số áo của nhân vật lúc đó; tool đưa khung hình các đoạn ứng viên + 1 ảnh chân dung
      cho Claude xác nhận đoạn nào có đúng người (số áo, màu áo, khuôn mặt). Không có đoạn nào đúng → thử video khác.
      Thêm ~20–40 giây mỗi cảnh video, tắt được trong Cài đặt. Link bạn tự dán thì không bị loại.
+- **🧠 Claude chọn ảnh hợp nội dung** (mọi thể loại): xem lưới ảnh ứng viên, xếp ảnh khớp lời đọc lên trước, đánh dấu
+  "AI loại" cho ảnh sai người / không liên quan (đồ chơi, tranh hoạt hình, ảnh toàn chữ…). Thêm ~15–30 giây mỗi cảnh ảnh,
+  tắt được trong Cài đặt.
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
   (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
   Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.
@@ -215,6 +218,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   lưu ở `library/stickers`). Sửa / xóa ở "Tùy chọn" của cảnh.
 - **Content kiểu "tuyển tập chuyện vui"**: 1 chủ đề (đồ ăn, tật xấu, sau giải nghệ…), 6–9 con ngựa nổi tiếng, mỗi con 2–3 câu
   + câu bình luận vui, kết bằng con "lầy" nhất (Gold Ship…). Có sẵn kịch bản mẫu trong Thư viện kịch bản mẫu.
+- **Ảnh khớp nội dung**: từ khóa = tên ngựa + 競走馬 + đúng cảnh của câu chuyện (bó hoa, ăn cỏ…), kèm **ảnh đồ vật**
+  của chuyện (ふじりんご, ギネスビール…) xen kẽ với ảnh ngựa như video mẫu.
 - **Nhạc nền riêng**: "Fanfare phi nước đại" và "Chuyện vui". Video ưu tiên kênh JRA / グリーンチャンネル; Claude nhận ngựa
   theo màu lông, đốm trắng trên mặt, màu áo nài.
 

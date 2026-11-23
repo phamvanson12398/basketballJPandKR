@@ -42,7 +42,8 @@ DEFAULT_SETTINGS = {
     "sub_gap": 40,               # khoảng cách giữa chữ và khung ảnh/video (px)
     "use_claude_for_highlight": True,
     "facebook_video": True,
-    "verify_person_video": True,   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
+    "verify_person_video": True,
+    "smart_image_pick": True,      # Claude xem ảnh ứng viên, chọn ảnh hợp nội dung (chậm hơn ~15–30s/cảnh ảnh)   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }
 

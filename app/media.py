@@ -212,9 +212,13 @@ def n_images_for(dur: float) -> int:
 def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
                 recent: str | None = None) -> None:
     queries = scene_queries(scene, "image", query)
+    proj = P.load(pid)
+    if proj.get("sport") == "horse" and not query:
+        # tên ngựa hay trùng từ thường (モーリス, ゴールドシップ…) → thêm 競走馬 để không ra ảnh khác
+        horse_words = ("競走馬", "競馬", "JRA", "レース", "G1", "GI", "記念", "賞", "ダービー", "ステークス", "牧場", "厩舎")
+        queries = [x if any(w in x for w in horse_words) else f"{x} 競走馬" for x in queries]
     q = queries[0]
     names = names_of(scene)
-    proj = P.load(pid)
     dropped = {"chính trị": 0, "môn khác": 0, "báo không nhắc tên": 0}
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
@@ -275,9 +279,29 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             log(f"    không lấy được ảnh từ video: {str(e)[:100]}")
     if not cands:
         raise RuntimeError(f"Không tìm được ảnh 16:9 cho “{q}” – thử từ khóa khác")
+    cands = smart_order(pid, scene, cands, log)
     scene["candidates"] = cands
-    scene["items"] = cands[:k]
+    scene["items"] = [c for c in cands if not c.get("rejected")][:k] or cands[:k]
     scene["picked"] = False     # tool tự chọn
+    # ảnh "đồ vật / cảnh" của câu chuyện (VD: ふじりんご, ギネスビール) xen kẽ với ảnh nhân vật – kiểu video đua ngựa mẫu
+    if scene.get("image_query2") and not scene.get("split"):
+        c2 = []
+        for res in search_images(scene["image_query2"], log, recent):
+            if res["url"] in used or len(c2) >= 6:
+                continue
+            f = d / f"c2_{len(c2) + 1}_{tok}.jpg"
+            if download_image(res["url"], f, loose=True):
+                c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
+                           "page": res.get("page", ""), "src": res.get("src", ""), "role": "object"})
+                used.add(res["url"])
+        if c2:
+            c2 = smart_order(pid, dict(scene, who="", uniform=""), c2, log)
+            good1 = [c for c in cands if not c.get("rejected")] or cands
+            good2 = [c for c in c2 if not c.get("rejected")] or c2
+            mixed = [x for pair in zip(good1, good2) for x in pair] + good1[len(good2):] + good2[len(good1):]
+            scene["items"] = mixed[:max(2, k)]
+            scene["candidates"] = mixed + [c for c in cands + c2 if c not in mixed]
+            log(f"    + ảnh đồ vật/cảnh: “{scene['image_query2']}” ({len(c2)} ảnh, xen kẽ với ảnh nhân vật)")
     # cảnh so sánh 2 người (bố cục Hàn): tìm thêm ảnh người thứ hai
     if scene.get("split") and scene.get("image_query2"):
         q2 = scene["image_query2"]
@@ -300,6 +324,31 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     srcs = Counter(SRC_NAMES.get(c.get("src"), c.get("src") or "?") for c in cands)
     log(f"  {scene['id']}: {len(cands)} ảnh ứng viên, dùng {len(scene['items'])} ảnh · nguồn: "
         + " · ".join(f"{k} {v}" for k, v in srcs.most_common()))
+
+
+def smart_order(pid: str, scene: dict, cands: list[dict], log) -> list[dict]:
+    """Claude xem ảnh ứng viên: ảnh hợp nội dung lên trước, ảnh sai người / không liên quan đánh dấu "rejected" (xuống cuối)."""
+    if not load_settings().get("smart_image_pick", True) or len(cands) < 2:
+        return cands
+    head = cands[:12]
+    base = P.pdir(pid)
+    d = base / "media" / scene["id"]
+    r = HL.pick_images([base / c["file"] for c in head], P.scene_plain_text(scene), scene.get("who", ""),
+                       scene.get("uniform", ""), d)
+    if not r:
+        return cands
+    good = [head[i] for i in r["good"]]
+    bad = [head[i] for i in r["bad"]]
+    rest = [c for c in head if c not in good and c not in bad]
+    for c in bad:
+        c["rejected"] = True
+    if r["good"]:
+        log(f"    Claude chọn ảnh hợp nội dung: {len(good)} ảnh tốt"
+            + (f" (#1: {r['why'].get(r['good'][0], '')})" if r["why"].get(r["good"][0]) else "")
+            + (f" · loại {len(bad)} ảnh sai / không liên quan" if bad else ""))
+    elif bad:
+        log(f"    ⚠️ Claude thấy {len(bad)}/{len(head)} ảnh không hợp nội dung – nên bấm 🔎 Tìm lại với từ khóa khác")
+    return good + rest + cands[12:] + bad
 
 
 def stills_from_video(pid: str, scene: dict, count: int, log, recent: str | None = None) -> list[dict]:

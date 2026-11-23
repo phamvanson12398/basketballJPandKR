@@ -283,3 +283,58 @@ def verify_person(video: Path, windows: list[dict], scene_text: str, who: str, u
     finally:
         sheet.unlink(missing_ok=True)
         (workdir / "_verify_ref.jpg").unlink(missing_ok=True)
+
+
+def image_sheet(paths: list[Path], out: Path, cols: int = 4) -> Path:
+    """Lưới ảnh ứng viên có đánh số (1, 2, 3…) để Claude xem một lần."""
+    tw, th = 360, 240
+    rows = (len(paths) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * (tw + 10) + 10, rows * (th + 10) + 10), "white")
+    d = ImageDraw.Draw(sheet)
+    try:
+        font = ImageFont.load_default(size=44)
+    except TypeError:
+        font = ImageFont.load_default()
+    for i, p in enumerate(paths):
+        x, y = 10 + (i % cols) * (tw + 10), 10 + (i // cols) * (th + 10)
+        try:
+            im = Image.open(p).convert("RGB")
+            im.thumbnail((tw, th))
+            sheet.paste(im, (x + (tw - im.width) // 2, y + (th - im.height) // 2))
+        except Exception:  # noqa: BLE001
+            pass
+        d.rectangle((x, y, x + 58, y + 52), fill="red")
+        d.text((x + 10, y + 2), str(i + 1), fill="white", font=font)
+    sheet.save(out, quality=85)
+    return out
+
+
+def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, workdir: Path) -> dict | None:
+    """Claude xem lưới ảnh ứng viên → {"good": [chỉ số, tốt nhất trước], "bad": [chỉ số loại], "why": {...}}.
+    None nếu không hỏi được (khi đó giữ thứ tự cũ)."""
+    from .claude_cli import ask, extract_json
+    if len(paths) < 2:
+        return None
+    sheet = image_sheet(paths, workdir / "_pick_sheet.jpg")
+    prompt = (
+        f"画像ファイル {sheet.as_posix()} を Read ツールで開いてください。赤い番号 1〜{len(paths)} が候補の写真です。\n"
+        f"この写真はショート動画で次のナレーションの間に映します:\n「{scene_text}」\n"
+        + (f"写すべき人物・馬: {who}\n" if who else "")
+        + (f"見分ける特徴: {uniform}\n" if uniform else "")
+        + "\n各写真を判定してください:\n"
+        "- good: ナレーションの内容（出来事・物・場面）に合い、写すべき人物・馬が写っている（またはその話の物そのもの）。"
+        "合っている順に並べる。\n"
+        "- bad: 別の人物・別の馬・無関係（グッズ、ゲーム・アニメの絵、文字だけの画像、ロゴ、地図、別の話題）、"
+        "または画質が悪すぎる・大きな文字や透かしで見えない。\n"
+        'JSONのみ: {"good": [3, 1, 5], "bad": [2, 4], "why": {"3": "モーリスが花束を食べている"}}')
+    try:
+        data = extract_json(ask(prompt, tools=["Read"], add_dirs=[str(workdir)], timeout=300))
+        n = len(paths)
+        good = [int(i) - 1 for i in data.get("good", []) if str(i).isdigit() and 1 <= int(i) <= n]
+        bad = [int(i) - 1 for i in data.get("bad", []) if str(i).isdigit() and 1 <= int(i) <= n and int(i) - 1 not in good]
+        return {"good": list(dict.fromkeys(good)), "bad": list(dict.fromkeys(bad)),
+                "why": {int(k) - 1: str(v)[:40] for k, v in (data.get("why") or {}).items() if str(k).isdigit()}}
+    except Exception:  # noqa: BLE001
+        return None
+    finally:
+        sheet.unlink(missing_ok=True)

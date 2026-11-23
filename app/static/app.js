@@ -391,6 +391,7 @@ function renderMedia() {
         ${idx >= 0 ? `<span class="n">${idx + 1}</span>` : ''}
         ${c.kind === 'image' ? `<button class="crop-btn" data-crop="${esc(c.file)}" title="Cắt ảnh (bỏ chữ, logo…)">✂️</button>` : ''}
         ${c.cropped_from ? '<span class="cut">đã cắt</span>' : ''}
+        ${c.rejected ? '<span class="cut" style="background:#b91c1c" title="Claude thấy ảnh này sai người hoặc không hợp nội dung">AI loại</span>' : ''}
         ${c.kind === 'video' ? `<span class="t">${(+c.start).toFixed(1)}s</span>` : ''}</div>`;
     }).join('');
     const need = s.kind === 'image' ? Math.max(1, Math.round(est(s) / 3)) : 1;
@@ -947,7 +948,7 @@ $('#lnkSettings').onclick = async e => {
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
   $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
-  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
+  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -960,7 +961,7 @@ $('#lnkSettings').onclick = async e => {
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
-    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
+    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };
 // ---- thư viện kịch bản mẫu

@@ -442,7 +442,8 @@ def render(pid: str, log) -> None:
                 for c in s.get("candidates") or []:
                     if len(imgs) >= k:
                         break
-                    if c.get("kind") == "image" and c["file"] not in seen and (base / c["file"]).exists():
+                    if (c.get("kind") == "image" and not c.get("rejected") and c["file"] not in seen
+                            and (base / c["file"]).exists()):
                         imgs.append(c)
                         seen.add(c["file"])
                 topped[s["id"]] = list(imgs)
