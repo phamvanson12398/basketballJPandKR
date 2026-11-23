@@ -661,10 +661,116 @@ def generate(pid: str, log, feedback: str = "") -> None:
     log(f"Đã viết {len(scenes)} cảnh, ước tính {info['total']}s "
         f"(ảnh {info['image_pct']}% / video {info['video_pct']}%).", 0.6)
     from .config import load_settings
-    if load_settings().get("fact_check", True):
-        fact_check(pid, log)
+    st = load_settings()
+    if st.get("retention_edit", True):
+        try:
+            retention_edit(pid, log)
+        except Exception as e:  # noqa: BLE001
+            log(f"  ⚠️ Biên tập giữ chân lỗi ({str(e)[:120]}) → giữ bản gốc")
+    if st.get("fact_check", True):
+        fact_check(pid, log)       # kiểm tra trên bản đã biên tập
     else:
         log("Xong (chưa kiểm tra sự thật – bật trong Cài đặt nếu muốn).", 1.0)
+
+
+# ---------------------------------------------------------------- BIÊN TẬP GIỮ CHÂN NGƯỜI XEM
+RETENTION_PROMPT = """あなたは{country}で再生数トップクラスのショート動画（TikTok / YouTube Shorts）の編集長です。
+次の台本（{lang_name}、ジャンル: {genre}）を、最後まで見られる台本に磨き上げてください。
+
+## 視聴維持のチェックリスト（それぞれ0〜10点で採点）
+1. hook: 最初の約2秒（1シーン目）で「えっ？」と思わせるか。具体的（名前・数字・意外な事実・矛盾）で、説明から始まっていないか。
+2. open_loop: 最初の5秒で「なぜ？」「どうなる？」という問いが生まれ、答えが最後まで明かされないか。
+3. pacing: 10〜15秒ごとに新しい事実・反転・再フック（「ところが」「しかし実は」「さらに」）があるか。同じ調子の説明が続かないか。
+4. density: どの文も物語を前に進めているか。前置き・繰り返し・抽象的な言葉（すごい・感動・努力）が無いか。
+5. concreteness: 具体的な数字・場面・セリフ・固有名詞で見せているか（ぼんやりした要約になっていないか）。
+6. payoff: 最後の一文が冒頭の問い・フックにきちんと答え、余韻があるか。尻すぼみ・説教・問いかけで終わっていないか。
+
+## やること
+- まず元の台本を採点する（score_before）。
+- 1シーン目のフック案を5つ作る（型を変える: 意外な事実の断言 / 「〜な人（会社・馬）がいる」 / 衝撃の数字 / 実際のセリフ / 今と昔の対比）。
+  それぞれ hook 基準で採点し、一番強いものを選んで1シーン目に使う（他の案も hooks に残す）。
+- 弱いシーンを直す: 冗長な文を削って短く、説明を場面に、抽象語を具体に、10〜15秒ごとに再フック、
+  2〜5シーン目のどこかで「その理由は…」のような答えを先送りする一言を入れる、最後は冒頭に答える一文で締める。
+- 直した後の台本を採点する（score_after）。
+
+## 絶対に守ること
+- 新しい事実（数字・年・発言・出来事）を足さない。元の台本にある事実だけを、言い方・順番・強調を変えて使う。
+  元にない「」の発言を作らない。
+- シーン数は元と同じ。シーン i の内容（どの出来事・人物を扱うか）はなるべく元のシーン i に近く（写真・映像を探す単位なので）。
+  ただし1〜2シーン目の中身の入れ替え・圧縮は可。各シーンの長さは元の文字数の±30%以内。
+- 語り口・文体・強調記号〔〕【】《》・改行 "\n" の使い方・字幕1行の長さは元と同じルールで。tts も同じ内容で書き直す（{tts_rule}）。
+- 直さないシーンは chunks / tts を出さない。
+
+## 台本
+{script_json}
+
+## 出力（JSONのみ）
+```json
+{{"score_before": {{"hook": 5, "open_loop": 4, "pacing": 6, "density": 5, "concreteness": 7, "payoff": 4}},
+  "score_after": {{"hook": 9, "open_loop": 8, "pacing": 8, "density": 8, "concreteness": 8, "payoff": 8}},
+  "hooks": [{{"chunks": ["1シーン目のチャンク", "..."], "tts": "...", "score": 9, "why_vi": "Vì sao hook này mạnh (tiếng Việt, ngắn)"}}],
+  "chosen_hook": 0,
+  "notes_vi": "Đã sửa gì để giữ chân người xem (tiếng Việt, 2–4 ý ngắn)",
+  "scenes": [{{"no": 2, "chunks": ["..."], "tts": "..."}}]}}
+```
+"""
+
+SCORE_KEYS = ("hook", "open_loop", "pacing", "density", "concreteness", "payoff")
+
+
+def retention_edit(pid: str, log) -> dict:
+    """Biên tập viên Shorts: chấm điểm giữ chân, thi 5 hook, sửa cảnh yếu (không thêm sự thật mới)."""
+    import json as _json
+    p = P.load(pid)
+    L = LG.get(p.get("lang"))
+    if not p.get("scenes"):
+        raise RuntimeError("Chưa có content.")
+    log("✨ Biên tập giữ chân người xem: chấm điểm, thi 5 câu mở đầu, sửa cảnh yếu...", 0.62)
+    script_json = _json.dumps({"title": p.get("title", ""),
+                               "scenes": [{"no": i + 1, "chunks": s.get("chunks", []), "tts": s.get("tts", "")}
+                                          for i, s in enumerate(p["scenes"])]}, ensure_ascii=False, indent=1)
+    genre = GENRE_NAMES_JA.get(p.get("genre") or "sports", "スポーツ")
+    if p.get("sport") == "horse":
+        genre += "（競馬のエピソード集。各馬の話のテンポとオチを重視）"
+    prompt = RETENTION_PROMPT.format(country=L["country"], lang_name=L["name"], genre=genre,
+                                     tts_rule=L["tts_rule"], script_json=script_json)
+    data = extract_json(ask(prompt, timeout=900))
+    n = len(p["scenes"])
+    changed = {int(x["no"]): x for x in (data.get("scenes") or [])
+               if isinstance(x, dict) and str(x.get("no", "")).isdigit() and 1 <= int(x["no"]) <= n}
+    hooks = [h for h in (data.get("hooks") or []) if isinstance(h, dict) and h.get("chunks")]
+    ch = data.get("chosen_hook")
+    if isinstance(ch, int) and 0 <= ch < len(hooks):
+        changed[1] = {"no": 1, "chunks": hooks[ch]["chunks"], "tts": hooks[ch].get("tts", "")}
+
+    def clean_score(sc):
+        return {k: int(sc.get(k, 0)) for k in SCORE_KEYS if str(sc.get(k, "")).lstrip("-").isdigit()} if isinstance(sc, dict) else {}
+
+    def apply(pp):
+        for i, s in enumerate(pp["scenes"]):
+            c = changed.get(i + 1)
+            if not c:
+                continue
+            new_chunks = [str(x).strip() for x in (c.get("chunks") or []) if str(x).strip()]
+            if not new_chunks:
+                continue
+            s["chunks"] = new_chunks
+            if c.get("tts"):
+                s["tts"] = str(c["tts"]).strip()
+            for k in ("audio", "duration", "audio_text"):
+                s.pop(k, None)
+            s.pop("fact", None)
+        pp["retention"] = {"before": clean_score(data.get("score_before")), "after": clean_score(data.get("score_after")),
+                           "notes": str(data.get("notes_vi") or "")[:600],
+                           "hooks": [{"chunks": h["chunks"], "tts": h.get("tts", ""), "score": h.get("score"),
+                                      "why": str(h.get("why_vi") or "")[:200]} for h in hooks[:5]],
+                           "chosen": ch if isinstance(ch, int) else 0}
+    P.update(pid, apply)
+    b, a = clean_score(data.get("score_before")), clean_score(data.get("score_after"))
+    avg = lambda d: round(sum(d.values()) / max(1, len(d)), 1)
+    log(f"✨ Biên tập xong: điểm giữ chân {avg(b)} → {avg(a)}/10 · sửa {len(changed)} cảnh · "
+        + (data.get("notes_vi") or "")[:200], 0.7)
+    return {"before": b, "after": a}
 
 
 # ---------------------------------------------------------------- KIỂM TRA SỰ THẬT

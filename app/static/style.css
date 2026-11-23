@@ -293,3 +293,12 @@ details.fact { font-size: 13px; margin: 6px 0 2px; padding: 6px 10px; border-rad
 details.fact.unsure, details.fact.edited { background: #fffaf0; }
 details.fact summary { cursor: pointer; }
 details.fact a { display: block; margin: 4px 0 0 4px; word-break: break-all; }
+
+/* biên tập giữ chân */
+.fact-summary.ret { background: #fff8eb; border-color: #fde3b0; }
+.fact-summary .scores { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0; font-size: 13px; }
+.fact-summary .hook { display: grid; grid-template-columns: 34px 1fr auto; gap: 2px 10px; align-items: center; padding: 6px 0; border-top: 1px dashed #f1d9a6; }
+.fact-summary .hook .muted { grid-column: 2; font-size: 12px; }
+.fact-summary .hook.on .ht { font-weight: 700; }
+.fact-summary .hook .hs { font-weight: 700; color: #b45309; text-align: center; }
+.fact-summary .hook button, .fact-summary .hook b:last-child { grid-column: 3; grid-row: 1; }

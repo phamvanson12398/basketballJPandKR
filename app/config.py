@@ -44,7 +44,8 @@ DEFAULT_SETTINGS = {
     "facebook_video": True,
     "verify_person_video": True,
     "smart_image_pick": True,
-    "fact_check": True,            # tự kiểm tra sự thật sau khi viết content (thêm ~2–5 phút)      # Claude xem ảnh ứng viên, chọn ảnh hợp nội dung (chậm hơn ~15–30s/cảnh ảnh)   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
+    "fact_check": True,
+    "retention_edit": True,        # biên tập giữ chân người xem sau khi viết (thi 5 hook, sửa cảnh yếu)            # tự kiểm tra sự thật sau khi viết content (thêm ~2–5 phút)      # Claude xem ảnh ứng viên, chọn ảnh hợp nội dung (chậm hơn ~15–30s/cảnh ảnh)   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }
 

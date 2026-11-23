@@ -163,6 +163,13 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   sự thật bất ngờ…, có dịch tiếng Việt) và **10–12 hashtag** chia nhóm: rộng / chủ đề / cụ thể / đề xuất (#おすすめ #fyp).
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
+### ✨ Biên tập giữ chân người xem (tự chạy sau khi viết content)
+- Một lượt Claude đóng vai **biên tập viên Shorts**: chấm 6 tiêu chí (hook 2 giây đầu, câu mồi, nhịp đảo chiều,
+  gọn không thừa, cụ thể, cái kết) → **thi 5 câu mở đầu** chọn câu mạnh nhất → sửa cảnh yếu (cắt câu thừa, thêm câu mồi,
+  đảo chiều mỗi 10–15 giây, kết trả lời đúng hook). **Không thêm sự thật mới**; sau đó mới kiểm tra sự thật.
+- Bước Content hiện **điểm trước → sau** và 5 câu mở đầu đã thử – bấm "Dùng câu này" để đổi hook.
+- Nút **✨ Biên tập giữ chân** để chạy lại (VD sau khi bạn tự sửa nhiều). Tắt được trong Cài đặt.
+
 ### 🔍 Kiểm tra sự thật (tự chạy sau khi viết content)
 - Một lượt Claude riêng đóng vai **biên tập viên kiểm chứng**: tra lại trên mạng **từng chi tiết** – tên, năm, con số, kỷ lục,
   câu trích dẫn, diễn biến, cả tiêu đề.

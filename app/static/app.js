@@ -203,6 +203,24 @@ function renderScript() {
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
   $('#btnGen').className = P.scenes.length ? 'soft' : 'primary';
+  const rt = P.retention;
+  const RK = {hook: 'Hook 2 giây đầu', open_loop: 'Câu mồi', pacing: 'Nhịp đảo chiều', density: 'Gọn, không thừa', concreteness: 'Cụ thể', payoff: 'Cái kết'};
+  if (rt && rt.after) {
+    const avg = d => (Object.values(d || {}).reduce((a, b) => a + b, 0) / Math.max(1, Object.keys(d || {}).length)).toFixed(1);
+    $('#retSummary').innerHTML = `<b>✨ Điểm giữ chân: ${avg(rt.before)} → ${avg(rt.after)}/10</b>
+      <div class="scores">${Object.keys(RK).map(k => `<span>${RK[k]}: ${rt.before?.[k] ?? '–'} → <b>${rt.after?.[k] ?? '–'}</b></span>`).join('')}</div>
+      ${rt.notes ? `<div>${esc(rt.notes)}</div>` : ''}
+      ${(rt.hooks || []).length ? `<details><summary>🎣 ${rt.hooks.length} câu mở đầu AI đã thử (bấm để đổi)</summary>
+        ${rt.hooks.map((h, i) => `<div class="hook ${i === rt.chosen ? 'on' : ''}"><span class="hs">${h.score ?? ''}</span>
+          <span class="ht">${esc((h.chunks || []).join(' ').replace(/\n/g, ''))}</span>
+          <span class="muted">${esc(h.why || '')}</span>
+          ${i === rt.chosen ? '<b>✓ đang dùng</b>' : `<button class="small" data-hook="${i}">Dùng câu này</button>`}</div>`).join('')}</details>` : ''}`;
+  } else $('#retSummary').innerHTML = '';
+  $('#retSummary').classList.toggle('hidden', !$('#retSummary').innerHTML);
+  $$('#retSummary [data-hook]').forEach(b => b.onclick = async () => {
+    P = Object.assign(await api(`/api/projects/${P.id}/hook`, {method: 'POST', json: {index: +b.dataset.hook}}), {job: P.job});
+    renderScript();
+  });
   const fc = P.fact_check;
   $('#factSummary').innerHTML = fc ? `<b>🔍 Kiểm tra sự thật (${esc(fc.at || '')}):</b> ✅ ${fc.counts?.ok || 0} đúng · 🛠 ${fc.counts?.fixed || 0} đã sửa · ⚠️ ${fc.counts?.unsure || 0} chưa chắc chắn<br>${esc(fc.summary || '')}`
     : (P.scenes.length ? '🔍 Content này <b>chưa được kiểm tra sự thật</b> – bấm “🔍 Kiểm tra sự thật” trước khi duyệt.' : '');
@@ -279,6 +297,7 @@ function factBadge(s) {
   const st = s.fact.status;
   return `<span class="fbadge ${st}" title="${esc(s.fact.note || '')}">${FACT_LABEL[st] || ''}</span>`;
 }
+$('#btnRet').onclick = async () => { await saveScript(); await runJob(`/api/projects/${P.id}/retention`, {}); };
 $('#btnFact').onclick = async () => { await saveScript(); await runJob(`/api/projects/${P.id}/factcheck`, {}); };
 $('#btnApprove').onclick = async () => {
   const warn = P.scenes.filter(s => !s.fact || ['unsure', 'edited', 'unchecked'].includes(s.fact.status)).length;
@@ -966,7 +985,7 @@ $('#lnkSettings').onclick = async e => {
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
   $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
-  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sFact').checked = s.fact_check !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
+  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sFact').checked = s.fact_check !== false; $('#sRet').checked = s.retention_edit !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -979,7 +998,7 @@ $('#lnkSettings').onclick = async e => {
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
-    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, fact_check: $('#sFact').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
+    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, fact_check: $('#sFact').checked, retention_edit: $('#sRet').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };
 // ---- thư viện kịch bản mẫu

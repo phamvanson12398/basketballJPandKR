@@ -109,6 +109,35 @@ def job(pid: str):
 
 
 # ---------------------------------------------------------------- các bước
+@app.post("/api/projects/{pid}/retention")
+def retention_job(pid: str):
+    from .script_gen import retention_edit
+    try:
+        return jobs.start(pid, "script", retention_edit)
+    except RuntimeError as e:
+        _err(e)
+
+
+@app.post("/api/projects/{pid}/hook")
+def use_hook(pid: str, data: dict = Body(...)):
+    """Đổi câu mở đầu (cảnh 1) sang 1 trong các hook AI đã đề xuất."""
+    def apply(p):
+        hooks = (p.get("retention") or {}).get("hooks") or []
+        i = int(data.get("index", 0))
+        if not (0 <= i < len(hooks)) or not p.get("scenes"):
+            return
+        s = p["scenes"][0]
+        s["chunks"] = hooks[i]["chunks"]
+        if hooks[i].get("tts"):
+            s["tts"] = hooks[i]["tts"]
+        for k in ("audio", "duration", "audio_text"):
+            s.pop(k, None)
+        if s.get("fact"):
+            s["fact"]["status"] = "edited"
+        p["retention"]["chosen"] = i
+    return P.update(pid, apply)
+
+
 @app.post("/api/projects/{pid}/factcheck")
 def fact_check_job(pid: str):
     from .script_gen import fact_check
