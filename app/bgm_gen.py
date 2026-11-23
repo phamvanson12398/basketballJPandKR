@@ -45,6 +45,8 @@ TRACKS = [
     ("Lịch sử Nhật - Edo (tool).m4a",         "history_ja", "history_edo"),
     ("Lịch sử Hàn - Cung đình (tool).m4a",    "history_ko", "history_joseon"),
     ("Lịch sử Hàn - Chiến trận (tool).m4a",   "history_ko", "history_battle_ko"),
+    ("eSports - EDM sôi động (tool).m4a",     "esports",   "esports_hype"),
+    ("eSports - Hùng tráng kiểu Worlds (tool).m4a", "esports", "esports_epic"),
 ]
 
 
@@ -64,10 +66,10 @@ def resolve(p: dict) -> str:
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
     if p.get("genre") == "history":
         lay = "history_ko" if p.get("lang") == "ko" else "history_ja"   # nhạc cổ truyền theo nước
-    elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse") and tracks_for(p["sport"]):
+    elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse", "esports") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop", "owarai", "horse", "brand", "history_ja", "history_ko")
+                                      "kpop", "owarai", "horse", "brand", "history_ja", "history_ko", "esports")
                        else "sports")
     if not files:
         return ""
@@ -1045,6 +1047,50 @@ def history_battle_ko():
             s.put("nabal", brass([root + 12, root + 19], s.beat * 3, 0.10), b0)
         s.put("drone", pad([root - 12, root - 5], s.beat * 4, 650, 0.08), b0)
     return s.mix({"drum": 0.9, "gaya": 0.8, "nabal": 0.8, "drone": 0.8}, reverb=0.35)
+
+
+def esports_hype():
+    """EDM kiểu giải eSports: 4/4 dồn, bass "nhún" theo kick, lead saw, đoạn build-up."""
+    s = Song(128, 32)
+    prog = ["Am", "F", "C", "G"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 4)
+        b0 = bar * 4
+        sec = bar // 8
+        if sec != 1:                                                  # đoạn 8–15: build-up không kick
+            four_floor(s, bar, hats=True, clap_=sec >= 2, open_hat=sec >= 2)
+        else:
+            for k in range(bar % 8 + 2):                              # snare dồn dần
+                s.put("drums", snare(), b0 + k * 4 / (bar % 8 + 2), 0.3 + 0.05 * (bar % 8))
+        for k in range(8):                                            # bass "nhún" (offbeat)
+            if k % 2 == 1:
+                s.put("bass", bass(c[0] - 24, s.beat * 0.45, vol=0.32, cutoff=700), b0 + k / 2)
+        s.put("pad", pad(c, s.beat * 4, 2600 if sec >= 2 else 1400, 0.08), b0)
+        if sec >= 2:
+            for k, iv in enumerate((0, 7, 12, 7, 15, 12, 7, 3)):
+                s.put("lead", lead(c[0] + 12 + iv, s.beat * 0.4, vol=0.09, kind="saw"), b0 + k / 2)
+    return s.mix({"drums": 0.75, "hats": 0.5, "bass": 0.9, "pad": 0.7, "lead": 0.8}, reverb=0.25)
+
+
+def esports_epic():
+    """Hùng tráng kiểu nhạc mở màn chung kết: trống lớn, kèn, pad dày, arpeggio synth."""
+    s = Song(100, 32)
+    prog = ["Dm", "A#", "F", "C"]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 4)
+        b0 = bar * 4
+        s.put("drums", taiko(True), b0, 0.8)
+        s.put("drums", taiko(True), b0 + 2.5, 0.6)
+        if bar >= 8:
+            s.put("drums", snare(), b0 + 1, 0.5)
+            s.put("drums", snare(), b0 + 3, 0.5)
+        for k in range(8):                                            # arpeggio synth
+            s.put("arp", pluck(c[k % 3] + 12, s.beat * 0.3, 0.35, 0.8), b0 + k / 2)
+        s.put("pad", pad(c, s.beat * 4, 1800, 0.10), b0)
+        s.put("bass", bass(c[0] - 24, s.beat * 3.8, vol=0.3, cutoff=400), b0)
+        if bar >= 16 and bar % 2 == 0:
+            s.put("brass", brass([c[0] + 12, c[2] + 12], s.beat * 3.5, 0.10), b0)
+    return s.mix({"drums": 0.85, "arp": 0.6, "pad": 0.8, "bass": 0.8, "brass": 0.9}, reverb=0.35)
 
 
 def ensure_all(log=print, force: bool = False) -> int:

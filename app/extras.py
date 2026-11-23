@@ -159,6 +159,7 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
 - history（歴史）の企画は「教科書のイメージと意外な素顔・真相のギャップ」1つに絞る
   （例:「織田信長は甘党だった」「伊達政宗は料理好き」「세종대왕은 고기 없이는 밥을 못 먹었다」）。
   日韓の歴史認識問題・戦争責任・領土問題は避ける。
+- eスポーツ（LoL / Faker / T1 / 格闘ゲーム）の企画は sports として、伝説のプレーの裏側・引退しない理由・復活劇など1つの切り口に絞る。
 - genre は sports / biography / brand / history / news / general / ranking のどれか。ranking の場合は ranking_n（3〜10）も入れる。
 
 ## 出力（JSONのみ、話題性の高い順）

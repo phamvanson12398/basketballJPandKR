@@ -243,6 +243,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Nền giấy washi/hanji**, tên nhân vật chữ đỏ. Nhạc nền tự chọn theo nước: 🇯🇵 Chiến quốc (taiko, shakuhachi) / Edo (koto);
   🇰🇷 Cung đình (gayageum, janggu nhịp 3) / Chiến trận.
 
+### 🎮 eSports (LoL / LCK / Worlds, đối kháng / EVO, VALORANT…) – Thể thao → Môn: 🎮 eSports
+- Viết kiểu "góc khuất" như các môn khác (VD: lý do Faker từ chối hợp đồng 20 triệu USD), tên tuyển thủ/đội/giải đọc đúng
+  (Faker→페이커/フェイカー, T1→티원, LCK→엘씨케이…), thuật ngữ game có giải thích ngắn. Không tin đồn, không bôi nhọ.
+- Video tiếng Hàn tự dùng **bố cục Shorts Hàn**; tiếng Nhật dùng bố cục chữ trên/dưới khung.
+- Tìm video: ưu tiên kênh giải chính thức (LoL Esports, LCK, Riot, EVO), bỏ video nói chuyện/reaction; vì video eSports
+  phần lớn là cảnh trong game nên không dùng Claude soi số áo, mà dựa vào **phụ đề bình luận viên gọi tên** để cắt đúng pha.
+- Nhạc nền riêng: "EDM sôi động" và "Hùng tráng kiểu Worlds".
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).

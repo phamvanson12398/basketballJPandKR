@@ -107,6 +107,8 @@ SPORT_WORDS = {
     "sumo": ("大相撲", "相撲", "横綱", "大関", "関脇", "力士", "土俵", "씨름", "스모"),
     "soccer": ("サッカー", "Jリーグ", "W杯", "ワールドカップ", "축구", "K리그", "월드컵"),
     "basketball": ("バスケ", "NBA", "Bリーグ", "농구", "KBL"),
+    "esports": ("eスポーツ", "e스포츠", "LCK", "LJL", "Worlds", "월즈", "MSI", "EVO", "리그 오브 레전드", "LoL",
+                "格闘ゲーム", "スト6", "VALORANT"),
     "horse": ("競馬", "JRA", "騎手", "厩舎", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "G1", "GI", "牝馬", "牡馬",
               "경마"),
 }
@@ -151,8 +153,10 @@ TALK_WORDS = ("トーク", "対談", "鼎談", "ラジオ", "雑談", "語る", 
 GAME_WORDS = ("ハイライト", "試合", "vs", "対", "投球", "奪三振", "本塁打", "ホームラン", "全球", "打席", "名場面",
               "好プレー", "サヨナラ", "完封", "ノーヒット", "ゴール", "得点", "取組", "優勝決定",
               "하이라이트", "경기", "홈런", "삼진", "골", "득점", "결승", "highlights", "game", "match",
-              "レース", "競馬", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "引退式", "G1", "GI")
-TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo", "horse")
+              "レース", "競馬", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "引退式", "G1", "GI",
+              "スーパープレー", "슈퍼플레이", "명장면", "매드무비", "決勝", "優勝", "우승", "Worlds", "월즈", "LCK", "EVO",
+              "play", "VS", "vs")
+TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo", "horse", "esports")
 FIELD_SPORTS = ("baseball", "soccer")      # sân cỏ → kiểm tra bằng màu sân trong hình
 
 
@@ -480,7 +484,7 @@ def facebook_video_search(query: str, n: int = 4, recent: str | None = None) -> 
             for u, t in found[:n]]
 
 
-OFFICIAL_HINTS = ("公式", "official", "공식", "jra", "グリーンチャンネル", "netkeiba", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
+OFFICIAL_HINTS = ("公式", "official", "공식", "jra", "lol esports", "lck", "riot", "라이엇", "evo", "ljl", "グリーンチャンネル", "netkeiba", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
                   "jリーグ", "j.league", "b.league", "bリーグ", "kbo", "kbl", "k리그", "k league", "spotv", "tving",
                   "쿠팡플레이", "sbs", "kbs", "mbc", "jtbc", "ytn", "tbs", "日テレ", "テレ朝", "フジテレビ", "テレビ東京")
 
@@ -637,7 +641,9 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
     pick = 0
     verified = False
     # (2) Claude xem hình + ảnh chân dung → chỉ giữ đoạn có ĐÚNG nhân vật
-    if load_settings().get("verify_person_video", True) and scene.get("who") and url != "upload":
+    proj_sport = P.load(pid).get("sport")
+    if (load_settings().get("verify_person_video", True) and scene.get("who") and url != "upload"
+            and proj_sport != "esports"):
         log(f"  {scene['id']}: nhờ Claude xem {len(wins)} đoạn để xác nhận đúng “{scene.get('who')}”...")
         v = HL.verify_person(video, wins, P.scene_plain_text(scene), scene.get("who", ""),
                              scene.get("uniform", ""), reference_photo(pid, scene, log), d)
