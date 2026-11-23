@@ -203,12 +203,17 @@ function renderScript() {
   ratioBar($('#ratio'));
   $('#btnGen').textContent = P.scenes.length ? '✍️ Viết lại từ đầu' : '✍️ Viết content';
   $('#btnGen').className = P.scenes.length ? 'soft' : 'primary';
+  const fc = P.fact_check;
+  $('#factSummary').innerHTML = fc ? `<b>🔍 Kiểm tra sự thật (${esc(fc.at || '')}):</b> ✅ ${fc.counts?.ok || 0} đúng · 🛠 ${fc.counts?.fixed || 0} đã sửa · ⚠️ ${fc.counts?.unsure || 0} chưa chắc chắn<br>${esc(fc.summary || '')}`
+    : (P.scenes.length ? '🔍 Content này <b>chưa được kiểm tra sự thật</b> – bấm “🔍 Kiểm tra sự thật” trước khi duyệt.' : '');
+  $('#factSummary').classList.toggle('hidden', !$('#factSummary').innerHTML);
   $('#scenes').innerHTML = P.scenes.map((s, i) => `
     <div class="scene" data-i="${i}">
       <div class="scene-head">
         <span class="sid">#${i + 1}</span>
         <span class="tag ${s.kind}" data-act="kind" title="Bấm để đổi ảnh / video">${s.kind === 'video' ? '🎞 Video' : '🖼 Ảnh'}${s.locked_kind ? ' 🔒' : ''}</span>
         <span class="est">~${est(s).toFixed(1)}s</span>
+        ${factBadge(s)}
         <span class="grow"></span>
         <div class="mini">
           <button data-act="up" title="Lên">↑</button><button data-act="down" title="Xuống">↓</button>
@@ -216,6 +221,8 @@ function renderScript() {
         </div>
       </div>
       <textarea class="chunks" data-k="chunks" title="Mỗi dòng = 1 lần hiện chữ, dấu / = xuống dòng">${esc((s.chunks || []).map(c => c.replace(/\n/g, '/')).join('\n'))}</textarea>
+      ${s.fact && (s.fact.note || (s.fact.sources || []).length) ? `<details class="fact ${s.fact.status}"><summary>${FACT_LABEL[s.fact.status] || ''} ${esc(s.fact.note || '')}</summary>
+        ${(s.fact.sources || []).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">🔗 ${esc(x.title || x.url)}</a>`).join('')}</details>` : ''}
       ${sceneLabelFields(s) ? `<div class="labels">${sceneLabelFields(s)}</div>` : ''}
       <details class="adv"><summary>Tùy chọn: câu đọc, từ khóa tìm ảnh/video</summary>
         <div class="adv-grid">
@@ -266,7 +273,18 @@ async function saveScript(extra = {}) {
   renderAll(); loadList();
 }
 $('#btnSaveScript').onclick = () => saveScript();
-$('#btnApprove').onclick = async () => { await saveScript({script_approved: true}); setTab('voice'); };
+const FACT_LABEL = {ok: '✅ Đúng', fixed: '🛠 Đã sửa', unsure: '⚠️ Chưa chắc', edited: '✏️ Bạn đã sửa – nên kiểm tra lại', unchecked: '❔ Chưa kiểm tra'};
+function factBadge(s) {
+  if (!s.fact) return '';
+  const st = s.fact.status;
+  return `<span class="fbadge ${st}" title="${esc(s.fact.note || '')}">${FACT_LABEL[st] || ''}</span>`;
+}
+$('#btnFact').onclick = async () => { await saveScript(); await runJob(`/api/projects/${P.id}/factcheck`, {}); };
+$('#btnApprove').onclick = async () => {
+  const warn = P.scenes.filter(s => !s.fact || ['unsure', 'edited', 'unchecked'].includes(s.fact.status)).length;
+  if (warn && !confirm(`Còn ${warn} cảnh chưa kiểm tra / chưa chắc chắn (⚠️ ✏️ ❔).\nNên bấm “🔍 Kiểm tra sự thật” hoặc tự xem lại các cảnh đó.\n\nVẫn duyệt luôn?`)) return;
+  await saveScript({script_approved: true}); setTab('voice');
+};
 $('#btnAddScene').onclick = () => { P.scenes.push({id: '', chunks: [], tts: '', kind: 'image', action: 0}); renderScript(); };
 $('#pRatio').oninput = () => { const v = +$('#pRatio').value; $('#pVidPct').textContent = v; $('#pImgPct').textContent = 100 - v; };
 $('#pRatio').onchange = async () => {
@@ -948,7 +966,7 @@ $('#lnkSettings').onclick = async e => {
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
   $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
-  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
+  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sFact').checked = s.fact_check !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -961,7 +979,7 @@ $('#lnkSettings').onclick = async e => {
 $('#btnSaveSettings').onclick = async () => {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
-    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
+    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, fact_check: $('#sFact').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
   alert('Đã lưu');
 };
 // ---- thư viện kịch bản mẫu

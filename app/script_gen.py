@@ -596,7 +596,9 @@ def generate(pid: str, log, feedback: str = "") -> None:
     else:
         style = gen["style"]
     extra = ("\n## 出典\n- sources に、事実確認に使った記事（見出し・URL・日付）を3件以上必ず入れる。\n"
-             if p.get("genre") == "news" else "")
+             if p.get("genre") == "news" else
+             "\n## 出典\n- sources に、事実確認に使った資料（公式サイト・大手報道・公的資料・史料など。見出し・URL）を2件以上入れる。"
+             "\n- 確認できなかった数字・発言・エピソードは台本に入れない。\n")
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
         hook_rule=(HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
@@ -657,7 +659,101 @@ def generate(pid: str, log, feedback: str = "") -> None:
     P.update(pid, apply)
     info = P.ratio_info(scenes)
     log(f"Đã viết {len(scenes)} cảnh, ước tính {info['total']}s "
-        f"(ảnh {info['image_pct']}% / video {info['video_pct']}%).", 1.0)
+        f"(ảnh {info['image_pct']}% / video {info['video_pct']}%).", 0.6)
+    from .config import load_settings
+    if load_settings().get("fact_check", True):
+        fact_check(pid, log)
+    else:
+        log("Xong (chưa kiểm tra sự thật – bật trong Cài đặt nếu muốn).", 1.0)
+
+
+# ---------------------------------------------------------------- KIỂM TRA SỰ THẬT
+FACT_PROMPT = """今日は{date}です。あなたは{country}のテレビ局の、とても厳しいファクトチェック担当です。
+次のショート動画の台本（{lang_name}）に書かれた事実を、WebSearch / WebFetch で1つずつ必ず確認してください。
+記憶だけで判断しないこと。
+
+## 確認すること（すべて）
+- 人名・チーム名・会社名・地名・作品名・大会名の表記
+- 年・日付・年齢・順位・記録・数字・金額・回数・期間
+- 「」で引用された発言: 本当にその人が言ったか、言い回しが報道・資料とほぼ同じか
+- 出来事の内容・因果関係・時系列（誰が・いつ・どこで・何をしたか）
+- 「〜らしい」「〜と言われる」程度の話が、実際に報道・資料にあるか
+- タイトル（title）と画面の見出し（screen）の内容
+
+## 判定（シーンごと）
+- "ok": 信頼できる資料（公式・大手報道・公的資料・百科事典・史料や研究）で確認できた
+- "fixed": 間違い・不正確・古い情報があった → 正しく直した chunks / tts を出す
+- "unsure": 確認できない／資料によって食い違う → 断定しない表現（「〜と伝わる」「〜とされる」「〜という説もある」）に
+  直した chunks / tts を出す。確認できない「」の発言は、カギカッコを外して要約に直す（作り話の引用を残さない）
+- 数字や発言が無く、確認の必要がない演出の一文（ツッコミ・感想・問いかけ）は "ok"
+
+## 直すときのルール
+- シーン数・順番は変えない。直すシーンも長さは元の文字数±20%以内、語り口・強調記号〔〕【】《》・改行 "\n" の付け方は元と同じに。
+- 直したシーンは tts も同じ内容で直す（{tts_rule}）。
+- 直さないシーンは chunks / tts を出さない。
+- 流れがおかしくならないように、前後のシーンとのつながりも確認する。
+
+## 台本
+{script_json}
+
+## 出力（JSONのみ）
+```json
+{{"summary_vi": "Tóm tắt kết quả kiểm tra bằng tiếng Việt (1–2 câu: đã kiểm tra gì, sửa gì, còn gì chưa chắc)",
+  "title": "（直した時だけ）", "screen": {{"（直した時だけ）": "..."}},
+  "scenes": [{{"no": 1, "status": "ok", "check_vi": "Đã kiểm tra / đã sửa gì (tiếng Việt, ngắn gọn, có con số cụ thể)",
+               "sources": [{{"title": "資料の見出し", "url": "https://..."}}],
+               "chunks": ["（fixed / unsure の時だけ）"], "tts": "（fixed / unsure の時だけ）"}}]}}
+```
+"""
+
+
+def fact_check(pid: str, log) -> dict:
+    """Claude (vai biên tập viên kiểm chứng) tra lại từng chi tiết trên mạng; sai thì sửa, không chắc thì nói giảm."""
+    import json as _json
+    import time as _time
+    p = P.load(pid)
+    L = LG.get(p.get("lang"))
+    if not p.get("scenes"):
+        raise RuntimeError("Chưa có content để kiểm tra.")
+    log(f"🔍 Đang kiểm tra sự thật từng cảnh ({len(p['scenes'])} cảnh) – tra lại tên, năm, con số, câu trích dẫn...", 0.65)
+    script_json = _json.dumps({"title": p.get("title", ""), "screen": p.get("screen") or {},
+                               "scenes": [{"no": i + 1, "chunks": s.get("chunks", []), "tts": s.get("tts", "")}
+                                          for i, s in enumerate(p["scenes"])]}, ensure_ascii=False, indent=1)
+    prompt = FACT_PROMPT.format(date=today_ja(), country=L["country"], lang_name=L["name"],
+                                tts_rule=L["tts_rule"], script_json=script_json)
+    data = extract_json(ask(prompt, tools=["WebSearch", "WebFetch"], timeout=1200))
+    res = {int(x.get("no", 0)): x for x in (data.get("scenes") or []) if isinstance(x, dict)}
+    counts = {"ok": 0, "fixed": 0, "unsure": 0}
+
+    def apply(pp):
+        for i, s in enumerate(pp["scenes"]):
+            r = res.get(i + 1)
+            if not r:
+                s["fact"] = {"status": "unchecked", "note": "Không có kết quả kiểm tra cho cảnh này", "sources": []}
+                continue
+            st = r.get("status") if r.get("status") in counts else "unsure"
+            counts[st] += 1
+            new_chunks = [str(c).strip() for c in (r.get("chunks") or []) if str(c).strip()]
+            if st in ("fixed", "unsure") and new_chunks:
+                old_text = "".join(s.get("chunks", []))
+                s["chunks"] = new_chunks
+                if r.get("tts"):
+                    s["tts"] = str(r["tts"]).strip()
+                if s.get("audio") and old_text != "".join(new_chunks):
+                    s["audio_stale"] = True
+            s["fact"] = {"status": st, "note": str(r.get("check_vi") or "")[:300],
+                         "sources": [x for x in (r.get("sources") or []) if isinstance(x, dict) and x.get("url")][:4]}
+        if data.get("title"):
+            pp["title"] = str(data["title"]).strip()
+        if isinstance(data.get("screen"), dict) and data["screen"] and pp.get("screen"):
+            pp["screen"].update({k: v for k, v in data["screen"].items() if k in pp["screen"] and v})
+        pp["fact_check"] = {"summary": str(data.get("summary_vi") or "")[:500], "counts": counts,
+                            "at": _time.strftime("%Y-%m-%d %H:%M")}
+    P.update(pid, apply)
+    log(f"🔍 Kiểm tra xong: ✅ {counts['ok']} cảnh đúng · 🛠 {counts['fixed']} cảnh đã sửa · "
+        f"⚠️ {counts['unsure']} cảnh chưa chắc chắn (đã đổi sang cách nói không khẳng định). "
+        + (data.get("summary_vi") or ""), 1.0)
+    return counts
 
 
 # ---------------------------------------------------------------- TIKTOK

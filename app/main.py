@@ -77,6 +77,8 @@ def put_project(pid: str, data: dict = Body(...)):
                 base["id"] = sid
                 if text_changed and base.get("audio"):
                     base["audio_stale"] = True  # cần đọc lại
+                if text_changed and base.get("fact"):
+                    base["fact"]["status"] = "edited"   # bạn đã sửa chữ → nên kiểm tra lại
                 new.append(base)
             ids = {s["id"] for s in new}
             for i, s in enumerate(new):  # id mới cho cảnh thêm
@@ -107,6 +109,15 @@ def job(pid: str):
 
 
 # ---------------------------------------------------------------- các bước
+@app.post("/api/projects/{pid}/factcheck")
+def fact_check_job(pid: str):
+    from .script_gen import fact_check
+    try:
+        return jobs.start(pid, "script", fact_check)
+    except RuntimeError as e:
+        _err(e)
+
+
 @app.post("/api/projects/{pid}/script")
 def gen_script(pid: str, data: dict = Body(default={})):
     from .script_gen import generate

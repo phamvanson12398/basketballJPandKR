@@ -163,6 +163,15 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   sự thật bất ngờ…, có dịch tiếng Việt) và **10–12 hashtag** chia nhóm: rộng / chủ đề / cụ thể / đề xuất (#おすすめ #fyp).
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
+### 🔍 Kiểm tra sự thật (tự chạy sau khi viết content)
+- Một lượt Claude riêng đóng vai **biên tập viên kiểm chứng**: tra lại trên mạng **từng chi tiết** – tên, năm, con số, kỷ lục,
+  câu trích dẫn, diễn biến, cả tiêu đề.
+  - ✅ đúng → giữ nguyên + link nguồn · 🛠 sai → **tự sửa** (ghi rõ sửa gì) · ⚠️ không xác minh được → đổi sang cách nói
+    không khẳng định ("tương truyền", "được cho là"); trích dẫn không có nguồn → bỏ ngoặc, chuyển thành lời kể.
+- Mỗi cảnh hiện huy hiệu kết quả + ghi chú + link nguồn; bạn sửa chữ thì cảnh đó chuyển ✏️ "nên kiểm tra lại".
+- Nút **🔍 Kiểm tra sự thật** để chạy lại bất cứ lúc nào. Bấm Duyệt mà còn cảnh ⚠️/✏️/❔ → tool nhắc trước.
+- Thêm ~2–5 phút mỗi video; tắt được trong Cài đặt (không khuyến khích).
+
 ### 📈 Giữ chân người xem (đã cài sẵn)
 - **Thể thao & Tiểu sử** – AI viết theo kiểu "雑学・裏話" của các kênh nhiều view (học từ 3 video đối thủ):
   0. Chọn **1 góc khuất** của nhân vật nổi tiếng (không kể cả sự nghiệp).

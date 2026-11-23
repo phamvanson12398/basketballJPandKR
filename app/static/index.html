@@ -149,8 +149,10 @@
 
     <!-- 1. CONTENT -->
     <section data-pane="script">
+      <div id="factSummary" class="fact-summary hidden"></div>
       <div class="actions">
         <button id="btnGen" class="soft">✍️ Viết content</button>
+        <button id="btnFact" class="soft" title="Tra lại tên, năm, con số, câu trích dẫn trên mạng; sai thì tự sửa">🔍 Kiểm tra sự thật</button>
         <details class="inline-pop">
           <summary class="btn-like">💬 Góp ý để AI viết lại</summary>
           <div class="pop">
@@ -347,6 +349,7 @@
         <label><input type="checkbox" class="src" value="news"> Ảnh từ báo (Yahoo!ニュース / Naver News)</label>
       </div>
       <label class="check"><input type="checkbox" id="sFB"> Tìm thêm video trên Facebook (video công khai của trang báo, đội bóng, đài TV)</label>
+      <label class="check"><input type="checkbox" id="sFact"> 🔍 Tự <b>kiểm tra sự thật</b> sau khi viết content (tra lại tên, năm, con số, câu trích dẫn – thêm ~2–5 phút)</label>
       <label class="check"><input type="checkbox" id="sPick"> Nhờ Claude xem ảnh, chọn ảnh <b>hợp nội dung</b> và loại ảnh sai người (chậm hơn ~15–30 giây mỗi cảnh ảnh)</label>
       <label class="check"><input type="checkbox" id="sVerify"> Nhờ Claude xem hình xác nhận video có <b>đúng nhân vật</b> (số áo, khuôn mặt – chậm hơn ~20–40 giây mỗi cảnh video)</label>
       <label class="check"><input type="checkbox" id="sHL"> Nhờ Claude chọn đoạn video hợp nội dung (chậm hơn, chuẩn hơn)</label>

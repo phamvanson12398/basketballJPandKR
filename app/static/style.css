@@ -281,3 +281,15 @@ label.radio.mode:has(input:checked){border-color:var(--pri);background:var(--pri
 #refList details.ref summary .muted { flex: 1; }
 #refList .ref-text { white-space: pre-wrap; font-size: 13px; line-height: 1.7; max-height: 260px; overflow: auto; margin: 8px 0 2px; }
 #refText { width: 100%; }
+
+/* kiểm tra sự thật */
+.fact-summary { background: #f0f7ff; border: 1px solid #cfe3ff; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
+.fbadge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef2f7; white-space: nowrap; }
+.fbadge.ok { background: #e7f7ec; color: #15803d; }
+.fbadge.fixed { background: #e8f0ff; color: #1d4ed8; }
+.fbadge.unsure, .fbadge.unchecked { background: #fff4e5; color: #b45309; }
+.fbadge.edited { background: #f3e8ff; color: #7e22ce; }
+details.fact { font-size: 13px; margin: 6px 0 2px; padding: 6px 10px; border-radius: 8px; background: #f8fafc; }
+details.fact.unsure, details.fact.edited { background: #fffaf0; }
+details.fact summary { cursor: pointer; }
+details.fact a { display: block; margin: 4px 0 0 4px; word-break: break-all; }
