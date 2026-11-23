@@ -9,6 +9,8 @@
 Kích thước chữ: ASS size ≈ 1.45 × cỡ chữ thật (px) với font Noto CJK.
 """
 import re
+
+from . import markup as MK
 from pathlib import Path
 
 from .config import H, W, layout as frame_layout, load_settings
@@ -38,7 +40,7 @@ def resolve(p: dict) -> str:
 
 def sport_variant(p: dict, lay: str) -> str | None:
     """Bố cục bóng chày + nhãn riêng của môn: chỉ cho sumo / bóng đá."""
-    if lay == "sports" and p.get("sport") in ("sumo", "soccer"):
+    if lay == "sports" and p.get("sport") in ("sumo", "soccer", "horse"):
         return p["sport"]
     return None
 
@@ -51,6 +53,11 @@ def is_light(p: dict) -> bool:
     return p.get("sport") in LIGHT_FIELDS
 
 
+# bố cục đua ngựa (đo từ video mẫu 1080×1920)
+HORSE = {"media_y": 490, "media_h": 724, "sub_top": 442, "sub_bottom": 1257,
+         "size": 111, "big": 144, "pitch": 0.88}
+
+
 def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
     """Màu nền + vị trí khung ảnh/video cho từng bố cục (dùng chung chiều cao khung trong Cài đặt).
     light=True: idol / K-pop → mọi bố cục đều nền trắng."""
@@ -60,6 +67,9 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
          "frame_color": "white", "light": light}
     if sport == "sumo":
         g["bg"] = "0xf4efe4"     # màu giấy washi
+    if sport == "horse":
+        # theo video đua ngựa mẫu: nền trắng, khung kín ngang từ y=490, cao 724
+        g.update(bg="white", y=HORSE["media_y"], h=HORSE["media_h"])
     if name == "news":
         g["bg"] = "0x0b1f3a"
     elif name == "ranking":
@@ -180,7 +190,7 @@ def fit_lines(chunk: str, korean: bool, maxlen: int) -> list[str]:
 
 
 def chunk_timing(scene: dict, t0: float):
-    chunks = [c.strip() for c in scene.get("chunks", []) if c.strip()]
+    chunks = [MK.strip(c).strip() for c in scene.get("chunks", []) if MK.strip(c).strip()]   # bố cục khác: bỏ ký hiệu nhấn mạnh
     speech = max(0.3, float(scene["duration"]) - 0.18)
     weights = [max(1, len(c.replace("\n", "").replace(" ", ""))) for c in chunks]
     tot = sum(weights) or 1
@@ -512,7 +522,7 @@ def soccer_overlay(e: Ev, p, scenes, starts, total, g):
             _plate(e, st, end, 30, mb - 110, 720, "&HFFFFFF&", PITCH, sc["player"], sc.get("team", ""), "&HE5FAD1&")
 
 
-SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay}
+SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay, "horse": lambda *a: None}
 
 
 def sport_rows(sport: str, p, scenes, starts, total, g) -> list[str]:

@@ -20,7 +20,7 @@ async function api(url, opt = {}) {
 }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f = path => `/files/${P.id}/${path}?v=${Date.now() % 1e7}`;
-const plain = sc => (sc.chunks || []).join('').replace(/\n/g, '');
+const plain = sc => (sc.chunks || []).join('').replace(/\n/g, '').replace(/[〔〕【】《》]/g, '');
 const est = sc => {
   if (sc.duration) return sc.duration;
   const t = plain(sc) || sc.tts || '';
@@ -227,6 +227,8 @@ function renderScript() {
           <div><label>Từ khóa dự phòng <span class="opt">(khi từ khóa chính ít kết quả)</span></label><input data-k="query_alt" value="${esc(s.query_alt || '')}"></div>
           <div><label>Đội / số áo lúc đó <span class="opt">(AI xem video nhận người)</span></label><input data-k="uniform" value="${esc(s.uniform || '')}" placeholder="ヤクルト 背番号23"></div>
           <div><label>Tên bình luận viên gọi <span class="opt">(tìm trong phụ đề video)</span></label><input data-k="call" value="${esc(s.call || '')}" placeholder="田畑・タバタ"></div>
+          <div><label>Hình minh họa <span class="opt">(1 emoji, VD 🍎 ❤️ 🐐 – để trống = không có)</span></label><input data-k="sticker" value="${esc(s.sticker || '')}" placeholder="🍎"></div>
+          <div><label>Vị trí hình minh họa <span class="opt">(tl/tr/bl/br = trên trái / trên phải / dưới trái / dưới phải)</span></label><input data-k="sticker_pos" value="${esc(s.sticker_pos || '')}" placeholder="br"></div>
           <div><label>Độ "hành động" <span class="opt">(0–10, cao → ưu tiên video)</span></label>
             <input data-k="action" type="number" min="0" max="10" value="${s.action ?? 0}"></div>
         </div>

@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from . import audio_check as AC
+from . import markup as MK
 from . import languages as LG
 from . import project as P
 from .config import VOICES, load_settings
@@ -153,7 +154,7 @@ def _synth(pid: str, log, only: list[str] | None = None) -> None:
         else:
             # Đọc cảnh đầu bằng mô tả giọng → dùng làm giọng mẫu cho cả video
             first = scenes[0]
-            text = first.get("tts") or P.scene_plain_text(first)
+            text = MK.strip(first.get("tts") or "") or P.scene_plain_text(first)
             log(f"Tạo giọng theo mô tả: “{instruct or 'tự động'}”")
             gen = model.generate(text=text, language=lang, instruct=instruct or None,
                                  speed=speed, num_step=num_step)
@@ -166,7 +167,7 @@ def _synth(pid: str, log, only: list[str] | None = None) -> None:
     todo = [s for s in scenes if not only or s["id"] in only]
     results = {}
     for i, s in enumerate(todo):
-        text = s.get("tts") or P.scene_plain_text(s)
+        text = MK.strip(s.get("tts") or "") or P.scene_plain_text(s)
         log(f"Đọc cảnh {s['id']} ({i + 1}/{len(todo)}): {text[:30]}...", i / len(todo))
         expect = LG.est_seconds(P.scene_plain_text(s)) / max(speed, 0.3)
         best, best_bad = None, None

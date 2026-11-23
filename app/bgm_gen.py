@@ -37,6 +37,8 @@ TRACKS = [
     ("K-pop - Hip-hop (tool).m4a",            "kpop",      "kpop_hiphop"),
     ("Hài - Vui nhộn (tool).m4a",             "owarai",    "owarai_fun"),
     ("Hài - Hồi hộp M-1 (tool).m4a",          "owarai",    "owarai_tension"),
+    ("Đua ngựa - Fanfare phi nước đại (tool).m4a", "horse", "horse_fanfare"),
+    ("Đua ngựa - Chuyện vui (tool).m4a",      "horse",     "horse_cozy"),
 ]
 
 
@@ -54,10 +56,10 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai") and tracks_for(p["sport"]):
+    if p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop", "owarai")
+                                      "kpop", "owarai", "horse")
                        else "sports")
     if not files:
         return ""
@@ -832,6 +834,65 @@ def write_track(name: str, fn: str, dest: Path) -> Path:
                    check=True)
     wav.unlink()
     return out
+
+
+def glock(m, dur=0.6, vel=0.5):
+    """Chuông glockenspiel trong trẻo."""
+    n = int((dur + 0.4) * SR)
+    t = np.arange(n) / SR
+    f = hz(m)
+    x = np.sin(2 * np.pi * f * t) + 0.35 * np.sin(2 * np.pi * 2.76 * f * t) + 0.15 * np.sin(2 * np.pi * 5.4 * f * t)
+    return vel * 0.3 * x * np.exp(-t * 5.5)
+
+
+def horse_fanfare():
+    """Kèn fanfare kiểu trường đua + nhịp vó ngựa phi (3 tiếng/phách) – hào hứng, trong sáng."""
+    s = Song(150, 32)
+    prog = ["C", "F", "G", "C", "Am", "F", "G", "G"]
+    fan = [(0, 67), (0.5, 72), (1, 76), (1.5, 79), (2, 84)]           # G C E G C – lên dần
+    for bar in range(s.bars):
+        name = prog[bar % 8]
+        c = chord(name, 4)
+        b0 = bar * 4
+        if bar % 8 == 0:                                              # fanfare mở mỗi 8 ô nhịp
+            for pos, m in fan:
+                s.put("brass", brass([m, m - 12], s.beat * (1.8 if m == 84 else 0.45), 0.11), b0 + pos)
+        elif bar % 2 == 1:
+            s.put("brass", brass([c[0] + 12, c[1] + 12, c[2] + 12], s.beat * 1.6, 0.09), b0 + 2)
+        if bar >= 1:                                                  # vó ngựa: ta-ta-TÁ mỗi phách
+            for k in range(4):
+                s.put("drums", tom(52), b0 + k, 0.35)
+                s.put("drums", tom(55), b0 + k + 0.33, 0.35)
+                s.put("drums", kick(0.8), b0 + k + 0.67)
+            s.put("drums", snare(), b0 + 3.67, 0.5)
+        for k in range(8):                                            # bass nảy
+            s.put("bass", bass(c[0] - 24 + (7 if k % 2 else 0), s.beat * 0.4, vol=0.3, cutoff=500), b0 + k / 2)
+        s.put("pad", pad([m for m in c], s.beat * 4, bright=2200, vol=0.08), b0)
+    return s.mix({"brass": 1.0, "drums": 0.55, "bass": 0.8, "pad": 0.7}, reverb=0.3)
+
+
+def horse_cozy():
+    """Vui tươi, dễ thương (kiểu kể chuyện vui về ngựa): ukulele gảy, chuông glockenspiel, lắc nhẹ."""
+    s = Song(104, 32)
+    prog = ["F", "C", "Dm", "A#"]
+    mel = [12, 9, 7, 9, 12, 14, 12, 7]
+    for bar in range(s.bars):
+        c = chord(prog[bar % 4], 4)
+        b0 = bar * 4
+        for k in (0, 1, 1.5, 2.5, 3, 3.5):                            # ukulele gảy
+            s.put("uke", sum(pluck(m, s.beat * 0.3, 0.35, 0.7) for m in c), b0 + k, swing=0.4)
+        s.put("bass", pluck(c[0] - 12, s.beat * 0.8, 0.7, 0.15), b0)
+        s.put("bass", pluck(c[2] - 12, s.beat * 0.8, 0.6, 0.15), b0 + 2)
+        if bar >= 4:
+            for k in range(8):                                        # lắc (shaker)
+                s.put("hats", hat(), b0 + k / 2, 0.35 if k % 2 else 0.2)
+            s.put("drums", kick(0.45), b0)
+            s.put("drums", clap(), b0 + 2, 0.4)
+        if bar >= 8 and bar % 2 == 0:                                 # giai điệu chuông
+            for k, iv in enumerate(mel):
+                if k % 2 == 0 or bar % 4 == 0:
+                    s.put("glock", glock(c[0] + iv, s.beat * 0.4), b0 + k / 2)
+    return s.mix({"uke": 0.9, "bass": 0.8, "hats": 0.5, "drums": 0.6, "glock": 0.8}, reverb=0.22)
 
 
 def ensure_all(log=print, force: bool = False) -> int:

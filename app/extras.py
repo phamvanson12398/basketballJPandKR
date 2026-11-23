@@ -42,7 +42,7 @@ def create_twin(pid: str, lang: str) -> dict:
     keep = ("id", "kind", "locked_kind", "action", "image_query", "video_query", "items", "candidates",
             "video_results", "story", "rank", "rank_label", "year", "chapter",
             "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team",
-            "stat", "split", "image_query2", "who", "query_alt", "picked", "uniform", "call")
+            "stat", "split", "image_query2", "who", "query_alt", "picked", "uniform", "call", "sticker", "sticker_pos")
 
     def apply(p):
         p["scenes"] = [{k: s[k] for k in keep if k in s} | {"chunks": s.get("chunks", []), "tts": ""}
@@ -74,6 +74,7 @@ TWIN_PROMPT = """あなたは{role}です。
 ## 言語ルール
 {lang_rules}
 - 字幕チャンク: 1チャンク=1〜3行、1行は最大{line_max}文字、改行は "\\n"。チャンクを全部つなげるとそのシーンのナレーション。
+- 元のチャンクに強調記号〔〕【】《》があれば、同じ意味の語に同じ記号を付けて残す（tts には付けない）。
 - tts: 読み上げ用テキスト。{tts_rule}。
 {anchor}
 ## 元の台本（JSON）

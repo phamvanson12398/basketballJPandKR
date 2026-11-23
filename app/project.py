@@ -87,7 +87,8 @@ def list_all() -> list[dict]:
 
 
 def scene_plain_text(scene: dict) -> str:
-    return "".join(c.replace("\n", "") for c in scene.get("chunks", []))
+    from .markup import strip
+    return strip("".join(c.replace("\n", "") for c in scene.get("chunks", [])))
 
 
 def scene_est_sec(scene: dict) -> float:

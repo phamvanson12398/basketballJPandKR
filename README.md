@@ -207,6 +207,17 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   tìm khi chưa đăng nhập). Ảnh trên Facebook thì không lấy được (cần đăng nhập). Bạn cũng có thể dán link video
   Facebook vào ô "dán link" của cảnh. Tắt/bật trong Cài đặt.
 
+### 🏇 Đua ngựa (競馬) – chọn Thể loại: Thể thao → Môn: 🏇 Đua ngựa
+- **Bố cục giống video mẫu**: nền trắng, khung ảnh/video kín ngang (y=490, cao 724), chữ trên & dưới khung.
+- **Chữ nhấn mạnh**: AI tự đánh dấu – `〔tên ngựa〕` chữ đỏ · `【điểm nhấn】` đỏ + to · `《từ nhấn》` đen + to.
+  Bạn sửa được ngay trong ô chữ ở bước Content (giọng đọc tự bỏ qua ký hiệu).
+- **Hình minh họa (sticker)**: mỗi cảnh 1 emoji (🍎 ❤️ 🐐…) hiện dần ở góc khung (tải hình Noto Emoji 512px lần đầu,
+  lưu ở `library/stickers`). Sửa / xóa ở "Tùy chọn" của cảnh.
+- **Content kiểu "tuyển tập chuyện vui"**: 1 chủ đề (đồ ăn, tật xấu, sau giải nghệ…), 6–9 con ngựa nổi tiếng, mỗi con 2–3 câu
+  + câu bình luận vui, kết bằng con "lầy" nhất (Gold Ship…). Có sẵn kịch bản mẫu trong Thư viện kịch bản mẫu.
+- **Nhạc nền riêng**: "Fanfare phi nước đại" và "Chuyện vui". Video ưu tiên kênh JRA / グリーンチャンネル; Claude nhận ngựa
+  theo màu lông, đốm trắng trên mặt, màu áo nài.
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).

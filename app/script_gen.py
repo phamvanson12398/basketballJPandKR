@@ -124,6 +124,33 @@ HOOK_DEFAULT = """## 冒頭と視聴維持（最重要。視聴者の多くは�
 
 HOOK_RULES = {"sports": HOOK_STORY, "biography": HOOK_STORY}
 
+# Đua ngựa: kiểu "tuyển tập chuyện vui" của kênh đua ngựa nhiều view (video mẫu: 名馬たちの食べ物エピソード)
+HOOK_HORSE = """## 構成（再生数の多い競馬雑学チャンネルの型。参考台本を必ず見本にする）
+- 1本 = 1つのテーマ（例:「名馬たちの食べ物エピソード」「名馬の変なクセ」「引退後の意外な生活」「騎手が語る名馬の素顔」
+  「名馬のあだ名の由来」）について、有名な馬を6〜9頭、テンポよく次々に紹介する「エピソード集」。
+- 1頭あたり2〜3チャンク（約5〜7秒）。各エピソードは「〔馬名〕は」＋具体的で意外な事実 → 短いツッコミ・感想
+  （例:「《赤ちゃん》のようだ」「《やぎさんか》」「《あざとい！》」）。ツッコミは毎回ではなく2〜3頭に1回。
+- 馬どうしのつながり（「〔グラスワンダー〕の孫の〔モーリス〕は」）や「なぜか」「それ以外は」でテンポよくつなぐ。
+- 最後の1頭が一番のオチ: 「それに対して」「中でも」で、ファンに人気の個性派（ゴールドシップ等）の一番おもしろい話で締める
+  （例:「それに対して〔ゴルシ〕はご飯を水に浸して《ぐちゃぐちゃ》にして《お茶漬け》のように食べるのが【大好きだった！！！】」）。
+- 冒頭はあいさつ・前置き・テーマ紹介なしで、いきなり1頭目のエピソードから始める（1頭目は一番かわいい/驚く話）。
+  最後の問いかけ・まとめは不要。
+- 語り口: 親しみのある常体（「〜した」「〜だった」「〜らしい」「〜していたようだ」）。短く、明るく、少しユーモラスに。
+- エピソードは報道・関係者インタビュー・JRAなどで確認できるものだけ。うわさ程度の話は「〜らしい」とし、作り話はしない。
+
+## 字幕の強調（画面で赤字・大きい文字にする。chunks にだけ付ける）
+- 馬名・人名は〔〕で囲む → 赤字（例:「〔グラスワンダー〕は」）。
+- 一番のポイントの言葉は【】で囲む → 赤字で大きく（例:「【花束を食い漁った】」「【ギネスビール】が」）。
+- 赤にしないが大きくしたい言葉は《》で囲む（例:「《赤ちゃん》のようだ」「《タンポポ》を」）。
+- 1チャンクに強調は1〜2か所まで。記号の外にも普通の文字を残す。tts には記号を入れない。
+- 字幕は大きい文字で出すので、1行は12文字以内（記号は数えない）、1チャンク2行まで。
+
+## イラスト（sticker）
+- 各シーンに "sticker": その場面の内容を表す絵文字を1つ（例: 🌼 ❤️ 🍎 🍺 🍱 🐐 ✉️ 🥕 💐 🥛 🍚 😋 💤）。
+  画像の上に小さなイラストとして乗せる。合う絵文字がなければ空文字。
+- "sticker_pos": 絵文字を置く角（"tl" 左上 / "tr" 右上 / "bl" 左下 / "br" 右下）。馬の顔と重ならない側。
+"""
+
 
 # ---------------------------------------------------------------- TIN TỨC
 NEWS_REGIONS = [
@@ -303,6 +330,19 @@ SPORTS = {
 - 韓国語の動画では、漫才（만자이）やM-1（일본 최대 개그 대회）を韓国の視聴者向けに短く補足する。
 - action: 優勝の瞬間・ネタ中の大爆笑・審査員の高得点発表・涙の会見=高、経歴や数字の説明=低。
 - image_query は「コンビ名 + M-1 + 優勝/決勝/会見」、video_query は「コンビ名 + M-1 + 漫才 / 優勝の瞬間 / 敗者復活」。"""},
+    "horse": {"vi": "🏇 Đua ngựa", "ja": "競馬", "rule": """## 分野: 競馬（JRA・地方競馬・海外の名馬）
+- 馬名・騎手名・調教師・レース名（G1など）・年・着順・血統を正確に（JRA公式・netkeiba・報道で確認）。
+  馬名はカタカナのまま。tts では騎手名・調教師名・漢字の馬名（例: 有馬記念→ありまきねん）をかなにする。
+- 人気の切り口: 名馬の意外なクセ・性格・食べ物・厩舎での様子、引退後の生活、ライバル関係、血統のつながり
+  （「〇〇の孫の〇〇は」）、騎手や厩務員が語る素顔、奇跡の勝利、連敗の人気馬、愛称の由来。
+- 「ウマ娘」で有名な実在馬を中心にすると伸びやすい。ただしゲーム・アニメの画像や映像は使わない
+  （実在の馬の写真・レース映像だけ）。image_query / video_query に「ウマ娘」を入れない。
+- 馬の故障・死については事実だけを丁寧に（煽らない）。
+- who には馬名（人が主役なら人名）。uniform には馬の見た目（毛色・顔の白斑・メンコの色など）と
+  その時の騎手の勝負服（例:「芦毛の白い馬体 / 騎手は白地に赤のたすき」）。call には実況での馬名と愛称（例:「ゴールドシップ、ゴルシ」）。
+- action: レースの直線・ゴールの瞬間・引退式=高、厩舎・放牧・血統の説明=低。
+- image_query は「馬名 + 場面（引退式 / 放牧 / パドック / レース名 年 / 厩舎 / 牧場）」、
+  video_query は「馬名 + レース名 + 年」（JRA公式のレース映像が見つかりやすい）。"""},
     "other": {"vi": "🏅 Khác", "ja": "", "rule": ""},
 }
 
@@ -452,7 +492,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
              if p.get("genre") == "news" else "")
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
-        hook_rule=HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT).replace("{country}", L["country"]),
+        hook_rule=(HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
+                   else HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT)).replace("{country}", L["country"]),
         refs=REFS.prompt_block(p.get("lang") or "ja", p.get("genre") or "sports", p.get("sport")),
         lang_rules=L["rules"], line_max=10 if korea_layout else L["line_max"], tts_rule=L["tts_rule"],
         query_lang=L["query_lang"],
@@ -487,6 +528,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
             "query_alt": str(s.get("query_alt") or "").strip(),
             "uniform": str(s.get("uniform") or "").strip(),
             "call": str(s.get("call") or "").strip(),
+            "sticker": str(s.get("sticker") or "").strip()[:8],
+            "sticker_pos": str(s.get("sticker_pos") or "").strip()[:2],
             "kind": "image",
             **{k: s[k] for k in SCENE_LABELS if s.get(k) not in (None, "", False)},
         })

@@ -107,6 +107,8 @@ SPORT_WORDS = {
     "sumo": ("大相撲", "相撲", "横綱", "大関", "関脇", "力士", "土俵", "씨름", "스모"),
     "soccer": ("サッカー", "Jリーグ", "W杯", "ワールドカップ", "축구", "K리그", "월드컵"),
     "basketball": ("バスケ", "NBA", "Bリーグ", "농구", "KBL"),
+    "horse": ("競馬", "JRA", "騎手", "厩舎", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "G1", "GI", "牝馬", "牡馬",
+              "경마"),
 }
 
 
@@ -148,8 +150,9 @@ TALK_WORDS = ("トーク", "対談", "鼎談", "ラジオ", "雑談", "語る", 
               "talk", "interview", "podcast", "reaction")
 GAME_WORDS = ("ハイライト", "試合", "vs", "対", "投球", "奪三振", "本塁打", "ホームラン", "全球", "打席", "名場面",
               "好プレー", "サヨナラ", "完封", "ノーヒット", "ゴール", "得点", "取組", "優勝決定",
-              "하이라이트", "경기", "홈런", "삼진", "골", "득점", "결승", "highlights", "game", "match")
-TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo")
+              "하이라이트", "경기", "홈런", "삼진", "골", "득점", "결승", "highlights", "game", "match",
+              "レース", "競馬", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "引退式", "G1", "GI")
+TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo", "horse")
 FIELD_SPORTS = ("baseball", "soccer")      # sân cỏ → kiểm tra bằng màu sân trong hình
 
 
@@ -428,7 +431,7 @@ def facebook_video_search(query: str, n: int = 4, recent: str | None = None) -> 
             for u, t in found[:n]]
 
 
-OFFICIAL_HINTS = ("公式", "official", "공식", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
+OFFICIAL_HINTS = ("公式", "official", "공식", "jra", "グリーンチャンネル", "netkeiba", "パ・リーグ", "パーソル", "npb", "dazn", "nhk", "日本相撲協会",
                   "jリーグ", "j.league", "b.league", "bリーグ", "kbo", "kbl", "k리그", "k league", "spotv", "tving",
                   "쿠팡플레이", "sbs", "kbs", "mbc", "jtbc", "ytn", "tbs", "日テレ", "テレ朝", "フジテレビ", "テレビ東京")
 

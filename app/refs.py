@@ -52,7 +52,22 @@ DEFAULTS = [
              "かつての中日には、星野仙一監督のように、怒りを前面に出して選手を鼓舞する指導者もいた。"
              "落合はあえてその逆を選んだ。選手を怒らないために、監督自身が怒りを飲み込む。あの無表情は、冷酷さではなかった。"
              "選手がベンチではなく目の前の勝負に集中できるようにするための、落合なりの覚悟だった。"},
+    {"id": "horse_food", "title": "名馬たちの食べ物エピソード（競馬）", "lang": "ja", "genre": "sports", "sport": "horse",
+     "views": "", "note": "Tuyển tập 9 con ngựa, mỗi con 2–3 câu + câu bình luận vui; kết bằng Gold Ship 'それに対して'. "
+                          "〔〕 = chữ đỏ (tên ngựa) · 【】 = đỏ + to · 《》 = to",
+     "text": "〔グラスワンダー〕は放牧先に生えていた《タンポポ》を食べ過ぎて《太った》。"
+             "〔グラスワンダー〕の孫の〔モーリス〕は、引退式で【花束を食い漁った】。"
+             "〔コントレイル〕は人参を《すりおろさないと》食べれなかった。《赤ちゃん》のようだ。"
+             "アメリカ最強馬の〔ゼニヤッタ〕は【ギネスビール】が大好きでよく酔っぱらってた。なぜかギネスビール以外は飲まなかったらしい。"
+             "〔トウカイテイオー〕は高級種のふじりんごが大好きで、それ以外の《品種》は食べなかった。"
+             "〔ドウデュース〕は【なんでも食べる】。その辺の草も、【手紙】も食べようとしたらしい。《やぎさんか》。"
+             "〔ディープ〕はインタビュー中《可愛く》していると、おやつをもらえることを知っていたから、"
+             "厩務員さんと【イチャイチャ】し、愛想を振りまいていたようだ。《あざとい！》"
+             "〔スーパークリーク〕は、ご飯を綺麗に《4等分》にして食べやすくしないと食べなかった。"
+             "〔シンザン〕は、幕の内弁当のようにきれいに配置しないと食べなかった。"
+             "それに対して、〔ゴルシ〕はご飯を水に浸して《ぐちゃぐちゃ》にして、《お茶漬け》のように食べるのが【大好きだった！！！】"},
 ]
+DELETED = ROOT / "library" / "reference_scripts_deleted.json"
 
 
 def load() -> list[dict]:
@@ -61,9 +76,17 @@ def load() -> list[dict]:
             FILE.parent.mkdir(parents=True, exist_ok=True)
             FILE.write_text(json.dumps(DEFAULTS, ensure_ascii=False, indent=1), encoding="utf-8")
         try:
-            return json.loads(FILE.read_text(encoding="utf-8"))
+            items = json.loads(FILE.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             return list(DEFAULTS)
+        # bản cập nhật có mẫu mới → tự thêm vào thư viện (trừ mẫu bạn đã xóa)
+        deleted = set(json.loads(DELETED.read_text(encoding="utf-8"))) if DELETED.exists() else set()
+        have = {x.get("id") for x in items}
+        new = [d for d in DEFAULTS if d["id"] not in have and d["id"] not in deleted]
+        if new:
+            items += new
+            FILE.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
+        return items
 
 
 def _save(items: list[dict]) -> None:
@@ -87,9 +110,13 @@ def add(data: dict) -> dict:
 
 def delete(rid: str) -> None:
     _save([x for x in load() if x["id"] != rid])
+    if any(d["id"] == rid for d in DEFAULTS):        # nhớ mẫu có sẵn đã xóa → không tự thêm lại
+        deleted = set(json.loads(DELETED.read_text(encoding="utf-8"))) if DELETED.exists() else set()
+        DELETED.write_text(json.dumps(sorted(deleted | {rid})), encoding="utf-8")
 
 
 STORY_GENRES = ("sports", "biography")
+FORMAT_SPORTS = ("horse",)
 
 
 def pick(lang: str, genre: str, sport: str | None = None, n: int = 3) -> list[dict]:
@@ -97,6 +124,11 @@ def pick(lang: str, genre: str, sport: str | None = None, n: int = 3) -> list[di
     def close(g):
         return g == genre or (g in STORY_GENRES and genre in STORY_GENRES)
     items = [x for x in load() if close(x.get("genre"))]
+    # môn có kiểu viết riêng (đua ngựa = tuyển tập chuyện vui): chỉ dùng mẫu cùng môn, môn khác không dùng mẫu này
+    if sport in FORMAT_SPORTS and any(x.get("sport") == sport for x in items):
+        items = [x for x in items if x.get("sport") == sport]
+    else:
+        items = [x for x in items if x.get("sport") not in FORMAT_SPORTS or x.get("sport") == sport]
     items.sort(key=lambda x: (x.get("genre") != genre, bool(sport) and x.get("sport") != sport,
                               x.get("lang") != lang, -int(x.get("added") or 0)))
     return items[:n]

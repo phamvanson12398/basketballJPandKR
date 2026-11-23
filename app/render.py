@@ -18,6 +18,7 @@ from . import project as P
 from .config import (FONTS, FPS, H, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffprobe_bin,
                      layout, load_settings, BGM)
 from . import layouts as LAY
+from . import markup as MK
 from .config import SWITCH_SEC
 from .media import n_images_for
 
@@ -125,7 +126,16 @@ def compose(g: dict, n: int) -> str:
             f"[bg][{lab}]overlay={x}:{ypos}:shortest=1:eval=frame,format=yuv420p[v]")
 
 
-def image_part(img: Path, dur: float, out: Path, variant: int, g: dict) -> None:
+def _sticker_fc(sticker, src_label: str = "m0") -> tuple[list[str], str]:
+    """Phủ sticker (đứng yên, hiện dần sau 0.3s) lên khung media. Trả về (tham số input thêm, đoạn filter → [m])."""
+    if not sticker:
+        return [], f"[{src_label}]null[m];"
+    f, x, y = sticker
+    return (["-framerate", str(FPS), "-loop", "1", "-i", str(f)],
+            f"[1:v]format=rgba,fade=in:st=0.3:d=0.25:alpha=1[st];[{src_label}][st]overlay={x}:{y}:shortest=1[m];")
+
+
+def image_part(img: Path, dur: float, out: Path, variant: int, g: dict, sticker=None) -> None:
     n = max(2, round(dur * FPS))
     N = n - 1
     cx, cy = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
@@ -139,14 +149,15 @@ def image_part(img: Path, dur: float, out: Path, variant: int, g: dict) -> None:
     ][variant % 6]
     if not load_settings().get("image_zoom"):
         z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
-    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={g['w']}x{g['h']}:fps={FPS},setsar=1[m];"
-          + compose(g, n))
-    run([ffmpeg_bin(), "-v", "error", "-y", "-i", str(img), "-filter_complex", fc, "-map", "[v]",
+    extra_in, st_fc = _sticker_fc(sticker)
+    fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={g['w']}x{g['h']}:fps={FPS},setsar=1[m0];"
+          + st_fc + compose(g, n))
+    run([ffmpeg_bin(), "-v", "error", "-y", "-i", str(img), *extra_in, "-filter_complex", fc, "-map", "[v]",
          "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an", str(out)])
 
 
 # ------------------------------------------------------------------ video
-def video_part(src: Path, start: float, dur: float, out: Path, g: dict) -> None:
+def video_part(src: Path, start: float, dur: float, out: Path, g: dict, sticker=None) -> None:
     n = max(2, round(dur * FPS))
     from .highlight import video_size
     w, h = video_size(src)
@@ -155,14 +166,15 @@ def video_part(src: Path, start: float, dur: float, out: Path, g: dict) -> None:
     box = f"{g['w']}:{g['h']}"
     if w / max(h, 1) >= (g['w'] / g['h']) * 0.8:
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
-                 f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
+                 f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m0];")
     else:  # video dọc (link TikTok bạn dán) → đặt giữa khung, nền trắng, không làm mờ
         media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=decrease,"
                  f"pad={box}:(ow-iw)/2:(oh-ih)/2:{g['bg']},setsar=1,"
-                 f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m];")
-    fc = media + compose(g, n)
+                 f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m0];")
+    extra_in, st_fc = _sticker_fc(sticker)
+    fc = media + st_fc + compose(g, n)
     run([ffmpeg_bin(), "-v", "error", "-y", "-ss", f"{start:.3f}", "-t", f"{dur + 0.5:.3f}", "-i", str(src),
-         "-filter_complex", fc, "-map", "[v]", "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an",
+         *extra_in, "-filter_complex", fc, "-map", "[v]", "-frames:v", str(n), "-r", str(FPS), *venc(False), "-an",
          str(out)])
 
 
@@ -265,7 +277,7 @@ def ass_escape(s: str) -> str:
 def auto_wrap(chunk: str, maxlen: int = 11) -> str:
     """Tự xuống dòng nếu chunk chưa có dấu xuống dòng.
     Tiếng Hàn (có dấu cách): ngắt giữa các từ. Tiếng Nhật: ngắt theo số ký tự."""
-    if "\n" in chunk or len(chunk) <= maxlen:
+    if "\n" in chunk or len(MK.strip(chunk)) <= maxlen:
         return chunk
     if " " in chunk.strip():
         maxlen = 12
@@ -293,11 +305,22 @@ def auto_wrap(chunk: str, maxlen: int = 11) -> str:
     return "\n".join(lines)
 
 
-def build_ass(scenes: list[dict], starts: list[float], out: Path, extra_rows: list | None = None) -> None:
+def build_ass(scenes: list[dict], starts: list[float], out: Path, extra_rows: list | None = None,
+              style: dict | None = None) -> None:
+    """style (đua ngựa): cỡ chữ / vị trí riêng + chữ ĐỎ / TO theo ký hiệu 〔〕【】《》."""
     st = load_settings()
     font, size = st.get("subtitle_font"), int(st.get("subtitle_size", 124))
     lh = size * SUB_LINE_SPACING
     L = layout()
+    big = int(size * 1.3)
+    if style:
+        size, big = style["size"], style["big"]
+        L = {"sub_top": style["sub_top"], "sub_bottom": style["sub_bottom"]}
+
+    def pitch(has_big: bool) -> float:
+        if style:
+            return (big if has_big else size) * style["pitch"]
+        return lh * (big / size if has_big else 1)
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -316,11 +339,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
     for sc, t0 in zip(scenes, starts):
-        chunks = [auto_wrap(c.strip()) for c in sc.get("chunks", []) if c.strip()]
+        chunks = [auto_wrap(c.strip()) for c in sc.get("chunks", []) if MK.strip(c).strip()]
         if not chunks:
             continue
         speech = max(0.3, float(sc["duration"]) - 0.18)
-        weights = [max(1, len(c.replace("\n", "").replace(" ", ""))) for c in chunks]
+        weights = [max(1, len(MK.strip(c).replace("\n", "").replace(" ", ""))) for c in chunks]
         tot = sum(weights)
         bounds, acc = [], t0
         for wgt in weights:
@@ -333,16 +356,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             last = min(i + 1, len(chunks) - 1)
             a1 = bounds[last][1] if last < len(chunks) - 1 else end_scene
             # mỗi dòng là 1 sự kiện riêng để tự kiểm soát khoảng cách dòng
-            lines = chunks[i].split("\n")
-            for k, line in enumerate(lines):
-                y = L['sub_top'] - (len(lines) - 1 - k) * lh
+            # (dòng trên: canh chân dòng, xếp ngược lên; dòng dưới: canh đỉnh dòng, xếp xuống)
+            lines = MK.to_ass_lines(chunks[i], size, big, ass_escape, W)
+            y = L['sub_top']
+            for k in range(len(lines) - 1, -1, -1):
+                text, has_big = lines[k]
                 ev.append(f"Dialogue: 0,{ass_time(a0)},{ass_time(a1)},Top,,0,0,0,,"
-                          f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
+                          f"{{\\pos({W // 2},{y:.0f})}}{text}")
+                y -= pitch(has_big)      # dòng canh chân → dòng trên nằm cách đúng chiều cao dòng này
             if i + 1 < len(chunks):
-                for k, line in enumerate(chunks[i + 1].split("\n")):
-                    y = L['sub_bottom'] + k * lh
+                y = L['sub_bottom']
+                for text, has_big in MK.to_ass_lines(chunks[i + 1], size, big, ass_escape, W):
                     ev.append(f"Dialogue: 0,{ass_time(bounds[i + 1][0])},{ass_time(a1)},Bottom,,0,0,0,,"
-                              f"{{\\pos({W // 2},{y:.0f})}}{ass_escape(line)}")
+                              f"{{\\pos({W // 2},{y:.0f})}}{text}")
+                    y += pitch(has_big)
     out.write_text(head + "\n".join((extra_rows or []) + ev) + "\n", encoding="utf-8")
 
 
@@ -423,19 +450,27 @@ def render(pid: str, log) -> None:
                 # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
                 log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
             pieces = [("image", it, D / len(imgs)) for it in imgs]
-        for kind, it, d in pieces:
+        # sticker (hình minh họa) của cảnh: hiện ở mảnh đầu tiên của cảnh
+        stk = None
+        if s.get("sticker"):
+            from . import stickers as STK
+            stk = STK.overlay(s["sticker"], s.get("sticker_pos", ""), g, seed=si)
+            if stk is None:
+                log(f"  (không tải được hình minh họa {s['sticker']} cho {s['id']} – bỏ qua)")
+        for pi, (kind, it, d) in enumerate(pieces):
             out = rdir / f"part_{len(parts):03d}.mp4"
+            sticker = stk if pi == 0 else None
             try:
                 if kind == "image":
                     prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
-                    image_part(prep, d, out, variant, g)
+                    image_part(prep, d, out, variant, g, sticker)
                     variant += 1
                 elif kind == "split":
                     prep = prepare_split(base / it[0]["file"], base / it[1]["file"], rdir / f"img_{len(parts):03d}.jpg", g)
                     image_part(prep, d, out, variant, g)
                     variant += 1
                 elif kind == "video":
-                    video_part(base / it["file"], float(it.get("start", 0)), d, out, g)
+                    video_part(base / it["file"], float(it.get("start", 0)), d, out, g, sticker)
                 else:
                     blank_part(d, out, g)
             except Exception as e:  # noqa: BLE001
@@ -459,7 +494,7 @@ def render(pid: str, log) -> None:
     # 3) sub + chữ/hiệu ứng của bố cục
     if lay == "sports":
         extra = LAY.sport_rows(sport, p, scenes, starts, total, g) if sport else None
-        build_ass(scenes, starts, rdir / "subs.ass", extra)
+        build_ass(scenes, starts, rdir / "subs.ass", extra, LAY.HORSE if sport == "horse" else None)
     else:
         LAY.build_ass(lay, p, scenes, starts, total, rdir / "subs.ass")
 
