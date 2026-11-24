@@ -170,6 +170,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Giọng đọc** tự chọn trung niên, trầm; **tốc độ 0.94** và mỗi cảnh ít chữ hơn → chữ hiện lâu hơn một chút.
 - **Nhạc nền** piano / hoài niệm thay cho EDM, nhạc sôi động (lịch sử, sumo, đua ngựa vẫn giữ nhạc riêng).
 - **Tiêu đề & hashtag** kiểu #昭和 #平成 #懐かしい #あの頃 / #그시절 #추억 #레전드. **Gợi ý ý tưởng** có chọn khán giả 35+.
+- **Bước TikTok** có thêm: **bình luận ghim** (câu hỏi gợi ký ức: "1995年、あなたは何歳でしたか？"), **chữ ảnh bìa**
+  (to, ngắn: "1995年 / あの背中") và **giờ đăng gợi ý** (35+: 21–23h, 12–13h, 7–8h30; cuối tuần 9–11h).
 
 ### ✨ Biên tập giữ chân người xem (tự chạy sau khi viết content)
 - Một lượt Claude đóng vai **biên tập viên Shorts**: chấm 6 tiêu chí (hook 2 giây đầu, câu mồi, nhịp đảo chiều,

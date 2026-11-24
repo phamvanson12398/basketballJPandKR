@@ -620,6 +620,21 @@ function renderTiktok() {
   $('#tkTags').innerHTML = (t.hashtags || []).map((h, i) => `<span class="chip ${h.on ? 'on' : 'off'} ${h.group || ''}" data-i="${i}"
       title="${esc((groupVi[h.group] || '') + (h.vi ? ' · ' + h.vi : ''))}">${esc(h.tag)}<small>${esc(h.vi || '')}</small></span>`).join('');
   $$('#tkTags .chip').forEach(el => el.onclick = () => { const h = t.hashtags[+el.dataset.i]; h.on = !h.on; saveTiktok(); renderTiktok(); });
+  const copyRow = (x) => `<div class="cap"><div><div class="ja">${esc(x.text).replace(/\n/g, '<br>')}</div><div class="vi">${esc(x.vi || '')}</div></div>
+      <button class="soft small" data-copy="${esc(x.text)}">📋 Copy</button></div>`;
+  $('#tkPins').innerHTML = (t.pinned || []).map(copyRow).join('') || '<span class="muted">Bấm “🔁 Tạo bộ khác” để có gợi ý bình luận ghim.</span>';
+  $('#tkCovers').innerHTML = (t.covers || []).map(copyRow).join('') || '<span class="muted">Bấm “🔁 Tạo bộ khác” để có gợi ý chữ ảnh bìa.</span>';
+  $$('#tkPins [data-copy], #tkCovers [data-copy]').forEach(b => b.onclick = async () => {
+    await navigator.clipboard.writeText(b.dataset.copy); b.textContent = '✅ Đã copy'; setTimeout(() => b.textContent = '📋 Copy', 1500);
+  });
+  const ko = P.lang === 'ko', old = P.audience === '35plus';
+  $('#tkTime').innerHTML = old
+    ? `${ko ? '🇰🇷' : '🇯🇵'} Khán giả 35+: <b>21:00–23:00</b> (xem sau khi xong việc nhà, đông nhất) · <b>12:00–13:00</b> (nghỉ trưa) · <b>7:00–8:30</b> (đi làm).
+       Cuối tuần: <b>9:00–11:00</b> sáng.<br>• Đăng đều 1 khung giờ để người theo dõi quen.
+       • Giữ 1 chủ đề kênh (VD “huyền thoại bóng chày Showa–Heisei”) để TikTok học đúng nhóm khán giả.
+       • Muốn chắc chắn tới người 35+: dùng <b>TikTok Promote</b> (trả phí ít) chọn độ tuổi 35–44, 45–54, 55+ cho vài video đầu.`
+    : `${ko ? '🇰🇷' : '🇯🇵'} <b>18:00–19:00</b> (tan học, tan làm) · <b>21:00–23:00</b> (đông nhất) · <b>12:00–13:00</b> (nghỉ trưa).<br>
+       • Đăng đều 1 khung giờ · giữ 1 chủ đề kênh để TikTok học đúng nhóm khán giả.`;
   tkCompose();
 }
 async function saveTiktok() { await api(`/api/projects/${P.id}`, {method: 'PUT', json: {tiktok: P.tiktok}}); }

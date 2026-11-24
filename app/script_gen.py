@@ -918,11 +918,22 @@ TIKTOK_PROMPT = """あなたは{country}のTikTok運用のプロです。次の�
 - discover: {country}のTikTokでおすすめに載りやすい定番タグ 1〜2個（例: {discover}）
 - 各タグにベトナム語の意味（vi）を付ける。
 
+## 固定コメント（投稿者が自分で書いてピン留めするコメント）
+- 3案。視聴者がつい返信したくなる、答えやすい問いかけ（答えが一言で書ける）。動画の内容と直結させる。
+  例:「あの試合、どこで見てましたか？」「あなたの一番の名場面は？」「〇〇と△△、どっちが上だと思う？」
+- 炎上を狙う質問・誹謗中傷を誘う質問はNG。各案にベトナム語訳（vi）。
+
+## カバー（表紙）の文字
+- 3案。表紙の写真の上に大きく載せる短い文字（全角12文字以内、2行まで、改行は "\n"）。一目で内容と意外性が分かるもの。
+  各案にベトナム語訳（vi）。
+
 ## 出力（JSONのみ）
 ```json
 {{
   "captions": [{{"ja": "キャプション（{lang_name}）", "vi": "Bản dịch"}}],
-  "hashtags": [{{"tag": "#タグ", "group": "big", "vi": "nghĩa"}}]
+  "hashtags": [{{"tag": "#タグ", "group": "big", "vi": "nghĩa"}}],
+  "pinned_comments": [{{"text": "固定コメント（{lang_name}）", "vi": "Bản dịch"}}],
+  "cover_texts": [{{"text": "表紙の文字", "vi": "Bản dịch"}}]
 }}
 ```
 """
@@ -941,7 +952,9 @@ def gen_tiktok(pid: str, log) -> None:
     L = LG.get(p.get("lang"))
     sport_ja = SPORTS.get(p.get("sport") or "other", SPORTS["other"])["ja"]
     aud = ("／視聴者は35歳以上: キャプションは落ち着いた大人向けに、ハッシュタグに懐かしさ・時代の言葉"
-           "（日本: #昭和 #平成 #懐かしい #あの頃 #レジェンド、韓国: #그시절 #추억 #레전드 #옛날 など）を必ず含める"
+           "（日本: #昭和 #平成 #懐かしい #あの頃 #レジェンド、韓国: #그시절 #추억 #레전드 #옛날 など）を必ず含める。"
+           "固定コメントは当時の記憶を聞く問いかけ（例:「当時どこで見てましたか？」「この頃、何歳でしたか？」）。"
+           "カバー文字は大きく読みやすく、年号や「あの頃」など世代に刺さる言葉を入れる"
            if p.get("audience") == "35plus" else "")
     text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ") + (f"（{sport_ja}）" if sport_ja else "") + aud,
                                     title=p.get("title", ""), script=script, country=L["country"],
@@ -958,7 +971,11 @@ def gen_tiktok(pid: str, log) -> None:
     if not caps:
         raise RuntimeError("Claude không trả về title, thử lại nhé.")
 
+    pins = [x for x in (data.get("pinned_comments") or []) if isinstance(x, dict) and x.get("text")][:3]
+    covers = [x for x in (data.get("cover_texts") or []) if isinstance(x, dict) and x.get("text")][:3]
+
     def apply(pp):
-        pp["tiktok"] = {"captions": caps, "hashtags": tags, "caption": caps[0]["ja"]}
+        pp["tiktok"] = {"captions": caps, "hashtags": tags, "caption": caps[0]["ja"],
+                        "pinned": pins, "covers": covers}
     P.update(pid, apply)
     log(f"Đã có {len(caps)} title và {len(tags)} hashtag.", 1.0)
