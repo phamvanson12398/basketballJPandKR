@@ -71,6 +71,11 @@
         <option value="ranking">🏆 Top / Xếp hạng</option>
         <option value="general">💡 Chủ đề chung</option>
       </select>
+      <label>Khán giả <span class="opt">(ảnh hưởng đề tài, cách viết, giọng đọc, nhạc nền, hashtag)</span></label>
+      <select id="newAudience">
+        <option value="all">👥 Mọi lứa tuổi</option>
+        <option value="35plus">🧑‍💼 35+ (hoài niệm, giọng trầm, nhịp vừa phải)</option>
+      </select>
       <div id="sportBox">
         <label>Lĩnh vực <span class="opt">(môn thể thao, idol…)</span></label>
         <select id="newSport"></select>
@@ -174,6 +179,7 @@
               <option value="sports">⚾ Thể thao</option><option value="biography">👤 Tiểu sử</option><option value="brand">🏢 Thương hiệu</option><option value="history">🏯 Lịch sử</option><option value="news">📰 Tin tức</option><option value="ranking">🏆 Top</option><option value="general">💡 Chủ đề chung</option>
             </select></div>
           <div><label>Lĩnh vực</label><select id="pSport" title="Áp dụng khi viết lại content"></select></div>
+          <div><label>Khán giả</label><select id="pAudience" title="Áp dụng khi viết lại content"><option value="all">👥 Mọi lứa tuổi</option><option value="35plus">🧑‍💼 35+</option></select></div>
           <div><label>Bố cục</label>
             <select id="pLayout">
               <option value="auto">Tự động theo thể loại</option>
@@ -324,6 +330,7 @@
           <select id="ideaGenre"><option value="any">Tất cả</option><option value="sports">⚾ Thể thao</option>
             <option value="biography">👤 Tiểu sử</option><option value="brand">🏢 Thương hiệu</option><option value="history">🏯 Lịch sử</option><option value="news">📰 Tin tức</option>
             <option value="ranking">🏆 Top / Xếp hạng</option><option value="general">💡 Chủ đề chung</option></select></div>
+        <div><label>Khán giả</label><select id="ideaAudience"><option value="all">Mọi lứa tuổi</option><option value="35plus">35+ (hoài niệm)</option></select></div>
         <div><label>Số ý tưởng</label><select id="ideaCount"><option>5</option><option selected>10</option><option>15</option></select></div>
       </div>
       <button class="primary big" id="btnIdeas">✨ Gợi ý ngay</button>

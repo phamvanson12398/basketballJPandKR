@@ -79,6 +79,28 @@ GENRES = {
     },
 }
 
+# ---------------------------------------------------------------- KHÁN GIẢ
+AUDIENCE_RULES = {
+    "35plus": """
+## 視聴者（最重要）: 35歳以上の大人（30代後半〜60代）
+- この世代が自分の目で見てきた時代（1980年代〜2000年代、日本なら昭和後期〜平成、韓国なら80〜2000年代）の
+  人物・出来事・商品・名場面を中心に。最近の話題を扱う時も、その世代が知っている過去の名選手・出来事と比べてつなぐ
+  （例:「長嶋、王の時代から数えても」「2002年のワールドカップ以来」）。
+- 視聴者自身の記憶に呼びかける一言を1〜2回入れてよい（例:「あの頃、テレビの前で見ていた人も多いはずだ」
+  「당시 TV 앞에서 숨죽이던 분들도 많았을 겁니다」）。説教くさくしない。
+- ネットスラング・若者言葉・ミーム・英語の多用は使わない。カタカナ語やゲーム用語は一言で補足。
+  落ち着いた大人の語り口（ドキュメンタリーのナレーターのように）。煽りすぎ・大げさな感嘆は控える。
+- テンポは保ちつつ、1文を詰め込みすぎない（同じ秒数で文字数をやや少なめに）。数字は覚えやすく丸めすぎない程度に。
+- 感情の軸は「懐かしさ」「人生の重み・逆境・家族・恩師・引き際」。この世代が自分の人生と重ねられる切り口を選ぶ。
+- voice は落ち着いた声: age は "middle-aged"、pitch は "low pitch" か "moderate pitch"。
+""",
+}
+
+
+def audience_rule(p: dict) -> str:
+    return AUDIENCE_RULES.get(p.get("audience") or "all", "")
+
+
 # ---------------------------------------------------------------- CẤU TRÚC / HOOK
 # Thể thao & Tiểu sử: khung "kể chuyện" học từ kênh YouTube có hiệu suất tốt
 # (hook bằng câu thoại/con số → thân phận chật vật → đảo chiều mỗi 10–15s → giải thích hook ở giữa
@@ -580,8 +602,9 @@ def generate(pid: str, log, feedback: str = "") -> None:
     p = P.load(pid)
     L = LG.get(p.get("lang"))
     dur = int(p["duration"])
-    chars = int(dur * L["cps"])
-    scene_chars = int(IMAGE_SEC * L["cps"])
+    cps = L["cps"] * (0.92 if p.get("audience") == "35plus" else 1.0)   # 35+: chậm rãi hơn chút
+    chars = int(dur * cps)
+    scene_chars = int(IMAGE_SEC * cps)
     old = ""
     if feedback and p.get("scenes"):
         old = "\n".join(P.scene_plain_text(s) for s in p["scenes"])
@@ -604,7 +627,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         hook_rule=(HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
                    else HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT)).replace("{country}", L["country"]),
         refs=REFS.prompt_block(p.get("lang") or "ja", p.get("genre") or "sports", p.get("sport")),
-        lang_rules=L["rules"], line_max=10 if korea_layout else L["line_max"], tts_rule=L["tts_rule"],
+        lang_rules=L["rules"] + audience_rule(p), line_max=10 if korea_layout else L["line_max"], tts_rule=L["tts_rule"],
         query_lang=L["query_lang"],
         screen_rule=(KOREA_SCREEN_RULE if korea_layout else SCREEN_RULES.get(p.get("genre"), "") or
                      (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else "")),
@@ -654,6 +677,9 @@ def generate(pid: str, log, feedback: str = "") -> None:
         pp["sources"] = [x for x in (data.get("sources") or []) if isinstance(x, dict)]
         pp["screen"] = data.get("screen") if isinstance(data.get("screen"), dict) else {}
         v = data.get("voice") or {}
+        if pp.get("audience") == "35plus":
+            v = {**v, "age": "middle-aged",
+                 "pitch": v.get("pitch") if v.get("pitch") in ("low pitch", "moderate pitch") else "low pitch"}
         pp["voice"]["auto_instruct"] = ", ".join(
             x for x in (v.get("gender"), v.get("age"), v.get("pitch")) if x)
     P.update(pid, apply)
@@ -733,6 +759,8 @@ def retention_edit(pid: str, log) -> dict:
     genre = GENRE_NAMES_JA.get(p.get("genre") or "sports", "スポーツ")
     if p.get("sport") == "horse":
         genre += "（競馬のエピソード集。各馬の話のテンポとオチを重視）"
+    if p.get("audience") == "35plus":
+        genre += "／視聴者は35歳以上の大人: 懐かしさと人生の重みで引き込む。若者言葉・煽りは使わない。落ち着いた語り口を保つ"
     prompt = RETENTION_PROMPT.format(country=L["country"], lang_name=L["name"], genre=genre,
                                      tts_rule=L["tts_rule"], script_json=script_json)
     data = extract_json(ask(prompt, timeout=900))
@@ -912,7 +940,10 @@ def gen_tiktok(pid: str, log) -> None:
     log("Đang nhờ Claude viết title và hashtag TikTok...", 0.2)
     L = LG.get(p.get("lang"))
     sport_ja = SPORTS.get(p.get("sport") or "other", SPORTS["other"])["ja"]
-    text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ") + (f"（{sport_ja}）" if sport_ja else ""),
+    aud = ("／視聴者は35歳以上: キャプションは落ち着いた大人向けに、ハッシュタグに懐かしさ・時代の言葉"
+           "（日本: #昭和 #平成 #懐かしい #あの頃 #レジェンド、韓国: #그시절 #추억 #레전드 #옛날 など）を必ず含める"
+           if p.get("audience") == "35plus" else "")
+    text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ") + (f"（{sport_ja}）" if sport_ja else "") + aud,
                                     title=p.get("title", ""), script=script, country=L["country"],
                                     people=L["people"], lang_name=L["name"], discover=L["discover"]),
                timeout=300)

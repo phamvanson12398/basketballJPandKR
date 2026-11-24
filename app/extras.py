@@ -33,7 +33,8 @@ def create_twin(pid: str, lang: str) -> dict:
     if not src.get("scenes"):
         raise ValueError("Video gốc chưa có content")
     new = P.create(src.get("title", ""), src.get("topic", ""), src["duration"], src.get("genre", "sports"),
-                   src.get("video_pct", 30), src.get("news"), lang, src.get("ranking_n"), src.get("sport") or "other")
+                   src.get("video_pct", 30), src.get("news"), lang, src.get("ranking_n"), src.get("sport") or "other",
+                   src.get("audience") or "all")
     nd, sd = P.pdir(new["id"]), P.pdir(pid)
     for sub in ("media", "sources"):
         if (sd / sub).exists():
@@ -177,8 +178,11 @@ GENRE_RULE = {"any": "自由（企画に合うものを選ぶ）", "sports": "sp
               "ranking": "ranking のみ（TOP N 形式）"}
 
 
-def suggest_ideas(lang: str, niche: str, genre: str = "any", count: int = 10) -> list[dict]:
+def suggest_ideas(lang: str, niche: str, genre: str = "any", count: int = 10, audience: str = "all") -> list[dict]:
     L = LG.get(lang)
+    if audience == "35plus":
+        niche = (niche or "") + ("（視聴者は35歳以上の大人。1980〜2000年代の名選手・名場面・商品・出来事など、"
+                                 "この世代が懐かしく感じ、自分の人生と重ねられる企画を中心に。旬の話題も、昔の名選手・出来事と比べる切り口で）")
     prompt = IDEA_PROMPT.format(date=today_ja(), country=L["country"], people=L["people"],
                                 lang_name=L["name"], niche=niche or "スポーツ（特にバスケットボール）",
                                 genre_rule=GENRE_RULE.get(genre, GENRE_RULE["any"]), count=count)

@@ -25,7 +25,7 @@ def pdir(pid: str) -> Path:
 
 def create(title: str, topic: str, duration: int, genre: str = "sports", video_pct: int = 30,
            news: dict | None = None, lang: str = "ja", ranking_n: int | None = None,
-           sport: str = "other") -> dict:
+           sport: str = "other", audience: str = "all") -> dict:
     pid = new_id(title)
     d = pdir(pid)
     for sub in ("audio", "media", "sources", "render"):
@@ -38,13 +38,14 @@ def create(title: str, topic: str, duration: int, genre: str = "sports", video_p
         "genre": genre if genre in ("sports", "biography", "general", "news", "ranking", "brand", "history") else "sports",
         "ranking_n": max(3, min(10, int(ranking_n))) if genre == "ranking" and ranking_n else None,
         "sport": sport or "other",   # môn thể thao: baseball / basketball / sumo / soccer / other
+        "audience": audience if audience in ("all", "35plus") else "all",   # khán giả: mọi lứa tuổi / 35+ (hoài niệm)
         "news": news or {},       # tin tức: {region, days, category}
         "lang": lang if lang in LG.LANGS else LG.DEFAULT,   # ngôn ngữ video
         "video_pct": max(0, min(100, int(video_pct))),
         "created": time.time(),
         "script_approved": False,
         "scenes": [],
-        "voice": {"mode": "clone", "voice": "", "instruct": "", "speed": 1.0},
+        "voice": {"mode": "clone", "voice": "", "instruct": "", "speed": 0.94 if audience == "35plus" else 1.0},
         "bgm": {"file": "__auto__", "volume": 0.15},   # nhạc nền tự chọn theo thể loại
         "output": "",
     }

@@ -68,6 +68,11 @@ def resolve(p: dict) -> str:
         lay = "history_ko" if p.get("lang") == "ko" else "history_ja"   # nhạc cổ truyền theo nước
     elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse", "esports") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
+    if p.get("audience") == "35plus" and lay in ("sports", "general", "ranking", "brand", "esports", "kpop", "idol", "soccer"):
+        calm = [f for f in ("Tiểu sử - Truyền cảm hứng (tool).m4a", "Thương hiệu - Hoài niệm (tool).m4a",
+                            "Tiểu sử - Cảm động (tool).m4a") if (BGM / f).exists()]
+        if calm:
+            return calm[sum(p.get("id", "").encode()) % len(calm)]   # 35+: piano / hoài niệm thay cho EDM, nhạc sôi động
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
                                       "kpop", "owarai", "horse", "brand", "history_ja", "history_ko", "esports")
                        else "sports")

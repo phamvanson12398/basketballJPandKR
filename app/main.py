@@ -40,7 +40,7 @@ def create_project(data: dict = Body(...)):
     return P.create(title, topic, int(data.get("duration") or 60), genre,
                     int(data.get("video_pct") if data.get("video_pct") is not None else 30),
                     data.get("news") if genre == "news" else None, data.get("lang") or "ja",
-                    data.get("ranking_n"), data.get("sport") or "other")
+                    data.get("ranking_n"), data.get("sport") or "other", data.get("audience") or "all")
 
 
 @app.get("/api/projects/{pid}")
@@ -58,7 +58,7 @@ def put_project(pid: str, data: dict = Body(...)):
     """Lưu chỉnh sửa content / giọng / nhạc nền từ giao diện."""
     def apply(p):
         for k in ("title", "topic", "duration", "voice", "bgm", "script_approved", "genre", "video_pct", "news", "tiktok", "lang", "ranking_n",
-                  "screen", "layout", "sport"):
+                  "screen", "layout", "sport", "audience"):
             if k in data:
                 p[k] = data[k]
         if "scenes" in data:
@@ -195,7 +195,7 @@ def ideas(data: dict = Body(...)):
     from .extras import suggest_ideas
     try:
         return suggest_ideas(data.get("lang") or "ja", data.get("niche") or "", data.get("genre") or "any",
-                             int(data.get("count") or 10))
+                             int(data.get("count") or 10), data.get("audience") or "all")
     except Exception as e:  # noqa: BLE001
         _err(e)
 

@@ -198,6 +198,7 @@ function renderScript() {
   $('#pGenre').value = P.genre || 'sports';
   if ($('#pLang').options.length) $('#pLang').value = P.lang || 'ja';
   if ($('#pSport').options.length) $('#pSport').value = P.sport || 'other';
+  $('#pAudience').value = P.audience || 'all';
   $('#pSport').classList.toggle('hidden', ['news', 'brand', 'history'].includes(P.genre));
   $('#btnRebalance').textContent = `⚖️ Tự chia lại ${100 - tv}% ảnh / ${tv}% video`;
   ratioBar($('#ratio'));
@@ -315,6 +316,12 @@ $('#pLang').onchange = async () => {
   P.lang = $('#pLang').value;
   await api(`/api/projects/${P.id}`, {method: 'PUT', json: {lang: P.lang}});
   if (P.scenes.length && confirm('Đã đổi ngôn ngữ. Viết lại content bằng ngôn ngữ mới luôn không?')) runJob(`/api/projects/${P.id}/script`, {});
+};
+$('#pAudience').onchange = async () => {
+  P.audience = $('#pAudience').value;
+  P = Object.assign(await api(`/api/projects/${P.id}`, {method: 'PUT', json: {audience: P.audience}}), {job: P.job});
+  notify('👥', P.audience === '35plus' ? 'Khán giả: 35+' : 'Khán giả: mọi lứa tuổi',
+    'Áp dụng khi viết lại content, đọc giọng và chọn nhạc nền');
 };
 $('#pSport').onchange = async () => {
   P.sport = $('#pSport').value;
@@ -906,7 +913,7 @@ $('#btnCreate').onclick = async () => {
   const ranking_n = genre === 'ranking' ? +$('#rankN').value : null;
   const sport = ['news', 'brand', 'history'].includes(genre) ? 'other' : $('#newSport').value;
   try { const d0 = JSON.parse(localStorage.getItem('shorts_defaults') || '{}'); d0.sport = $('#newSport').value; localStorage.setItem('shorts_defaults', JSON.stringify(d0)); } catch {}
-  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n, sport}});
+  const p = await api('/api/projects', {method: 'POST', json: {title: $('#newTitle').value, topic: $('#newTopic').value, duration: dur, genre, video_pct, news, lang, ranking_n, sport, audience: $('#newAudience').value}});
   $('#newsList').innerHTML = '';
   $('#newTitle').value = ''; $('#newTopic').value = '';
   await openProject(p.id);
@@ -970,7 +977,7 @@ $('#btnIdeas').onclick = async () => {
   const b = $('#btnIdeas'); b.disabled = true; b.textContent = '⏳ Claude đang tra cứu (1–2 phút)...';
   try {
     const list = await api('/api/ideas', {method: 'POST', json: {lang: $('#ideaLang').value, niche: $('#ideaNiche').value,
-      genre: $('#ideaGenre').value, count: +$('#ideaCount').value}});
+      genre: $('#ideaGenre').value, count: +$('#ideaCount').value, audience: $('#ideaAudience').value}});
     try { localStorage.setItem('shorts_ideas', JSON.stringify(list)); } catch {}
     notify('💡', `Đã có ${list.length} ý tưởng`, 'Bấm “Làm video này” ở ý tưởng bạn thích', 'ok', () => showOnly('#ideas'));
     renderIdeas(list);

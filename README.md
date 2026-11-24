@@ -163,6 +163,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   sự thật bất ngờ…, có dịch tiếng Việt) và **10–12 hashtag** chia nhóm: rộng / chủ đề / cụ thể / đề xuất (#おすすめ #fyp).
 - Bấm chọn title, bấm hashtag để bật/tắt, thêm hashtag của bạn, rồi bấm **📋 Copy tất cả** để dán vào TikTok.
 
+### 👥 Khán giả 35+ (chọn khi tạo video, hoặc đổi ở phần thông tin video)
+- **Đề tài & góc nhìn**: ưu tiên nhân vật / sự kiện / sản phẩm thời 1980–2000 (Showa cuối – Heisei; Hàn 80–2000),
+  chuyện mới thì so với huyền thoại ngày xưa; cảm xúc "hoài niệm, sức nặng cuộc đời"; 1–2 câu gợi ký ức
+  ("あの頃、テレビで見た…"). Không tiếng lóng, giọng kể chín chắn như phim tài liệu.
+- **Giọng đọc** tự chọn trung niên, trầm; **tốc độ 0.94** và mỗi cảnh ít chữ hơn → chữ hiện lâu hơn một chút.
+- **Nhạc nền** piano / hoài niệm thay cho EDM, nhạc sôi động (lịch sử, sumo, đua ngựa vẫn giữ nhạc riêng).
+- **Tiêu đề & hashtag** kiểu #昭和 #平成 #懐かしい #あの頃 / #그시절 #추억 #레전드. **Gợi ý ý tưởng** có chọn khán giả 35+.
+
 ### ✨ Biên tập giữ chân người xem (tự chạy sau khi viết content)
 - Một lượt Claude đóng vai **biên tập viên Shorts**: chấm 6 tiêu chí (hook 2 giây đầu, câu mồi, nhịp đảo chiều,
   gọn không thừa, cụ thể, cái kết) → **thi 5 câu mở đầu** chọn câu mạnh nhất → sửa cảnh yếu (cắt câu thừa, thêm câu mồi,
