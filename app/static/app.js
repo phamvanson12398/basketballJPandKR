@@ -1048,7 +1048,9 @@ $('#lnkSettings').onclick = async e => {
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
   $$('.src').forEach(c => c.checked = srcOn.includes(c.value));
   $('#sEnc').value = s.video_encoder; $('#sSize').value = s.subtitle_size; $('#sMediaH').value = s.media_height; $('#sMediaHK').value = s.media_height_korea; $('#sGap').value = s.sub_gap; $('#sFont').value = s.subtitle_font;
-  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false; $('#sFact').checked = s.fact_check !== false; $('#sRet').checked = s.retention_edit !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
+  $('#sHL').checked = s.use_claude_for_highlight; $('#sFB').checked = s.facebook_video !== false; $('#sVerify').checked = s.verify_person_video !== false; $('#sPick').checked = s.smart_image_pick !== false;
+  $('#sVision').value = s.vision_provider || 'claude'; $('#sAgyCmd').value = s.agy_command || ''; $('#sGemKey').value = s.gemini_api_key || '';
+  $('#sGemModel').value = s.gemini_model || ''; visToggle(); $('#visTestOut').textContent = ''; $('#sFact').checked = s.fact_check !== false; $('#sRet').checked = s.retention_edit !== false; $('#sZoom').checked = !!s.image_zoom; $('#sSteps').value = s.tts_num_step;
   showOnly('#settings');
   loadRefs();
   $('#checkOut').textContent = 'Đang kiểm tra...';
@@ -1058,11 +1060,14 @@ $('#lnkSettings').onclick = async e => {
     `Font sub: ${c.font ? '✅' : '❌ chạy install.bat lại'}`, `OmniVoice: ${c.omnivoice ? '✅' : '❌ chưa cài'}`,
     `GPU NVIDIA: ${c.cuda ? '✅ ' + c.gpu : '❌ không thấy (giọng đọc sẽ rất chậm)'}`].join('\n');
 };
-$('#btnSaveSettings').onclick = async () => {
+async function saveSettings() {
   await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
-    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked, fact_check: $('#sFact').checked, retention_edit: $('#sRet').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
-  alert('Đã lưu');
+    subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked,
+    vision_provider: $('#sVision').value, agy_command: $('#sAgyCmd').value.trim() || 'agy -p {prompt}',
+    gemini_api_key: $('#sGemKey').value.trim(), gemini_model: $('#sGemModel').value.trim() || 'gemini-2.5-flash', fact_check: $('#sFact').checked, retention_edit: $('#sRet').checked, image_zoom: $('#sZoom').checked, tts_num_step: +$('#sSteps').value}});
+}
+$('#btnSaveSettings').onclick = async () => { await saveSettings(); alert('Đã lưu');
 };
 // ---- thư viện kịch bản mẫu
 async function loadRefs() {
@@ -1090,6 +1095,21 @@ $('#btnGVerify').onclick = async e => {
   e.preventDefault();
   await api('/api/google/verify', {method: 'POST'});
   alert('Cửa sổ Google (chính là cửa sổ tool dùng để tìm ảnh) sẽ hiện lên.\n• Nếu Google hỏi “Tôi không phải robot” → tích vào, thấy kết quả ảnh là xong, cửa sổ tự ẩn đi.\n• Nếu không bị hỏi → cửa sổ hiện 2–3 giây rồi tự ẩn: Google đang chạy tốt.\nĐừng đóng cửa sổ đó bằng dấu ✕ nhé (tool vẫn đang dùng).');
+};
+function visToggle() {
+  const v = $('#sVision').value;
+  $('#visAgy').classList.toggle('hidden', v !== 'antigravity');
+  $('#visGem').classList.toggle('hidden', v !== 'gemini');
+}
+$('#sVision').onchange = visToggle;
+$('#btnVisTest').onclick = async () => {
+  const out = $('#visTestOut'); out.textContent = '⏳ Đang hỏi AI (tối đa ~3 phút)...';
+  await saveSettings();                    // lưu lựa chọn trước rồi mới thử
+  try {
+    const r = await api('/api/vision/test', {method: 'POST'});
+    out.textContent = r.ok ? `✅ ${r.provider} xem ảnh được: ${JSON.stringify(r.answer)}`
+      : `❌ ${r.provider} chưa chạy được: ${r.error || JSON.stringify(r.answer)}`;
+  } catch (e) { out.textContent = '❌ ' + e.message; }
 };
 $('#btnCloseSettings').onclick = () => showOnly(P ? '#proj' : '#empty');
 

@@ -45,6 +45,10 @@ DEFAULT_SETTINGS = {
     "verify_person_video": True,
     "smart_image_pick": True,
     "fact_check": True,
+    "vision_provider": "claude",   # AI xem ảnh/video: antigravity / gemini / claude / off (viết content luôn là Claude)
+    "agy_command": "agy -p {prompt}",
+    "gemini_api_key": "",
+    "gemini_model": "gemini-2.5-flash",
     "retention_edit": True,        # biên tập giữ chân người xem sau khi viết (thi 5 hook, sửa cảnh yếu)            # tự kiểm tra sự thật sau khi viết content (thêm ~2–5 phút)      # Claude xem ảnh ứng viên, chọn ảnh hợp nội dung (chậm hơn ~15–30s/cảnh ảnh)   # Claude xem hình xác nhận video có ĐÚNG nhân vật (chậm hơn ~20–40s/cảnh video)     # tìm thêm video công khai trên Facebook (qua công cụ tìm kiếm, không cần đăng nhập)
     "image_zoom": True,          # zoom / lia nhẹ ảnh cho sinh động
 }

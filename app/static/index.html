@@ -386,9 +386,26 @@
       <label class="check"><input type="checkbox" id="sFB"> Tìm thêm video trên Facebook (video công khai của trang báo, đội bóng, đài TV)</label>
       <label class="check"><input type="checkbox" id="sRet"> ✨ Tự <b>biên tập giữ chân người xem</b> sau khi viết (thi 5 câu mở đầu, cắt câu thừa, thêm câu mồi – thêm ~1–3 phút)</label>
       <label class="check"><input type="checkbox" id="sFact"> 🔍 Tự <b>kiểm tra sự thật</b> sau khi viết content (tra lại tên, năm, con số, câu trích dẫn – thêm ~2–5 phút)</label>
-      <label class="check"><input type="checkbox" id="sPick"> Nhờ Claude xem ảnh, chọn ảnh <b>hợp nội dung</b> và loại ảnh sai người (chậm hơn ~15–30 giây mỗi cảnh ảnh)</label>
-      <label class="check"><input type="checkbox" id="sVerify"> Nhờ Claude xem hình xác nhận video có <b>đúng nhân vật</b> (số áo, khuôn mặt – chậm hơn ~20–40 giây mỗi cảnh video)</label>
-      <label class="check"><input type="checkbox" id="sHL"> Nhờ Claude chọn đoạn video hợp nội dung (chậm hơn, chuẩn hơn)</label>
+      <div class="vision-box">
+        <label>🤖 AI xem ảnh / video <span class="opt">(chọn ảnh, chọn đoạn video, xác nhận đúng người – viết content vẫn luôn là Claude)</span></label>
+        <select id="sVision">
+          <option value="antigravity">Antigravity CLI (agy – tài khoản Google, không tốn lượt Claude)</option>
+          <option value="gemini">Gemini API key (Google AI Studio – có gói miễn phí theo ngày)</option>
+          <option value="claude">Claude (như trước – tốn lượt Claude)</option>
+          <option value="off">Tắt – không dùng AI (chỉ thuật toán, miễn phí, kém chính xác hơn)</option>
+        </select>
+        <div id="visAgy" class="grid2">
+          <div class="full"><label>Lệnh gọi Antigravity <span class="opt">({prompt} = chỗ chèn câu hỏi; để trống = mặc định “agy -p {prompt}”)</span></label><input id="sAgyCmd" placeholder="agy -p {prompt}"></div>
+        </div>
+        <div id="visGem" class="grid2">
+          <div><label>Gemini API key <span class="opt">(lấy ở aistudio.google.com → Get API key)</span></label><input id="sGemKey" type="password" placeholder="AIza..."></div>
+          <div><label>Model</label><input id="sGemModel" placeholder="gemini-2.5-flash"></div>
+        </div>
+        <div class="actions"><button id="btnVisTest" class="soft" type="button">🧪 Kiểm tra AI xem ảnh</button><span id="visTestOut" class="muted small"></span></div>
+      </div>
+      <label class="check"><input type="checkbox" id="sPick"> Nhờ AI xem ảnh, chọn ảnh <b>hợp nội dung</b> và loại ảnh sai người (~15–30 giây mỗi cảnh ảnh)</label>
+      <label class="check"><input type="checkbox" id="sVerify"> Nhờ AI xem hình xác nhận video có <b>đúng nhân vật</b> (số áo, khuôn mặt – ~20–40 giây mỗi cảnh video)</label>
+      <label class="check"><input type="checkbox" id="sHL"> Nhờ AI chọn đoạn video hợp nội dung</label>
     </div>
     <div class="panel">
       <h3>Hình ảnh &amp; chữ</h3>

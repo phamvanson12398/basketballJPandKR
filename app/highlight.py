@@ -225,19 +225,20 @@ def contact_sheet(video: Path, windows: list[dict], out: Path) -> Path:
 
 
 def ask_claude_pick(video: Path, windows: list[dict], scene_text: str, workdir: Path) -> int:
-    from .claude_cli import ask
+    """AI (Claude / Antigravity / Gemini – theo Cài đặt) chọn đoạn video hợp lời đọc nhất."""
+    from . import vision as VIS
     sheet = contact_sheet(video, windows, workdir / "_highlight_sheet.jpg")
-    prompt = (f"画像ファイル {sheet.as_posix()} を Read ツールで開いてください。\n"
-              f"各行(番号1〜{len(windows)})は動画クリップ候補の 始め/中間/終わり のフレームです。\n"
-              f"このクリップは次のナレーションの間に流れます:\n「{scene_text}」\n"
-              "ナレーションの内容に最も合い、見ていて盛り上がる(プレーが見える・鮮明・"
-              "テロップや広告・解説者の顔だけではない)候補を1つ選び、番号だけを答えてください。")
+    task = (f"画像1の各行(番号1〜{len(windows)})は動画クリップ候補の 始め/中間/終わり のフレームです。\n"
+            f"このクリップは次のナレーションの間に流れます:\n「{scene_text}」\n"
+            "ナレーションの内容に最も合い、見ていて盛り上がる(プレーが見える・鮮明・"
+            "テロップや広告・解説者の顔だけではない)候補を1つ選んでください。\n"
+            'JSONのみ: {"pick": 番号}')
     try:
-        ans = ask(prompt, tools=["Read"], add_dirs=[str(workdir)], timeout=300)
-        m = re.search(r"\d+", ans)
-        if m and 1 <= int(m.group()) <= len(windows):
-            return int(m.group()) - 1
-    except Exception:
+        data = VIS.ask_json(task, [sheet], workdir)
+        n = int(data.get("pick", 0))
+        if 1 <= n <= len(windows):
+            return n - 1
+    except Exception:  # noqa: BLE001
         pass
     finally:
         sheet.unlink(missing_ok=True)
@@ -248,16 +249,16 @@ def verify_person(video: Path, windows: list[dict], scene_text: str, who: str, u
                   ref: Path | None, workdir: Path) -> dict:
     """Claude xem khung hình các đoạn ứng viên (+ ảnh chân dung tham chiếu) và xác nhận đoạn nào có ĐÚNG nhân vật.
     Trả về {"ok": [chỉ số đoạn đúng người], "best": chỉ số đoạn hợp nhất hoặc None}."""
-    from .claude_cli import ask, extract_json
+    from . import vision as VIS
     sheet = contact_sheet(video, windows, workdir / "_verify_sheet.jpg")
-    refline = ""
+    images, refline = [sheet], ""
     if ref and ref.exists():
         rp = workdir / "_verify_ref.jpg"
         rp.write_bytes(ref.read_bytes())
-        refline = f"- 参考写真（この人物本人）: {rp.as_posix()}\n"
+        images.append(rp)
+        refline = "- 画像2: 参考写真（この人物本人）\n"
     prompt = (
-        "次の画像ファイルを Read ツールで開いてください。\n"
-        f"- 候補シート: {sheet.as_posix()}（各行 1〜{len(windows)} が動画クリップ候補の 始め/中間/終わり のフレーム）\n"
+        f"- 画像1: 候補シート（各行 1〜{len(windows)} が動画クリップ候補の 始め/中間/終わり のフレーム）\n"
         + refline +
         f"\n探している人物・馬・会社/商品: {who}\n"
         + (f"見分ける特徴（ユニフォーム・背番号 / 馬の毛色・勝負服など）: {uniform}\n" if uniform else "")
@@ -269,7 +270,7 @@ def verify_person(video: Path, windows: list[dict], scene_text: str, who: str, u
         'JSONのみで答える: {"windows": [{"no": 1, "person": true, "why": "背番号23が投球"}], "best": 1}\n'
         "人物が映っている候補が1つもなければ best は null。")
     try:
-        data = extract_json(ask(prompt, tools=["Read"], add_dirs=[str(workdir)], timeout=300))
+        data = VIS.ask_json(prompt, images, workdir)
         ok = [int(w["no"]) - 1 for w in data.get("windows", [])
               if w.get("person") and 1 <= int(w.get("no", 0)) <= len(windows)]
         best = data.get("best")
@@ -312,12 +313,12 @@ def image_sheet(paths: list[Path], out: Path, cols: int = 4) -> Path:
 def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, workdir: Path) -> dict | None:
     """Claude xem lưới ảnh ứng viên → {"good": [chỉ số, tốt nhất trước], "bad": [chỉ số loại], "why": {...}}.
     None nếu không hỏi được (khi đó giữ thứ tự cũ)."""
-    from .claude_cli import ask, extract_json
+    from . import vision as VIS
     if len(paths) < 2:
         return None
     sheet = image_sheet(paths, workdir / "_pick_sheet.jpg")
     prompt = (
-        f"画像ファイル {sheet.as_posix()} を Read ツールで開いてください。赤い番号 1〜{len(paths)} が候補の写真です。\n"
+        f"画像1 の中の赤い番号 1〜{len(paths)} が候補の写真です。\n"
         f"この写真はショート動画で次のナレーションの間に映します:\n「{scene_text}」\n"
         + (f"写すべき人物・馬: {who}\n" if who else "")
         + (f"見分ける特徴: {uniform}\n" if uniform else "")
@@ -328,7 +329,7 @@ def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, work
         "または画質が悪すぎる・大きな文字や透かしで見えない。\n"
         'JSONのみ: {"good": [3, 1, 5], "bad": [2, 4], "why": {"3": "モーリスが花束を食べている"}}')
     try:
-        data = extract_json(ask(prompt, tools=["Read"], add_dirs=[str(workdir)], timeout=300))
+        data = VIS.ask_json(prompt, [sheet], workdir)
         n = len(paths)
         good = [int(i) - 1 for i in data.get("good", []) if str(i).isdigit() and 1 <= int(i) <= n]
         bad = [int(i) - 1 for i in data.get("bad", []) if str(i).isdigit() and 1 <= int(i) <= n and int(i) - 1 not in good]

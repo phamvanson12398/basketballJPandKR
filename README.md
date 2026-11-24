@@ -225,7 +225,11 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   2. **Claude xem hình**: AI ghi đội + số áo của nhân vật lúc đó; tool đưa khung hình các đoạn ứng viên + 1 ảnh chân dung
      cho Claude xác nhận đoạn nào có đúng người (số áo, màu áo, khuôn mặt). Không có đoạn nào đúng → thử video khác.
      Thêm ~20–40 giây mỗi cảnh video, tắt được trong Cài đặt. Link bạn tự dán thì không bị loại.
-- **🧠 Claude chọn ảnh hợp nội dung** (mọi thể loại): xem lưới ảnh ứng viên, xếp ảnh khớp lời đọc lên trước, đánh dấu
+- **🤖 AI xem ảnh / video** (Cài đặt): chọn AI làm phần *chọn ảnh, chọn đoạn video, xác nhận đúng người* –
+  **Antigravity CLI** (`agy`, tài khoản Google, không tốn lượt Claude) / **Gemini API key** (Google AI Studio, có gói miễn phí
+  theo ngày) / **Claude** / **Tắt** (chỉ thuật toán). **Viết content vẫn luôn là Claude.** Nút **🧪 Kiểm tra AI xem ảnh**
+  vẽ 1 ảnh thử rồi hỏi AI để biết đã chạy chưa. Lệnh gọi Antigravity sửa được (mặc định `agy -p {prompt}`).
+- **🧠 AI chọn ảnh hợp nội dung** (mọi thể loại): xem lưới ảnh ứng viên, xếp ảnh khớp lời đọc lên trước, đánh dấu
   "AI loại" cho ảnh sai người / không liên quan (đồ chơi, tranh hoạt hình, ảnh toàn chữ…). Thêm ~15–30 giây mỗi cảnh ảnh,
   tắt được trong Cài đặt.
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc

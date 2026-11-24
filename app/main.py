@@ -442,6 +442,14 @@ def refs_delete(rid: str):
     return {"ok": True}
 
 
+@app.post("/api/vision/test")
+def vision_test():
+    """Thử AI xem ảnh đang chọn: vẽ 1 ảnh (hình tròn đỏ + số 7) rồi hỏi."""
+    from . import vision as VIS
+    from .config import ROOT
+    return VIS.self_test(ROOT / "library" / "_vision_test")
+
+
 @app.get("/api/settings")
 def settings():
     return load_settings()

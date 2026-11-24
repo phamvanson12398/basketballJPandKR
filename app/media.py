@@ -332,7 +332,8 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
 
 def smart_order(pid: str, scene: dict, cands: list[dict], log) -> list[dict]:
     """Claude xem ảnh ứng viên: ảnh hợp nội dung lên trước, ảnh sai người / không liên quan đánh dấu "rejected" (xuống cuối)."""
-    if not load_settings().get("smart_image_pick", True) or len(cands) < 2:
+    from . import vision as VIS
+    if not load_settings().get("smart_image_pick", True) or len(cands) < 2 or VIS.provider() == "off":
         return cands
     head = cands[:12]
     base = P.pdir(pid)
@@ -347,11 +348,11 @@ def smart_order(pid: str, scene: dict, cands: list[dict], log) -> list[dict]:
     for c in bad:
         c["rejected"] = True
     if r["good"]:
-        log(f"    Claude chọn ảnh hợp nội dung: {len(good)} ảnh tốt"
+        log(f"    {VIS.provider_name()} chọn ảnh hợp nội dung: {len(good)} ảnh tốt"
             + (f" (#1: {r['why'].get(r['good'][0], '')})" if r["why"].get(r["good"][0]) else "")
             + (f" · loại {len(bad)} ảnh sai / không liên quan" if bad else ""))
     elif bad:
-        log(f"    ⚠️ Claude thấy {len(bad)}/{len(head)} ảnh không hợp nội dung – nên bấm 🔎 Tìm lại với từ khóa khác")
+        log(f"    ⚠️ {VIS.provider_name()} thấy {len(bad)}/{len(head)} ảnh không hợp nội dung – nên bấm 🔎 Tìm lại với từ khóa khác")
     return good + rest + cands[12:] + bad
 
 
@@ -642,16 +643,18 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
     verified = False
     # (2) Claude xem hình + ảnh chân dung → chỉ giữ đoạn có ĐÚNG nhân vật
     proj_sport = P.load(pid).get("sport")
+    from . import vision as VIS
+    ai = VIS.provider_name()
     if (load_settings().get("verify_person_video", True) and scene.get("who") and url != "upload"
-            and proj_sport != "esports"):
-        log(f"  {scene['id']}: nhờ Claude xem {len(wins)} đoạn để xác nhận đúng “{scene.get('who')}”...")
+            and proj_sport != "esports" and VIS.provider() != "off"):
+        log(f"  {scene['id']}: nhờ {ai} xem {len(wins)} đoạn để xác nhận đúng “{scene.get('who')}”...")
         v = HL.verify_person(video, wins, P.scene_plain_text(scene), scene.get("who", ""),
                              scene.get("uniform", ""), reference_photo(pid, scene, log), d)
         if v.get("checked"):
             if not v["ok"]:
                 if strict:
                     raise RuntimeError(f"không thấy “{scene.get('who')}” trong video này")
-                log(f"    ⚠️ Claude không thấy “{scene.get('who')}” trong link bạn dán – vẫn dùng theo ý bạn")
+                log(f"    ⚠️ {ai} không thấy “{scene.get('who')}” trong link bạn dán – vẫn dùng theo ý bạn")
                 v["ok"] = list(range(len(wins)))
             log(f"    đúng người ở {len(v['ok'])}/{len(wins)} đoạn"
                 + (f" – chọn đoạn {v['best'] + 1}: {v['why'].get(v['best'], '')}" if v.get("best") is not None else ""))
@@ -659,9 +662,9 @@ def choose_clip(pid: str, scene: dict, video: Path, url: str, used_windows: dict
             wins = [wins[i] for i in keep]
             verified = True
         else:
-            log(f"    (không xác nhận được bằng Claude: {v.get('error', '')} → chọn như bình thường)")
-    if not verified and load_settings().get("use_claude_for_highlight") and len(wins) > 1:
-        log(f"  {scene['id']}: nhờ Claude xem {len(wins)} đoạn hay nhất để chọn đoạn hợp nội dung...")
+            log(f"    (không xác nhận được bằng {ai}: {v.get('error', '')} → chọn như bình thường)")
+    if not verified and load_settings().get("use_claude_for_highlight") and len(wins) > 1 and VIS.provider() != "off":
+        log(f"  {scene['id']}: nhờ {ai} xem {len(wins)} đoạn hay nhất để chọn đoạn hợp nội dung...")
         pick = HL.ask_claude_pick(video, wins, P.scene_plain_text(scene), d)
     rel = video.relative_to(P.pdir(pid)).as_posix()
     cands = []
