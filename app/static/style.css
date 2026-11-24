@@ -302,3 +302,6 @@ details.fact a { display: block; margin: 4px 0 0 4px; word-break: break-all; }
 .fact-summary .hook.on .ht { font-weight: 700; }
 .fact-summary .hook .hs { font-weight: 700; color: #b45309; text-align: center; }
 .fact-summary .hook button, .fact-summary .hook b:last-child { grid-column: 3; grid-row: 1; }
+
+/* tìm chuyện đời */
+.idea .src-link { display: block; font-size: 12px; margin-top: 4px; word-break: break-all; }

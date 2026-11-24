@@ -959,6 +959,7 @@ $('#btnIdeasOpen').onclick = () => {
   showOnly('#ideas');
   $('#ideaLang').value = $('#newLang').value;
   try { const s = JSON.parse(localStorage.getItem('shorts_ideas') || 'null'); if (s && !$('#ideaList').innerHTML) renderIdeas(s); } catch {}
+  try { const s = JSON.parse(localStorage.getItem('shorts_stories') || 'null'); if (s && !$('#storyList').innerHTML) renderStories(s); } catch {}
 };
 $('#btnIdeasClose').onclick = () => showOnly(P ? '#proj' : '#empty');
 $$('.presets a').forEach(a => a.onclick = () => { $('#ideaNiche').value = a.dataset.n; });
@@ -988,6 +989,46 @@ function renderIdeas(list) {
     $('#newTitle').focus();
   });
 }
+// ---- tìm chuyện đời nhân vật
+const SPORT_IDS = ['baseball', 'basketball', 'soccer', 'sumo', 'horse', 'esports', 'idol', 'kpop', 'owarai', 'other'];
+function renderStories(list) {
+  $('#storyList').innerHTML = list.map((x, i) => `<div class="idea">
+    <div class="body">
+      <div class="t">${esc(x.title)}</div><div class="vi">${esc(x.title_vi || '')}</div>
+      ${x.hook ? `<div class="why">🎣 ${esc(x.hook)}</div>` : ''}
+      <div class="why">📖 ${esc(x.summary_vi || '')}</div>
+      <div class="meta"><span class="badge">${GENRE_VI[x.genre] || x.genre}</span>
+        ${x.era ? `<span class="badge">🕰 ${esc(x.era)}</span>` : ''}
+        ${x.known ? `<span class="badge ${/あまり|덜|잘 알려지지/.test(x.known) ? 'hot' : ''}">${esc(x.known)}</span>` : ''}
+        điểm ${x.score ?? '-'}/10</div>
+      ${(x.sources || []).map(s => `<a class="src-link" href="${esc(s.url)}" target="_blank" rel="noopener">🔗 ${esc(s.title || s.url)}</a>`).join('')}
+    </div>
+    <button class="primary" data-s="${i}">🎬 Làm video này</button></div>`).join('') || '<p class="muted">Không tìm được chuyện nào.</p>';
+  $$('#storyList button[data-s]').forEach(b => b.onclick = () => {
+    const x = list[+b.dataset.s];
+    $('#newLang').value = $('#ideaLang').value;
+    $('#newGenre').value = x.genre; toggleNewsBox();
+    if (x.genre === 'sports' && SPORT_IDS.includes(x.sport)) $('#newSport').value = x.sport;
+    if ($('#newAudience')) $('#newAudience').value = $('#ideaAudience').value;
+    $('#newTitle').value = x.title;
+    $('#newTopic').value = [x.topic || '', x.hook ? `冒頭の一文の案: ${x.hook}` : '',
+      ...(x.sources || []).map(s => `出典: ${s.title || ''} ${s.url}`)].filter(Boolean).join('\n');
+    openCreate();
+    $('#newTitle').focus();
+  });
+}
+$('#btnStories').onclick = async () => {
+  const person = $('#storyPerson').value.trim();
+  if (!person) return alert('Nhập tên nhân vật nhé');
+  const b = $('#btnStories'); b.disabled = true; b.textContent = '⏳ Claude đang tra cứu (2–4 phút)...';
+  try {
+    const list = await api('/api/stories', {method: 'POST', json: {lang: $('#ideaLang').value, person,
+      count: +$('#storyCount').value, audience: $('#ideaAudience').value}});
+    try { localStorage.setItem('shorts_stories', JSON.stringify(list)); } catch {}
+    notify('📖', `Đã tìm được ${list.length} chuyện về ${person}`, 'Bấm “Làm video này” ở chuyện bạn thích', 'ok', () => showOnly('#ideas'));
+    renderStories(list);
+  } finally { b.disabled = false; b.textContent = '🔎 Tìm chuyện đời'; }
+};
 $('#btnIdeas').onclick = async () => {
   const b = $('#btnIdeas'); b.disabled = true; b.textContent = '⏳ Claude đang tra cứu (1–2 phút)...';
   try {

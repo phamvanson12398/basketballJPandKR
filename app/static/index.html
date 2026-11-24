@@ -346,9 +346,23 @@
         <div><label>Số ý tưởng</label><select id="ideaCount"><option>5</option><option selected>10</option><option>15</option></select></div>
       </div>
       <button class="primary big" id="btnIdeas">✨ Gợi ý ngay</button>
-      <p class="hint center">Claude tra cứu chủ đề đang hot gần đây, mất khoảng 1–2 phút.</p>
+      <p class="hint center">Claude tra cứu chủ đề đang hot gần đây, mất khoảng 1–2 phút. Tool nhớ các ý tưởng đã gợi ý và các video
+        bạn đã làm → lần sau không gợi ý lại; mỗi ý tưởng là một nhân vật khác nhau.</p>
     </div>
     <div id="ideaList"></div>
+
+    <div class="panel" style="margin-top:22px">
+      <h3>📖 Tìm chuyện đời thú vị của một nhân vật</h3>
+      <p class="hint">Nhập tên người (cầu thủ, HLV, nghệ sĩ, nhân vật lịch sử, nhà sáng lập…). Claude đọc phỏng vấn, báo, tiểu sử…
+        rồi đưa ra các chuyện <b>ít người biết</b>, mỗi chuyện đủ làm 1 video, có link nguồn. Dùng chung ô Khán giả ở trên.</p>
+      <div class="grid3">
+        <div style="grid-column: span 2"><label>Tên nhân vật</label><input id="storyPerson" placeholder="VD: 落合博満 / イチロー / 이승엽 / 織田信長"></div>
+        <div><label>Số chuyện</label><select id="storyCount"><option>5</option><option selected>8</option><option>12</option></select></div>
+      </div>
+      <button class="primary big" id="btnStories">🔎 Tìm chuyện đời</button>
+      <p class="hint center">Mất khoảng 2–4 phút (tra cứu kỹ nhiều nguồn).</p>
+    </div>
+    <div id="storyList"></div>
   </div>
 
   <!-- ============================ CÀI ĐẶT ============================ -->

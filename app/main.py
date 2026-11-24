@@ -189,6 +189,17 @@ def make_twin(pid: str, data: dict = Body(...)):
     return {"id": p["id"]}
 
 
+@app.post("/api/stories")
+def stories(data: dict = Body(...)):
+    """Claude tìm các chuyện đời thú vị của 1 nhân vật (mất khoảng 2–4 phút)."""
+    from .extras import find_stories
+    try:
+        return find_stories(data.get("lang") or "ja", data.get("person") or "", int(data.get("count") or 8),
+                            data.get("audience") or "all")
+    except Exception as e:  # noqa: BLE001
+        _err(e)
+
+
 @app.post("/api/ideas")
 def ideas(data: dict = Body(...)):
     """Claude gợi ý ý tưởng video (mất khoảng 1–2 phút)."""

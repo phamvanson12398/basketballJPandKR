@@ -277,6 +277,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   phần lớn là cảnh trong game nên không dùng Claude soi số áo, mà dựa vào **phụ đề bình luận viên gọi tên** để cắt đúng pha.
 - Nhạc nền riêng: "EDM sôi động" và "Hùng tráng kiểu Worlds".
 
+### 💡 Gợi ý ý tưởng & 📖 Tìm chuyện đời nhân vật (trang 💡 Ý tưởng)
+- **Gợi ý ý tưởng không trùng**: tool nhớ các ý tưởng đã gợi ý (`library/idea_history.json`) và các video đã làm → lần sau
+  không gợi ý lại; mỗi ý tưởng là **một nhân vật khác nhau**; mỗi lần đổi ngẫu nhiên hướng (thời 80–90, 2000, gần đây,
+  sau giải nghệ, thầy trò, vấp ngã…) cho đa dạng. Ví dụ trong prompt không còn bị lặp lại.
+- **📖 Tìm chuyện đời**: nhập tên 1 người → Claude đọc phỏng vấn, báo, tiểu sử… → 5–12 **chuyện ít ai biết**, mỗi chuyện có
+  tiêu đề, câu mở đầu, tóm tắt tiếng Việt, thời điểm, mức độ "ít người biết", **link nguồn** và nút **🎬 Làm video này**
+  (điền sẵn tiêu đề + ghi chú + nguồn cho AI viết). Tìm lại lần nữa → ra chuyện **khác**.
+
 ## 3. Cài đặt thêm (⚙️ ở góc dưới bên trái)
 - **Model Claude**: để trống hoặc ghi `opus` / `sonnet`.
 - **Nguồn tìm ảnh**: bật/tắt DuckDuckGo, Bing, Yahoo! JAPAN, Naver, Ảnh từ báo (đều miễn phí).

@@ -149,6 +149,11 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
 - 写真・映像が多く手に入るテーマを優先（静止画とYouTube映像で作る動画のため）。
 - 事実ベースで作れるものだけ。未確認の噂・ゴシップ、炎上しやすい政治・歴史・領土問題は避ける。
 - タイトルは{lang_name}で、最初の15文字で気になるように。
+- 下の「例」は型（切り口の作り方）の説明だけ。例に出てくる人物・会社・題材そのものは企画に使わない。
+- {count}本はすべて別の主役（人物・チーム・会社・出来事）にする。同じ人物の別エピソードを2本入れない。
+  時代（昔〜最近）・分野・切り口の型（意外な過去 / 誕生秘話 / 逆転劇 / 名言の裏側 / 引き際 / ライバル / 素顔）もばらけさせる。
+{variety}
+{avoid}
 - sports / biography の企画は、再生数の多い「雑学・裏話」型を中心にする:
   誰もが知っている有名人物の「知られていない一面」1つに絞った切り口
   （例:「落合博満が試合中ずっと無表情だった本当の理由」「リベラの魔球カットボールは偶然生まれた」
@@ -165,7 +170,7 @@ IDEA_PROMPT = """今日は{date}です。あなたは{country}のTikTok / YouTub
 
 ## 出力（JSONのみ、話題性の高い順）
 ```json
-[{{"title": "{lang_name}のタイトル", "title_vi": "Tiêu đề tiếng Việt", "genre": "sports",
+[{{"title": "{lang_name}のタイトル", "title_vi": "Tiêu đề tiếng Việt", "genre": "sports", "subject": "主役の正式名（人物名・会社名など）",
    "ranking_n": null, "topic": "台本作成AIへのメモ（何を・どの切り口で・重要な事実）",
    "why_vi": "Vì sao nên làm (1 câu tiếng Việt)", "timely": true, "score": 8}}]
 ```
@@ -178,14 +183,101 @@ GENRE_RULE = {"any": "自由（企画に合うものを選ぶ）", "sports": "sp
               "ranking": "ranking のみ（TOP N 形式）"}
 
 
+# ---- chống trùng: nhớ các ý tưởng đã gợi ý + các video đã làm
+def _hist_file():
+    from .config import ROOT
+    return ROOT / "library" / "idea_history.json"
+
+
+def _load_history() -> list[dict]:
+    f = _hist_file()
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _save_history(items: list[dict]) -> None:
+    f = _hist_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(items[-400:], ensure_ascii=False), encoding="utf-8")
+
+
+def _norm(s: str) -> str:
+    import re as _re
+    return _re.sub(r"[\s　・、。,.!！?？「」『』（）()〔〕【】《》\-—:：]+", "", (s or "").lower())
+
+
+def _grams(s: str) -> set:
+    s = _norm(s)
+    return {s[i:i + 3] for i in range(max(1, len(s) - 2))}
+
+
+def _similar(a: str, b: str) -> bool:
+    ga, gb = _grams(a), _grams(b)
+    return bool(ga and gb) and len(ga & gb) / len(ga | gb) >= 0.45
+
+
+def used_material() -> tuple[list[str], list[str]]:
+    """(tiêu đề / chủ đề đã dùng, nhân vật đã dùng) từ các video đã làm + ý tưởng đã gợi ý gần đây."""
+    titles, subjects = [], []
+    for p in P.list_all() if hasattr(P, "list_all") else []:
+        titles += [p.get("title") or "", p.get("topic") or ""]
+        subjects += [s.get("who", "").split("、")[0] for s in (p.get("scenes") or [])[:3] if s.get("who")]
+    for h in _load_history()[-200:]:
+        titles.append(h.get("title", ""))
+        if h.get("subject"):
+            subjects.append(h["subject"])
+    titles = [t for t in dict.fromkeys(t.strip() for t in titles) if t]
+    subjects = [s for s in dict.fromkeys(s.strip() for s in subjects) if s]
+    return titles, subjects
+
+
+def _avoid_block(titles: list[str], subjects: list[str]) -> str:
+    if not titles and not subjects:
+        return ""
+    out = ["\n## 使わないもの（既に動画にした・最近提案した。重複・言い換えもNG）"]
+    if subjects:
+        out.append("- 主役として使わない人物・会社: " + "、".join(subjects[-80:]))
+    if titles:
+        out.append("- 既出の企画: " + " / ".join(t[:40] for t in titles[-60:]))
+    return "\n".join(out) + "\n"
+
+
+VARIETY = [
+    "1980年代〜90年代の題材を2本以上", "2000年代の題材を2本以上", "ここ5年の題材を2本以上",
+    "引退後・晩年の話を1本", "デビュー前・無名時代の話を1本", "ライバル・師弟関係の話を1本",
+    "家族・恩人がカギの話を1本", "失敗・挫折から逆転した話を1本", "記録の裏にある意外な数字の話を1本",
+    "名言・セリフの裏側の話を1本", "あまり知られていない名脇役・裏方の話を1本", "海外で活躍した人物の話を1本",
+]
+
+
+def dedupe(items: list[dict], titles: list[str], subjects: list[str], key_title="title", key_subject="subject"):
+    out, seen_sub = [], {_norm(s) for s in subjects}
+    for x in items:
+        t, s = x.get(key_title, ""), _norm(x.get(key_subject, ""))
+        if s and s in seen_sub:
+            continue
+        if any(_similar(t, u) for u in titles) or any(_similar(t, o.get(key_title, "")) for o in out):
+            continue
+        out.append(x)
+        if s:
+            seen_sub.add(s)
+    return out
+
+
 def suggest_ideas(lang: str, niche: str, genre: str = "any", count: int = 10, audience: str = "all") -> list[dict]:
+    import random as _random
     L = LG.get(lang)
+    titles, subjects = used_material()
+    variety = "- 今回は特に: " + " / ".join(_random.sample(VARIETY, 3))
     if audience == "35plus":
         niche = (niche or "") + ("（視聴者は35歳以上の大人。1980〜2000年代の名選手・名場面・商品・出来事など、"
                                  "この世代が懐かしく感じ、自分の人生と重ねられる企画を中心に。旬の話題も、昔の名選手・出来事と比べる切り口で）")
     prompt = IDEA_PROMPT.format(date=today_ja(), country=L["country"], people=L["people"],
                                 lang_name=L["name"], niche=niche or "スポーツ（特にバスケットボール）",
-                                genre_rule=GENRE_RULE.get(genre, GENRE_RULE["any"]), count=count)
+                                genre_rule=GENRE_RULE.get(genre, GENRE_RULE["any"]), count=count + 4,
+                                variety=variety, avoid=_avoid_block(titles, subjects))
     data = extract_json(ask(prompt, tools=["WebSearch", "WebFetch"], timeout=600))
     if isinstance(data, dict):
         data = data.get("ideas") or data.get("items") or []
@@ -195,4 +287,69 @@ def suggest_ideas(lang: str, niche: str, genre: str = "any", count: int = 10, au
             if x.get("genre") not in GENRES:
                 x["genre"] = "general"
             out.append(x)
+    out = dedupe(out, titles, subjects)[:count]          # bỏ trùng với video đã làm / ý tưởng cũ / trong cùng lượt
+    _save_history(_load_history() + [{"title": x["title"], "subject": x.get("subject", ""),
+                                      "at": today_ja()} for x in out])
+    return out
+
+
+# ---------------------------------------------------------------- TÌM CHUYỆN ĐỜI NHÂN VẬT
+STORY_PROMPT = """今日は{date}です。あなたは{country}の人気ショート動画チャンネルのリサーチャーです。
+「{person}」の人生から、ショート動画（60〜90秒、「雑学・裏話」型）1本になる**面白いエピソード**を{count}個探してください。
+視聴者は{people}。{audience}
+
+## 調べ方（必ず WebSearch / WebFetch を何回も使う）
+- 本人や関係者のインタビュー記事、自伝・評伝の紹介、大手メディアの特集、公式プロフィール、百科事典（{country}語版と英語版）、
+  当時の新聞記事、番組で語ったエピソード、などを複数調べる。記憶だけで書かない。
+- 有名すぎて誰でも知っている話より、「えっ、そうだったの？」と言われる話を優先する
+  （無名時代・意外な前職・家族や恩人・偶然・失敗・名言の裏側・引退後・意外な趣味や癖・知られざる記録）。
+
+## 条件
+- 事実として確認できたものだけ。出典（URL）を必ず付ける。噂・ゴシップ・不祥事・私生活の暴露・誹謗中傷は入れない。
+- {count}個はすべて別の出来事・時期にする。同じ話の言い換えはNG。
+{avoid}
+## 出力（JSONのみ、面白い順）
+```json
+[{{"title": "{lang_name}の動画タイトル", "title_vi": "Tiêu đề tiếng Việt",
+   "hook": "{lang_name}で、動画の最初の一文（意外な事実・数字・セリフで始める）",
+   "summary_vi": "Câu chuyện tóm tắt 2–3 câu tiếng Việt (có năm, con số, chi tiết cụ thể)",
+   "era": "年代（例: 1995年 / 高校時代）",
+   "genre": "sports / biography / history / brand のどれか",
+   "sport": "スポーツの場合の分野（baseball / basketball / soccer / sumo / horse / esports / idol / kpop / owarai / other）",
+   "topic": "台本作成AIへのメモ（{lang_name}。切り口・重要な事実・年・数字・確認できた発言とその出典）",
+   "sources": [{{"title": "資料名", "url": "https://..."}}],
+   "known": "あまり知られていない / ファンなら知っている / 有名",
+   "score": 8}}]
+```
+"""
+
+
+def find_stories(lang: str, person: str, count: int = 8, audience: str = "all") -> list[dict]:
+    """Claude tra cứu kỹ 1 nhân vật → các chuyện đời thú vị, ít người biết, có nguồn – mỗi chuyện = 1 video."""
+    person = (person or "").strip()
+    if not person:
+        raise ValueError("Nhập tên nhân vật nhé")
+    L = LG.get(lang)
+    titles, _ = used_material()
+    rel = [t for t in titles if _norm(person) in _norm(t)] + \
+          [h.get("title", "") for h in _load_history() if _norm(person) in _norm(h.get("subject", ""))]
+    avoid = ("\n- 既に動画にした・提案済みの話（使わない）: " + " / ".join(dict.fromkeys(rel))[:2000] + "\n") if rel else ""
+    aud = ("視聴者は35歳以上の大人。その世代が懐かしく感じる時代の話や、人生の重みが伝わる話を優先。"
+           if audience == "35plus" else "")
+    prompt = STORY_PROMPT.format(date=today_ja(), country=L["country"], people=L["people"], lang_name=L["name"],
+                                 person=person, count=count + 2, audience=aud, avoid=avoid)
+    data = extract_json(ask(prompt, tools=["WebSearch", "WebFetch"], timeout=900))
+    if isinstance(data, dict):
+        data = data.get("stories") or data.get("items") or []
+    out = []
+    for x in data:
+        if not (isinstance(x, dict) and x.get("title")):
+            continue
+        if x.get("genre") not in GENRES:
+            x["genre"] = "biography"
+        x["subject"] = person
+        x["sources"] = [s for s in (x.get("sources") or []) if isinstance(s, dict) and s.get("url")][:3]
+        out.append(x)
+    out = dedupe(out, rel, [], key_subject="_none")[:count]   # cùng 1 nhân vật → chỉ lọc trùng theo nội dung chuyện
+    _save_history(_load_history() + [{"title": x["title"], "subject": person, "at": today_ja()} for x in out])
     return out
