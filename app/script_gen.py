@@ -471,6 +471,22 @@ SPORTS = {
 - action: 大会のスーパープレー・優勝の瞬間・トロフィー=高、経歴や数字の説明=低。
 - image_query は「選手名 + チーム名 + 大会名 年 / 優勝 / トロフィー / 試合中」、
   video_query は「選手名 + 大会名 + 年 + ハイライト / スーパープレー」（大会公式チャンネルの映像が見つかりやすい）。"""},
+    "history": {"vi": "🏯 Lịch sử / Samurai", "ja": "歴史", "rule": """## 分野: 歴史（日本: 戦国武将・侍・幕末の志士・城・江戸の暮らし / 韓国: 朝鮮・高麗・三国時代の王や名将）
+- この動画は「歴史」が題材。ランキング・人物伝などジャンルの構成はそのまま守り、事実の扱いは歴史のルールに従う。
+- 年号・人名・地名・官職・合戦名・史料名は正確に。史料（日本:『信長公記』『吾妻鏡』『甲陽軍鑑』など / 韓国:『조선왕조실록』『삼국사기』など）や
+  研究・博物館・自治体の解説で確認できることだけ。はっきりしない話は「〜と伝わる」「諸説ある」と書き、断定しない。
+- 後世の創作（講談・軍記物の脚色・時代劇・大河ドラマ・사극・ゲーム）を事実として書かない。出典がはっきりしない名言は使わない。
+- 「最強」「一番」などのランキングは史実で比べられないので、根拠（戦績・石高・在位年数・史料の評価など）を示し、
+  「独自の基準で選んだ」と分かる言い方にする。
+- 日韓の歴史認識問題・戦争責任・領土問題・植民地支配・特定の民族や国をおとしめる話題は扱わない（文禄・慶長の役なども避ける）。
+  戦や切腹・処刑は事実を淡々と、美化も煽りもしない。
+- 難しい歴史用語には一言で補足（例:「関白、つまり天皇を補佐する最高の地位」）。
+- 人物名・城・出来事の名前は〔〕で囲む → 字幕で赤字（例:「〔織田信長〕は」）。1チャンクに1か所まで。tts には記号を入れない。
+- tts では難読の人名・地名・官職を必ずかな（韓国語はハングル）にする（例: 長宗我部元親→ちょうそかべもとちか、直江兼続→なおえかねつぐ）。
+- who には人物名（城・出来事が主役なら城名・出来事名）。uniform には肖像画・甲冑・家紋などの見分けポイント
+  （例:「黒い南蛮胴の甲冑 / 家紋は織田木瓜」「赤い곤룡포（王の礼服）」）。call は空でよい。
+- 写真のない時代なので、画像は肖像画・屏風絵・錦絵・古文書・城や史跡の写真・甲冑や刀などの遺品（博物館）を使う。
+  時代劇・大河ドラマ・사극の画像を使う場面では、役者を本人として紹介しない。"""},
     "other": {"vi": "🏅 Khác", "ja": "", "rule": ""},
 }
 
@@ -622,8 +638,10 @@ def generate(pid: str, log, feedback: str = "") -> None:
              if p.get("genre") == "news" else
              "\n## 出典\n- sources に、事実確認に使った資料（公式サイト・大手報道・公的資料・史料など。見出し・URL）を2件以上入れる。"
              "\n- 確認できなかった数字・発言・エピソードは台本に入れない。\n")
+    # lĩnh vực Lịch sử ở thể loại khác (Top / Tiểu sử…): giữ bố cục thể loại, tìm ảnh/video kiểu lịch sử
+    hist = GENRES["history"] if p.get("sport") == "history" and p.get("genre") != "history" else gen
     prompt = PROMPT.format(
-        role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=gen["action"],
+        role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=hist["action"],
         hook_rule=(HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
                    else HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT)).replace("{country}", L["country"]),
         refs=REFS.prompt_block(p.get("lang") or "ja", p.get("genre") or "sports", p.get("sport")),
@@ -632,7 +650,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         screen_rule=(KOREA_SCREEN_RULE if korea_layout else SCREEN_RULES.get(p.get("genre"), "") or
                      (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else "")),
         sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"].replace("{country}", L["country"]),
-        image_rule=gen["image"], video_rule=gen["video"],
+        image_rule=hist["image"], video_rule=hist["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
         topic=p.get("topic") or "（なし）",
         duration=dur, chars=chars, scene_chars=scene_chars, scene_sec=IMAGE_SEC,

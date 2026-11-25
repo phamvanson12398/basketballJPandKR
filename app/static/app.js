@@ -987,7 +987,7 @@ function renderIdeas(list) {
     }
     $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
     const niche = $('#ideaNiche').value.toLowerCase();
-    const sp = /đua ngựa|競馬|jra|uma musume|ウマ娘/.test(niche) ? 'horse' : /esports|e스포츠|eスポーツ|faker|lck|valorant/.test(niche) ? 'esports'
+    const sp = /lịch sử|samurai|侍|武士|武将|戦国|幕末|歴史|사무라이|역사|조선/.test(niche) ? 'history' : /đua ngựa|競馬|jra|uma musume|ウマ娘/.test(niche) ? 'horse' : /esports|e스포츠|eスポーツ|faker|lck|valorant/.test(niche) ? 'esports'
       : /m-1|hài|お笑い|芸人|漫才|コント/.test(niche) ? 'owarai' : /k-pop|kpop|케이팝|bts|blackpink/.test(niche) ? 'kpop' : /idol|アイドル|akb|乃木坂|nogizaka/.test(niche) ? 'idol' : /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
       : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
     if (sp) $('#newSport').value = sp;
@@ -996,7 +996,7 @@ function renderIdeas(list) {
   });
 }
 // ---- tìm chuyện đời nhân vật
-const SPORT_IDS = ['baseball', 'basketball', 'soccer', 'sumo', 'horse', 'esports', 'idol', 'kpop', 'owarai', 'other'];
+const SPORT_IDS = ['baseball', 'basketball', 'soccer', 'sumo', 'horse', 'esports', 'idol', 'kpop', 'owarai', 'history', 'other'];
 function renderStories(list) {
   $('#storyList').innerHTML = list.map((x, i) => `<div class="idea">
     <div class="body">
@@ -1014,7 +1014,7 @@ function renderStories(list) {
     const x = list[+b.dataset.s];
     $('#newLang').value = $('#ideaLang').value;
     $('#newGenre').value = x.genre; toggleNewsBox();
-    if (x.genre === 'sports' && SPORT_IDS.includes(x.sport)) $('#newSport').value = x.sport;
+    if (SPORT_IDS.includes(x.sport) && (x.genre === 'sports' || x.sport === 'history')) $('#newSport').value = x.sport;
     if ($('#newAudience')) $('#newAudience').value = $('#ideaAudience').value;
     $('#newTitle').value = x.title;
     $('#newTopic').value = [x.topic || '', x.hook ? `冒頭の一文の案: ${x.hook}` : '',

@@ -390,7 +390,8 @@ def render(pid: str, log) -> None:
     if LAY.is_light(p):
         log("Idol / K-pop → dùng nền trắng")
     g = LAY.geometry(lay, sport, light=LAY.is_light(p))
-    if p.get("genre") == "history" and lay == "sports":
+    if (p.get("genre") == "history" and lay == "sports") or \
+            (p.get("sport") == "history" and lay in ("sports", "general")):
         g["bg"] = "0xf4efe4"     # lịch sử: nền giấy washi / hanji
     log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 

@@ -64,7 +64,7 @@ def resolve(p: dict) -> str:
     if f != AUTO:
         return f
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
-    if p.get("genre") == "history":
+    if p.get("genre") == "history" or p.get("sport") == "history":
         lay = "history_ko" if p.get("lang") == "ko" else "history_ja"   # nhạc cổ truyền theo nước
     elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse", "esports") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop

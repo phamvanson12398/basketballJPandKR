@@ -48,6 +48,15 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 > bạn nhận **thông báo của Windows + tiếng "ting ting" + tên tab nhấp nháy "✅ Xong!"**, kể cả khi đang xem tab khác
 > hoặc đang mở video khác. Bấm vào thông báo là mở đúng video, đúng bước.
 
+### 🏯 Lĩnh vực Lịch sử / Samurai (cho Top, Tiểu sử, Chủ đề chung)
+Muốn làm **"Top 5 võ tướng mạnh nhất thời Chiến Quốc"** hay **tiểu sử một samurai**: chọn thể loại Top / Tiểu sử như bình thường,
+rồi chọn **Lĩnh vực = 🏯 Lịch sử / Samurai**. Video giữ bố cục của thể loại (Top vẫn đếm ngược, huy hiệu vàng),
+nhưng content theo quy tắc lịch sử: dẫn sử liệu, chuyện chưa chắc ghi 「諸説ある」, không lấy phim/giai thoại làm sự thật,
+Top phải nêu tiêu chí xếp hạng, tránh chủ đề nhạy cảm Nhật–Hàn; tên nhân vật chữ đỏ, tên khó đọc tự chuyển hiragana;
+ảnh tìm tranh chân dung / bình phong / lâu đài / giáp trụ, video tìm cảnh lâu đài, di tích, phim Taiga.
+Nhạc nền tự chọn nhạc cổ truyền (Chiến quốc / Edo; bản tiếng Hàn: Cung đình / Chiến trận). Bố cục Chủ đề chung dùng nền washi;
+Top giữ nền đen, Tiểu sử giữ nền kem. Gợi ý ý tưởng / tìm chuyện đời có chữ "samurai, 戦国, lịch sử…" sẽ tự chọn lĩnh vực này.
+
 ### 🏅 Lĩnh vực: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá / 🎤 Idol Nhật / 🎶 K-pop / 😂 Hài – M-1
 Khi tạo video (trừ Tin tức), chọn **Lĩnh vực**. **🎤 Idol Nhật**: tên thành viên luôn có cách đọc, thứ hạng dựa trên
 số lần center / tuyển chọn / tổng tuyển cử / phát ngôn chính thức, không viết tin đồn tình cảm hay scandal; nhạc nền riêng
