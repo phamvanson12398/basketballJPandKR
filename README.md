@@ -48,13 +48,24 @@ Cần: **Windows 10/11 + card NVIDIA** (nên có VRAM 8GB trở lên).
 > bạn nhận **thông báo của Windows + tiếng "ting ting" + tên tab nhấp nháy "✅ Xong!"**, kể cả khi đang xem tab khác
 > hoặc đang mở video khác. Bấm vào thông báo là mở đúng video, đúng bước.
 
+### 🏯 Video Lịch sử: kiểu "kể chuyện với bạn" (theo video mẫu 島流し)
+Thể loại **🏯 Lịch sử** giờ làm theo video mẫu nhiều view:
+- **Bố cục**: nền trắng, ảnh lớn 1080×824 ở giữa, **không có sub phía trên**; mỗi lần chỉ hiện **1 cụm sub ngắn** (1–2 dòng,
+  chữ đen đậm, tên nhân vật màu đỏ) ngay dưới ảnh, đổi theo từng câu đọc (~1,3 giây). Vị trí và cỡ chữ đo từ video mẫu.
+- **Giọng văn タメ口** như kể cho bạn nghe ("〜って知ってる？", "ヤバい", "マジで"): 1 chủ đề (島流し, 切腹, 参勤交代…)
+  đi qua các thời đại và ngày càng "ghê" hơn; câu đầu hỏi thẳng; **hé lộ chuyện buồn cười nhất ngay đầu rồi để dành tới cuối**;
+  thỉnh thoảng chen câu bình luận ngắn; kết bằng 1 câu cảm thán. Vẫn phải đúng sử liệu.
+- **Ảnh**: tranh cổ / ukiyo-e / chân dung / ảnh cũ, **xen hình minh họa đồ vật** được nhắc tới (con quạ, bát cơm, bản đồ…).
+- Kịch bản mẫu **島流しの刑の実態** đã có trong 📚 Thư viện kịch bản mẫu; video Lịch sử chỉ học từ mẫu lịch sử.
+- Bố cục này cũng dùng cho Lĩnh vực 🏯 Lịch sử ở Chủ đề chung. Top và Tiểu sử giữ bố cục riêng.
+
 ### 🏯 Lĩnh vực Lịch sử / Samurai (cho Top, Tiểu sử, Chủ đề chung)
 Muốn làm **"Top 5 võ tướng mạnh nhất thời Chiến Quốc"** hay **tiểu sử một samurai**: chọn thể loại Top / Tiểu sử như bình thường,
 rồi chọn **Lĩnh vực = 🏯 Lịch sử / Samurai**. Video giữ bố cục của thể loại (Top vẫn đếm ngược, huy hiệu vàng),
 nhưng content theo quy tắc lịch sử: dẫn sử liệu, chuyện chưa chắc ghi 「諸説ある」, không lấy phim/giai thoại làm sự thật,
 Top phải nêu tiêu chí xếp hạng, tránh chủ đề nhạy cảm Nhật–Hàn; tên nhân vật chữ đỏ, tên khó đọc tự chuyển hiragana;
 ảnh tìm tranh chân dung / bình phong / lâu đài / giáp trụ, video tìm cảnh lâu đài, di tích, phim Taiga.
-Nhạc nền tự chọn nhạc cổ truyền (Chiến quốc / Edo; bản tiếng Hàn: Cung đình / Chiến trận). Bố cục Chủ đề chung dùng nền washi;
+Nhạc nền tự chọn nhạc cổ truyền (Chiến quốc / Edo; bản tiếng Hàn: Cung đình / Chiến trận). Chủ đề chung dùng bố cục lịch sử (nền trắng, sub dưới ảnh);
 Top giữ nền đen, Tiểu sử giữ nền kem. Gợi ý ý tưởng / tìm chuyện đời có chữ "samurai, 戦国, lịch sử…" sẽ tự chọn lĩnh vực này.
 
 ### 🏅 Lĩnh vực: Bóng chày / Bóng rổ / 🤼 Sumo / Bóng đá / 🎤 Idol Nhật / 🎶 K-pop / 😂 Hài – M-1
@@ -279,7 +290,7 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Chuyện không chắc chắn → "tương truyền / có thuyết cho rằng", không lấy chuyện trong phim/truyện làm sự thật.
   **Tránh** vấn đề lịch sử Nhật–Hàn, trách nhiệm chiến tranh, lãnh thổ, thời thuộc địa.
 - Ảnh: tranh chân dung, bình phong chiến trận, thư tịch cổ, thành quách, di tích, giáp trụ (thời chưa có ảnh chụp).
-- **Nền giấy washi/hanji**, tên nhân vật chữ đỏ. Nhạc nền tự chọn theo nước: 🇯🇵 Chiến quốc (taiko, shakuhachi) / Edo (koto);
+- **Nền trắng, ảnh lớn giữa, 1 cụm sub dưới ảnh** (xem mục "kể chuyện với bạn"), tên nhân vật chữ đỏ. Nhạc nền tự chọn theo nước: 🇯🇵 Chiến quốc (taiko, shakuhachi) / Edo (koto);
   🇰🇷 Cung đình (gayageum, janggu nhịp 3) / Chiến trận.
 
 ### 🎮 eSports (LoL / LCK / Worlds, đối kháng / EVO, VALORANT…) – Thể thao → Môn: 🎮 eSports

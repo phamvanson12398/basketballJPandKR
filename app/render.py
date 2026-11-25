@@ -339,7 +339,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     ev = []
     for sc, t0 in zip(scenes, starts):
-        chunks = [auto_wrap(c.strip()) for c in sc.get("chunks", []) if MK.strip(c).strip()]
+        chunks = [auto_wrap(c.strip(), (style or {}).get("wrap", 11))
+                  for c in sc.get("chunks", []) if MK.strip(c).strip()]
         if not chunks:
             continue
         speech = max(0.3, float(sc["duration"]) - 0.18)
@@ -350,6 +351,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             bounds.append((acc, acc + speech * wgt / tot))
             acc += speech * wgt / tot
         end_scene = t0 + float(sc["duration"])
+        if style and style.get("below_only"):
+            # lịch sử: mỗi lần 1 cụm, chỉ ở dưới khung, đổi theo từng câu đọc
+            for i, chunk in enumerate(chunks):
+                a1 = bounds[i][1] if i < len(chunks) - 1 else end_scene
+                y = L['sub_bottom']
+                for text, has_big in MK.to_ass_lines(chunk, size, big, ass_escape, W):
+                    ev.append(f"Dialogue: 0,{ass_time(bounds[i][0])},{ass_time(a1)},Bottom,,0,0,0,,"
+                              f"{{\\pos({W // 2},{y:.0f})}}{text}")
+                    y += pitch(has_big)
+            continue
         # cặp (trên, dưới): chunk lẻ ở trên, chunk chẵn hiện thêm ở dưới
         for i in range(0, len(chunks), 2):
             a0 = bounds[i][0]
@@ -390,9 +401,6 @@ def render(pid: str, log) -> None:
     if LAY.is_light(p):
         log("Idol / K-pop → dùng nền trắng")
     g = LAY.geometry(lay, sport, light=LAY.is_light(p))
-    if (p.get("genre") == "history" and lay == "sports") or \
-            (p.get("sport") == "history" and lay in ("sports", "general")):
-        g["bg"] = "0xf4efe4"     # lịch sử: nền giấy washi / hanji
     log(f"Bộ mã hóa video: {encoder()} · bố cục: {lay}")
 
     # 1) ghép giọng đọc
@@ -498,7 +506,7 @@ def render(pid: str, log) -> None:
     # 3) sub + chữ/hiệu ứng của bố cục
     if lay == "sports":
         extra = LAY.sport_rows(sport, p, scenes, starts, total, g) if sport else None
-        build_ass(scenes, starts, rdir / "subs.ass", extra, LAY.HORSE if sport == "horse" else None)
+        build_ass(scenes, starts, rdir / "subs.ass", extra, LAY.SUB_STYLES.get(sport))
     else:
         LAY.build_ass(lay, p, scenes, starts, total, rdir / "subs.ass")
 

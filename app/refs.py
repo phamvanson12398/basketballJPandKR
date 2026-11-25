@@ -66,6 +66,21 @@ DEFAULTS = [
              "〔スーパークリーク〕は、ご飯を綺麗に《4等分》にして食べやすくしないと食べなかった。"
              "〔シンザン〕は、幕の内弁当のようにきれいに配置しないと食べなかった。"
              "それに対して、〔ゴルシ〕はご飯を水に浸して《ぐちゃぐちゃ》にして、《お茶漬け》のように食べるのが【大好きだった！！！】"},
+    {"id": "shimanagashi", "title": "島流しの刑の実態（歴史の雑学）", "lang": "ja", "genre": "history", "sport": "",
+     "views": "", "note": "Kiểu kể chuyện với bạn (タメ口): 1 chủ đề đi qua các thời đại, mỗi cụm sub ~1,3 giây ở dưới ảnh, "
+                          "đầu video hé lộ chuyện buồn cười nhất rồi để dành tới cuối; ảnh = tranh cổ xen hình minh họa đồ vật.",
+     "text": "実は島流しの刑の実態って、かなりエグい刑だったの知ってる？これ処刑の次にヤバイ罰だったんだよね。"
+             "まあ自分の頭に糞を落とされたからって、カラスを島流しにした、あの無能将軍の話は後で話すことにして。"
+             "まず最初に島流しにあったのは、なんと天皇の娘。兄を好きになっちゃったせいで、当時の政治の中心奈良から、"
+             "遠く離れた四国まで飛ばされる、という悲劇があったわけ。奈良や平安時代はまだ人道的だった。"
+             "ちゃんとご飯食べさせてもらえたり、罪を償えば、普通の人として社会復帰もできたんだよね。"
+             "ところが鎌倉時代に入ると状況が一変。政治犯をとりあえず遠くに追いやって、影響力を削ぐための手段に使われちゃう。"
+             "あの〔親鸞〕や〔日蓮〕も島流しに遭ってるけど、宗教を布教しただけなのに、めっちゃ気の毒。"
+             "さらに室町時代になると、ついに神様まで島流し。疫病が流行ったせいで、ちゃんと仕事しないから、"
+             "という謎すぎる理由で神様が追放されちゃった。もはや人間だけの話じゃないよね、ヤバすぎ。"
+             "で、江戸時代。将軍〔吉宗〕が「遠島」って言う、ガチの無期限島流しを始めちゃって、罪人たちは一生帰れない絶望的な生活に。"
+             "それなのに同じ江戸時代の〔綱吉〕は、自分に糞を落としたカラスを島流しにする、という謎行動に出る。"
+             "歴史を掘れば掘るほど島流しって、マジで奥が深い。"},
 ]
 DELETED = ROOT / "library" / "reference_scripts_deleted.json"
 
@@ -117,6 +132,7 @@ def delete(rid: str) -> None:
 
 STORY_GENRES = ("sports", "biography", "brand", "history")
 FORMAT_SPORTS = ("horse",)
+FORMAT_GENRES = ("history",)   # thể loại có giọng văn riêng (lịch sử = タメ口 kể chuyện): chỉ học mẫu cùng thể loại
 
 
 def pick(lang: str, genre: str, sport: str | None = None, n: int = 3) -> list[dict]:
@@ -124,6 +140,10 @@ def pick(lang: str, genre: str, sport: str | None = None, n: int = 3) -> list[di
     def close(g):
         return g == genre or (g in STORY_GENRES and genre in STORY_GENRES)
     items = [x for x in load() if close(x.get("genre"))]
+    if genre in FORMAT_GENRES and any(x.get("genre") == genre for x in items):
+        return sorted([x for x in items if x.get("genre") == genre],
+                      key=lambda x: (x.get("lang") != lang, -int(x.get("added") or 0)))[:n]
+    items = [x for x in items if x.get("genre") not in FORMAT_GENRES or x.get("genre") == genre]
     # môn có kiểu viết riêng (đua ngựa = tuyển tập chuyện vui): chỉ dùng mẫu cùng môn, môn khác không dùng mẫu này
     if sport in FORMAT_SPORTS and any(x.get("sport") == sport for x in items):
         items = [x for x in items if x.get("sport") == sport]

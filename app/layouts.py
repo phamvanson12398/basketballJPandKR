@@ -42,6 +42,8 @@ def sport_variant(p: dict, lay: str) -> str | None:
     """Bố cục bóng chày + nhãn riêng của môn: chỉ cho sumo / bóng đá."""
     if lay == "sports" and p.get("sport") in ("sumo", "soccer", "horse"):
         return p["sport"]
+    if lay in ("sports", "general") and (p.get("genre") == "history" or p.get("sport") == "history"):
+        return "history"   # lịch sử: nền trắng, ảnh lớn giữa, 1 dòng sub ngắn ở dưới (theo video mẫu)
     return None
 
 
@@ -53,9 +55,16 @@ def is_light(p: dict) -> bool:
     return p.get("sport") in LIGHT_FIELDS
 
 
+# bố cục lịch sử (đo từ video mẫu 島流し 1080×1920): nền trắng, ảnh 1080×824 từ y=348,
+# KHÔNG có sub trên khung, mỗi lần chỉ 1 cụm sub ngắn (1–2 dòng) chữ đen đậm ngay dưới khung
+HISTORY = {"media_y": 348, "media_h": 824, "sub_top": 0, "sub_bottom": 1222,
+           "size": 98, "big": 120, "pitch": 0.72, "below_only": True, "wrap": 12}
+SUB_STYLES = {}   # điền ở dưới (sau HORSE)
+
 # bố cục đua ngựa (đo từ video mẫu 1080×1920)
 HORSE = {"media_y": 490, "media_h": 724, "sub_top": 442, "sub_bottom": 1257,
          "size": 111, "big": 144, "pitch": 0.88}
+SUB_STYLES.update(horse=HORSE, history=HISTORY)
 
 
 def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
@@ -67,6 +76,8 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
          "frame_color": "white", "light": light}
     if sport == "sumo":
         g["bg"] = "0xf4efe4"     # màu giấy washi
+    if sport == "history":
+        g.update(bg="white", y=HISTORY["media_y"], h=HISTORY["media_h"])
     if sport == "horse":
         # theo video đua ngựa mẫu: nền trắng, khung kín ngang từ y=490, cao 724
         g.update(bg="white", y=HORSE["media_y"], h=HORSE["media_h"])
@@ -522,7 +533,7 @@ def soccer_overlay(e: Ev, p, scenes, starts, total, g):
             _plate(e, st, end, 30, mb - 110, 720, "&HFFFFFF&", PITCH, sc["player"], sc.get("team", ""), "&HE5FAD1&")
 
 
-SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay, "horse": lambda *a: None}
+SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay, "horse": lambda *a: None, "history": lambda *a: None}
 
 
 def sport_rows(sport: str, p, scenes, starts, total, g) -> list[str]:
