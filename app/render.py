@@ -81,12 +81,38 @@ def smart_offset(im: Image.Image, cw: int, ch: int) -> tuple[int, int]:
     return (min(im.width - cw, max(0, round(bx / sc))), min(im.height - ch, max(0, round(by / sc))))
 
 
+def _on_white(im: Image.Image) -> Image.Image:
+    """Ảnh PNG trong suốt (いらすとや…) → đặt lên nền trắng (convert thẳng sang RGB sẽ ra nền đen)."""
+    if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+        im = im.convert("RGBA")
+        bg = Image.new("RGB", im.size, "white")
+        bg.paste(im, mask=im.split()[-1])
+        return bg
+    return im.convert("RGB")
+
+
+def _white_border(im: Image.Image) -> bool:
+    """Viền ảnh gần như toàn màu trắng → là hình minh họa / bản đồ trên nền trắng."""
+    a = np.asarray(im.convert("L").resize((200, max(2, round(200 * im.height / max(im.width, 1))))))
+    b = max(2, a.shape[0] // 20)
+    edge = np.concatenate([a[:b].ravel(), a[-b:].ravel(), a[:, :10].ravel(), a[:, -10:].ravel()])
+    return float((edge > 238).mean()) > 0.9
+
+
 def prepare_image(src: Path, dst: Path, g: dict) -> Path:
     """Đưa ảnh vào khung (không làm mờ, không viền trắng).
     Mọi tỉ lệ (ngang / vuông / dọc) được phóng cho kín khung rồi cắt vào chỗ có người (smart_offset).
     Muốn giữ vùng khác thì dùng công cụ ✂️ Cắt ảnh."""
     tw, th = g["w"] * ZOOM_SCALE, g["h"] * ZOOM_SCALE
-    im = Image.open(src).convert("RGB")
+    im = _on_white(Image.open(src))
+    if g.get("illust_fit") and _white_border(im):
+        # hình minh họa nền trắng (いらすとや, bản đồ…): hiện TRỌN hình, nằm giữa nền trắng như video mẫu
+        s = min(tw * 0.86 / im.width, th * 0.8 / im.height)
+        r = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
+        out = Image.new("RGB", (tw, th), "white")
+        out.paste(r, ((tw - r.width) // 2, (th - r.height) // 2))
+        out.save(dst, "JPEG", quality=93)
+        return dst
     s = max(tw / im.width, th / im.height)
     r = im.resize((max(tw, round(im.width * s)), max(th, round(im.height * s))), Image.LANCZOS)
     x, y = smart_offset(r, tw, th)     # cắt vào chỗ có người thay vì luôn cắt giữa
@@ -147,7 +173,7 @@ def image_part(img: Path, dur: float, out: Path, variant: int, g: dict, sticker=
         ("1.06", f"(iw-iw/zoom)*(1-on/{N})", cy),   # lia phải → trái
         (f"1.08-0.08*on/{N}", cx, cy),              # zoom ra
     ][variant % 6]
-    if not load_settings().get("image_zoom"):
+    if not load_settings().get("image_zoom") or g.get("still"):
         z, x, y = "1", "0", "0"   # ảnh đứng yên, hiện trọn vẹn (giống video mẫu)
     extra_in, st_fc = _sticker_fc(sticker)
     fc = (f"[0:v]zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={g['w']}x{g['h']}:fps={FPS},setsar=1[m0];"

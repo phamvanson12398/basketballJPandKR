@@ -56,6 +56,10 @@ Thể loại **🏯 Lịch sử** giờ làm theo video mẫu nhiều view:
   đi qua các thời đại và ngày càng "ghê" hơn; câu đầu hỏi thẳng; **hé lộ chuyện buồn cười nhất ngay đầu rồi để dành tới cuối**;
   thỉnh thoảng chen câu bình luận ngắn; kết bằng 1 câu cảm thán. Vẫn phải đúng sử liệu.
 - **Ảnh**: tranh cổ / ukiyo-e / chân dung / ảnh cũ, **xen hình minh họa đồ vật** được nhắc tới (con quạ, bát cơm, bản đồ…).
+- **Ảnh làm giống video mẫu**: ~6 phần tranh cổ (chân dung cho nhân vật, ukiyo-e / cuộn tranh cho sự kiện), ~2 phần
+  hình minh họa kiểu いらすとや cho đồ vật / con vật / cảm xúc (khoảng 1/4 số cảnh), ~2 phần ảnh chụp (chùa, tượng Phật,
+  ảnh cũ, đồ vật). **Ảnh đứng yên** (không zoom/lia); tranh phóng kín khung, **hình minh họa nền trắng hiện trọn ở giữa**
+  (PNG trong suốt tự đặt lên nền trắng).
 - **Không ra ảnh người thời nay**: video lịch sử tìm ảnh ở **Wikipedia / Wikimedia Commons trước** (tranh chân dung, cuộn tranh,
   sử liệu, lâu đài – phần lớn là tài liệu công cộng), bỏ nguồn ảnh báo; ảnh có tiêu đề kiểu diễn viên / idol / tuyển thủ /
   tin tức / game… bị loại; ảnh có tiêu đề không nhắc tới chủ đề (VD 甲陽軍鑑) bị loại; không chụp khung hình YouTube;

@@ -224,14 +224,19 @@ def scene_queries(scene: dict, kind: str, query: str | None = None) -> list[str]
     return out or [P.scene_plain_text(scene)[:30]]
 
 
-def download_image(url: str, dest: Path, loose: bool = False) -> bool:
+def download_image(url: str, dest: Path, loose: bool = False, min_size: tuple = (640, 360)) -> bool:
     """loose=True (ảnh báo chí): nhận cả ảnh ngang 3:2, 4:3… vì khung video tự cắt vừa (ưu tiên giữ người)."""
     try:
         r = requests.get(url, headers={"User-Agent": UA, "Referer": url}, timeout=20)
         r.raise_for_status()
         im = Image.open(io.BytesIO(r.content))
+        if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+            im = im.convert("RGBA")          # PNG trong suốt (いらすとや…) → nền trắng, không bị nền đen
+            bg = Image.new("RGB", im.size, "white")
+            bg.paste(im, mask=im.split()[-1])
+            im = bg
         im = im.convert("RGB")
-        if im.width < 640 or im.height < 360:
+        if im.width < min_size[0] or im.height < min_size[1]:
             return False   # ảnh quá nhỏ → mờ khi phóng to
         dest.parent.mkdir(parents=True, exist_ok=True)
         im.save(dest, "JPEG", quality=92)
@@ -341,7 +346,8 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
             if hist and modern(res):
                 continue
             f = d / f"c2_{len(c2) + 1}_{tok}.jpg"
-            if download_image(res["url"], f, loose=True):
+            # lịch sử: hình いらすとや thường chỉ ~400px – vẫn nhận (hiện trọn giữa nền trắng, không phóng kín khung)
+            if download_image(res["url"], f, loose=True, min_size=(300, 300) if hist else (640, 360)):
                 c2.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                            "page": res.get("page", ""), "src": res.get("src", ""), "role": "object"})
                 used.add(res["url"])
@@ -389,7 +395,8 @@ def smart_order(pid: str, scene: dict, cands: list[dict], log, role: str = "") -
     if is_history(P.load(pid)):
         note = ("これは歴史の動画です。現代の写真（芸能人・俳優・アイドル・スポーツ選手・現代人のポートレート・"
                 "現代の街や店・ニュース写真・スマホやゲーム画面）はすべて bad。"
-                + ("ナレーションに出てくる物・動物・場所・気持ちのイラスト、地図、物の写真は good。"
+                + ("ナレーションに出てくる物・動物・場所・気持ちの、白い背景のかわいいイラスト（いらすとや風）が一番 good。"
+                   "地図のイラスト、物の写真も good。"
                    if role == "object" else
                    "肖像画・絵巻・浮世絵・錦絵・屏風・古文書・古写真・城や史跡・仏像・博物館の甲冑や刀などは good。"
                    "時代劇・大河ドラマの場面写真は、他に良い候補が無い時だけ低い順位で good。"))

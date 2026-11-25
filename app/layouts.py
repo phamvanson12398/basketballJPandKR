@@ -77,7 +77,8 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
     if sport == "sumo":
         g["bg"] = "0xf4efe4"     # màu giấy washi
     if sport == "history":
-        g.update(bg="white", y=HISTORY["media_y"], h=HISTORY["media_h"])
+        # ảnh đứng yên (video mẫu không zoom/lia) · hình minh họa nền trắng (いらすとや, bản đồ) hiện trọn, nằm giữa
+        g.update(bg="white", y=HISTORY["media_y"], h=HISTORY["media_h"], still=True, illust_fit=True)
     if sport == "horse":
         # theo video đua ngựa mẫu: nền trắng, khung kín ngang từ y=490, cao 724
         g.update(bg="white", y=HORSE["media_y"], h=HORSE["media_h"])
