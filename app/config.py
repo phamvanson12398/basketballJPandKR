@@ -27,6 +27,14 @@ SUB_LINE_SPACING = 0.76  # khoảng cách dòng (x cỡ chữ), sát nhau giốn
 JA_CHARS_PER_SEC = 6.5
 IMAGE_SEC = 4.5          # độ dài mỗi cảnh thuyết minh (~4.5 giây) – dùng khi AI chia cảnh
 SWITCH_SEC = 3.0         # cứ ~3 giây đổi ảnh / đổi đoạn video một lần (giữ chân người xem)
+SWITCH_SEC_HISTORY = 2.5 # lịch sử: đổi ảnh nhanh như video mẫu 島流し (đo được ~2,6 giây/ảnh, đổi đúng lúc đổi sub)
+
+
+def switch_sec(p: dict | None) -> float:
+    """Bao nhiêu giây đổi ảnh một lần cho dự án này."""
+    if p and (p.get("genre") == "history" or (p.get("sport") == "history" and p.get("genre") not in ("news", "brand"))):
+        return SWITCH_SEC_HISTORY
+    return SWITCH_SEC
 VIDEO_RATIO = 0.30       # 70% ảnh / 30% video
 
 DEFAULT_SETTINGS = {

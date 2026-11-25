@@ -19,7 +19,7 @@ from .config import (FONTS, FPS, H, ROOT, SUB_LINE_SPACING, W, ffmpeg_bin, ffpro
                      layout, load_settings, BGM)
 from . import layouts as LAY
 from . import markup as MK
-from .config import SWITCH_SEC
+from .config import SWITCH_SEC, switch_sec
 from .media import n_images_for
 
 ZOOM_SCALE = 3  # ảnh chuẩn bị ở 3x để zoom mượt, không giật
@@ -157,6 +157,34 @@ def image_part(img: Path, dur: float, out: Path, variant: int, g: dict, sticker=
 
 
 # ------------------------------------------------------------------ video
+def _sync_cuts(s: dict, D: float, n: int) -> list[float]:
+    """Lịch sử: đổi ảnh ĐÚNG lúc đổi cụm sub (như video mẫu) – chọn các mốc đổi sub gần nhất với mốc chia đều.
+    Thời điểm từng cụm sub tính giống build_ass (theo số chữ)."""
+    even = [D / n] * n
+    chunks = [MK.strip(c).replace("\n", "").replace(" ", "") for c in s.get("chunks", []) if MK.strip(c).strip()]
+    if n <= 1 or len(chunks) < 2:
+        return even
+    speech = max(0.3, float(s["duration"]) - 0.18)
+    tot = sum(max(1, len(c)) for c in chunks)
+    marks, acc = [], 0.0
+    for c in chunks[:-1]:
+        acc += speech * max(1, len(c)) / tot
+        marks.append(acc)
+    cuts, last = [], 0.0
+    for i in range(1, n):
+        target = D * i / n
+        ok = [m for m in marks if m > last + 1.0 and m < D - 1.0 * (n - i)]   # mỗi ảnh ít nhất ~1 giây
+        if not ok:
+            return even
+        m = min(ok, key=lambda x: abs(x - target))
+        if abs(m - target) > D / n * 0.6:     # mốc sub quá xa mốc chia đều → giữ chia đều cho ảnh này
+            m = target
+        cuts.append(m)
+        last = m
+    edges = [0.0] + cuts + [D]
+    return [b - a for a, b in zip(edges, edges[1:])]
+
+
 def video_part(src: Path, start: float, dur: float, out: Path, g: dict, sticker=None,
                crop: dict | None = None) -> None:
     n = max(2, round(dur * FPS))
@@ -452,7 +480,7 @@ def render(pid: str, log) -> None:
             pieces = [("split", (items[0], items[1]), D)]   # so sánh 2 người: chia đôi khung
         else:
             imgs = [it for it in items if it["kind"] == "image"]
-            k = n_images_for(D)
+            k = n_images_for(D, switch_sec(p))
             if s.get("picked") is False and len(imgs) < k:
                 # tool tự chọn (bạn chưa đụng tới cảnh này): giọng đọc dài hơn dự tính → chọn thêm ảnh khác
                 # trong danh sách ứng viên, và LƯU LẠI để giao diện hiện đúng những ảnh có trong video
@@ -468,7 +496,8 @@ def render(pid: str, log) -> None:
             elif len(imgs) < k:
                 # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
                 log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
-            pieces = [("image", it, D / len(imgs)) for it in imgs]
+            durs = _sync_cuts(s, D, len(imgs)) if sport == "history" else [D / len(imgs)] * len(imgs)
+            pieces = [("image", it, dd) for it, dd in zip(imgs, durs)]
         # sticker (hình minh họa) của cảnh: hiện ở mảnh đầu tiên của cảnh
         stk = None
         if s.get("sticker"):

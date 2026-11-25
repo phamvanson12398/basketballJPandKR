@@ -56,6 +56,8 @@ Thể loại **🏯 Lịch sử** giờ làm theo video mẫu nhiều view:
   đi qua các thời đại và ngày càng "ghê" hơn; câu đầu hỏi thẳng; **hé lộ chuyện buồn cười nhất ngay đầu rồi để dành tới cuối**;
   thỉnh thoảng chen câu bình luận ngắn; kết bằng 1 câu cảm thán. Vẫn phải đúng sử liệu.
 - **Ảnh**: tranh cổ / ukiyo-e / chân dung / ảnh cũ, **xen hình minh họa đồ vật** được nhắc tới (con quạ, bát cơm, bản đồ…).
+- **Đổi ảnh nhanh như video mẫu**: ~2,5 giây/ảnh (thể loại khác ~3 giây), và ảnh đổi **đúng lúc đổi cụm sub** nên hình
+  và chữ luôn khớp nhau. Tool tự tìm thêm ảnh cho đủ.
 - **100% ảnh** (video lịch sử rất khó tìm): chọn thể loại Lịch sử hoặc lĩnh vực Lịch sử là thanh tỉ lệ tự về 0% video
   (đổi sang thể loại khác thì trả lại tỉ lệ cũ). Video cũ đổi sang Lịch sử thì các cảnh video tự chuyển thành ảnh.
   Vẫn có thể tự kéo thanh hoặc bấm 🎞 ở từng cảnh nếu bạn có video hay.

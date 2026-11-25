@@ -16,7 +16,7 @@ from PIL import Image
 
 from . import highlight as HL
 from . import project as P
-from .config import IMAGE_RATIO, IMAGE_RATIO_TOL, SWITCH_SEC, load_settings
+from .config import IMAGE_RATIO, IMAGE_RATIO_TOL, SWITCH_SEC, load_settings, switch_sec
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
@@ -208,9 +208,9 @@ def download_image(url: str, dest: Path, loose: bool = False) -> bool:
         return False
 
 
-def n_images_for(dur: float) -> int:
-    """Số ảnh cho 1 cảnh: cứ ~3 giây đổi ảnh một lần."""
-    return max(1, round(dur / SWITCH_SEC))
+def n_images_for(dur: float, sec: float = SWITCH_SEC) -> int:
+    """Số ảnh cho 1 cảnh: cứ ~3 giây (lịch sử ~2,5 giây) đổi ảnh một lần."""
+    return max(1, round(dur / sec))
 
 
 def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
@@ -233,7 +233,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     # tên file mới mỗi lần tìm (không dùng lại c1.jpg…) → trình duyệt không hiện nhầm ảnh cũ còn trong bộ nhớ đệm
     tok = secrets.token_hex(3)
     cands = []
-    k = n_images_for(P.scene_est_sec(scene))
+    k = n_images_for(P.scene_est_sec(scene), switch_sec(proj))
     want = max(N_CANDIDATES, k + 2)
     weak = []     # ảnh có tiêu đề nhưng KHÔNG nhắc tên người → chỉ dùng khi thiếu
     for qi, qq in enumerate(queries):
