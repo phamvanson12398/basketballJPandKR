@@ -325,7 +325,8 @@ $('#pAudience').onchange = async () => {
 };
 $('#pSport').onchange = async () => {
   P.sport = $('#pSport').value;
-  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {sport: P.sport}});
+  const r = await api(`/api/projects/${P.id}`, {method: 'PUT', json: {sport: P.sport}});
+  if (r.video_pct !== P.video_pct) P.video_pct = r.video_pct;   // Lịch sử → 100% ảnh
   renderScript();
 };
 $('#pLayout').onchange = async () => {
@@ -334,7 +335,8 @@ $('#pLayout').onchange = async () => {
 };
 $('#pGenre').onchange = async () => {
   P.genre = $('#pGenre').value;
-  await api(`/api/projects/${P.id}`, {method: 'PUT', json: {genre: P.genre}});
+  const r = await api(`/api/projects/${P.id}`, {method: 'PUT', json: {genre: P.genre}});
+  if (r.video_pct !== P.video_pct) { P.video_pct = r.video_pct; renderAll(); }   // Lịch sử → 100% ảnh
 };
 $('#btnRebalance').onclick = async () => {
   P.scenes.forEach(s => delete s.locked_kind);
@@ -866,8 +868,18 @@ function newsParams() {
           days: +$('#newsDays').value, category: $('#newsCat').value, lang: $('#newLang').value,
           count: +$('#newsCount').value};
 }
+// Lịch sử (thể loại hoặc lĩnh vực): khó tìm video → mặc định 100% ảnh; đổi sang thể loại khác thì trả lại tỉ lệ cũ
+let RATIO_BEFORE_HISTORY = null;
+function historyRatio() {
+  const g = $('#newGenre').value;
+  const hist = g === 'history' || (!['news', 'brand'].includes(g) && $('#newSport').value === 'history');
+  if (hist && RATIO_BEFORE_HISTORY === null) { RATIO_BEFORE_HISTORY = $('#newRatio').value; $('#newRatio').value = 0; }
+  else if (!hist && RATIO_BEFORE_HISTORY !== null) { $('#newRatio').value = RATIO_BEFORE_HISTORY; RATIO_BEFORE_HISTORY = null; }
+  if (typeof newRatioLabel === 'function') newRatioLabel();
+}
 function toggleNewsBox() {
   refreshChips();
+  historyRatio();
   $('#rankBox').classList.toggle('hidden', $('#newGenre').value !== 'ranking');
   $('#sportBox').classList.toggle('hidden', ['news', 'brand', 'history'].includes($('#newGenre').value));
   const isNews = $('#newGenre').value === 'news';
@@ -885,6 +897,7 @@ async function initNews() {
   try { const ds = JSON.parse(localStorage.getItem('shorts_defaults') || '{}').sport; $('#newSport').value = ds || 'basketball'; } catch { $('#newSport').value = 'basketball'; }
   if (P) $('#pSport').value = P.sport || 'other';
   chipify('newSport');
+  $('#newSport').addEventListener('change', historyRatio);
   const langOpts = d.langs.map(l => `<option value="${l.id}">${l.vi}</option>`).join('');
   $('#newLang').innerHTML = langOpts; $('#pLang').innerHTML = langOpts; $('#ideaLang').innerHTML = langOpts;
   if (P) renderTwinBtns();
@@ -926,7 +939,7 @@ $('#btnScan').onclick = async () => {
 initNews().then(() => { toggleNewsBox(); refreshChips(); });
 
 function newRatioLabel() { const v = +$('#newRatio').value; $('#newVidPct').textContent = v; $('#newImgPct').textContent = 100 - v; }
-$('#newRatio').oninput = newRatioLabel;
+$('#newRatio').oninput = () => { RATIO_BEFORE_HISTORY = null; newRatioLabel(); };   // bạn tự kéo → giữ lựa chọn của bạn
 try {  // nhớ lựa chọn lần trước
   const d = JSON.parse(localStorage.getItem('shorts_defaults') || '{}');
   if (d.video_pct !== undefined) $('#newRatio').value = d.video_pct;
@@ -939,7 +952,7 @@ $('#btnCreate').onclick = async () => {
   if (!dur) return alert('Nhập thời lượng');
   const video_pct = +$('#newRatio').value, genre = $('#newGenre').value, lang = $('#newLang').value;
   const news = genre === 'news' ? newsParams() : null;
-  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct, genre, news, lang})); } catch {}
+  try { localStorage.setItem('shorts_defaults', JSON.stringify({video_pct: RATIO_BEFORE_HISTORY ?? video_pct, genre, news, lang})); } catch {}
   const ranking_n = genre === 'ranking' ? +$('#rankN').value : null;
   const sport = ['news', 'brand', 'history'].includes(genre) ? 'other' : $('#newSport').value;
   try { const d0 = JSON.parse(localStorage.getItem('shorts_defaults') || '{}'); d0.sport = $('#newSport').value; localStorage.setItem('shorts_defaults', JSON.stringify(d0)); } catch {}
@@ -963,7 +976,7 @@ function showOnly(id) {
   if (changed) window.scrollTo(0, 0);   // chỉ cuộn lên đầu khi đổi màn hình
 }
 function openCreate() {
-  showOnly('#create'); toggleNewsBox(); refreshChips();
+  showOnly('#create'); toggleNewsBox(); refreshChips(); historyRatio();
   $$('#projList li').forEach(li => li.classList.remove('active'));
 }
 $('#btnNew').onclick = openCreate;

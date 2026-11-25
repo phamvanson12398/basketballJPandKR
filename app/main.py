@@ -37,8 +37,10 @@ def create_project(data: dict = Body(...)):
     genre = data.get("genre") or "sports"
     if genre != "news" and not title.strip() and not topic.strip():
         _err(ValueError("Nhập title hoặc chủ đề nhé"))
-    return P.create(title, topic, int(data.get("duration") or 60), genre,
-                    int(data.get("video_pct") if data.get("video_pct") is not None else 30),
+    vpct = int(data.get("video_pct") if data.get("video_pct") is not None else 30)
+    if genre == "history" or (genre not in ("news", "brand") and data.get("sport") == "history"):
+        vpct = 0   # lịch sử: khó tìm video → 100% ảnh (tranh cổ, chân dung, di tích)
+    return P.create(title, topic, int(data.get("duration") or 60), genre, vpct,
                     data.get("news") if genre == "news" else None, data.get("lang") or "ja",
                     data.get("ranking_n"), data.get("sport") or "other", data.get("audience") or "all")
 
@@ -61,6 +63,12 @@ def put_project(pid: str, data: dict = Body(...)):
                   "screen", "layout", "sport", "audience"):
             if k in data:
                 p[k] = data[k]
+        # vừa đổi sang Lịch sử (thể loại hoặc lĩnh vực) → 100% ảnh
+        if ("genre" in data and data["genre"] == "history") or ("sport" in data and data["sport"] == "history"):
+            if "video_pct" not in data:
+                p["video_pct"] = 0
+                if p.get("scenes") and "scenes" not in data:
+                    P.rebalance(p["scenes"], 0)   # cảnh video (trừ cảnh bạn đã khóa) → ảnh
         if "scenes" in data:
             old = {s["id"]: s for s in p["scenes"]}
             new = []
