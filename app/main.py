@@ -478,6 +478,26 @@ def google_verify():
     return {"ok": True}
 
 
+@app.post("/api/google/login")
+def google_login():
+    """Mở trang đăng nhập Google trong CHÍNH cửa sổ Chrome tool dùng để tìm ảnh (chạy nền, chờ bạn đăng nhập)."""
+    import threading
+    from . import google_images as GI
+    from . import image_sources as S
+
+    def run():
+        if GI.open_for_login() == "ok":
+            S._paused_until.pop("google", None)     # đăng nhập xong → bỏ tạm nghỉ Google
+    threading.Thread(target=run, daemon=True).start()
+    return {"ok": True}
+
+
+@app.get("/api/google/status")
+def google_status():
+    from . import google_images as GI
+    return {"logged_in": GI.logged_in()}
+
+
 # ---------------------------------------------------------------- thư viện kịch bản mẫu
 @app.get("/api/refs")
 def refs_list():

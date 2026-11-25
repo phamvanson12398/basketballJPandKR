@@ -1078,6 +1078,7 @@ $('#btnIdeas').onclick = async () => {
 $('#lnkSettings').onclick = async e => {
   e.preventDefault();
   const s = await api('/api/settings');
+  gLoginLabel();
   $('#sModel').value = s.claude_model;
   let srcOn = s.sources_v2 ? (s.image_sources || []) : [...(s.image_sources || []), 'naver', 'news'];
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
@@ -1130,6 +1131,19 @@ $('#btnGVerify').onclick = async e => {
   e.preventDefault();
   await api('/api/google/verify', {method: 'POST'});
   alert('Cửa sổ Google (chính là cửa sổ tool dùng để tìm ảnh) sẽ hiện lên.\n• Nếu Google hỏi “Tôi không phải robot” → tích vào, thấy kết quả ảnh là xong, cửa sổ tự ẩn đi.\n• Nếu không bị hỏi → cửa sổ hiện 2–3 giây rồi tự ẩn: Google đang chạy tốt.\nĐừng đóng cửa sổ đó bằng dấu ✕ nhé (tool vẫn đang dùng).');
+};
+async function gLoginLabel() {
+  try { const r = await api('/api/google/status'); $('#btnGLogin').textContent = r.logged_in ? '✅ Đã đăng nhập Google' : '🔑 Đăng nhập Google'; } catch {}
+}
+$('#btnGLogin').onclick = async e => {
+  e.preventDefault();
+  await api('/api/google/login', {method: 'POST'});
+  alert('Cửa sổ Chrome (chính là cửa sổ tool dùng để tìm ảnh) sẽ hiện trang đăng nhập Google.\n'
+    + '• Đăng nhập tài khoản Google của bạn như bình thường. Đăng nhập xong cửa sổ tự ẩn đi, tool nhớ đăng nhập cho các lần sau.\n'
+    + '• Đã đăng nhập sẵn → cửa sổ hiện 3 giây rồi tự ẩn.\n'
+    + '• Tool chờ tối đa 6 phút. Đừng đóng cửa sổ đó bằng dấu ✕ nhé.\n'
+    + '• Nếu Google báo "trình duyệt này có thể không an toàn" → nên dùng một tài khoản Google phụ, hoặc chỉ bấm 🤖 Xác minh.');
+  let n = 0; const t = setInterval(async () => { await gLoginLabel(); if (++n > 40 || $('#btnGLogin').textContent.startsWith('✅')) clearInterval(t); }, 10000);
 };
 function visToggle() {
   const v = $('#sVision').value;

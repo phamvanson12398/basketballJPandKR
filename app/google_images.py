@@ -138,6 +138,74 @@ def _wait_human(page, log, why: str) -> bool:
     return ok
 
 
+# ---- đăng nhập tài khoản Google (khi Google bắt đăng nhập mới cho tìm, hoặc để ít bị hỏi "robot" hơn)
+LOGIN_WAIT_SEC = 6 * 60
+LOGIN_URL = "https://accounts.google.com/ServiceLogin?hl={hl}&continue={cont}"
+
+
+def _is_login(page) -> bool:
+    return "accounts.google.com" in (page.url or "")
+
+
+def _logged_in(ctx) -> bool:
+    try:
+        return any(c.get("name") in ("SID", "__Secure-1PSID") and "google" in c.get("domain", "") for c in ctx.cookies())
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def logged_in() -> bool:
+    """Đã có cookie đăng nhập Google đã lưu chưa (không cần mở Chrome)."""
+    try:
+        return any(c.get("name") in ("SID", "__Secure-1PSID") for c in json.loads(COOKIES.read_text(encoding="utf-8")))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _wait_login(page, log, back_url: str = "") -> bool:
+    """Hiện cửa sổ Chrome ở trang đăng nhập, chờ bạn đăng nhập xong (tối đa LOGIN_WAIT_SEC). True = đã đăng nhập."""
+    if log:
+        log(f"    🔑 Google yêu cầu đăng nhập → cửa sổ Chrome đã hiện lên: bạn đăng nhập tài khoản Google giúp "
+            f"(tool chờ tối đa {LOGIN_WAIT_SEC // 60} phút rồi tự tìm tiếp)")
+    _show(page, True)
+    waited = 0
+    while waited < LOGIN_WAIT_SEC:
+        if _logged_in(page.context) and not _is_login(page):
+            break
+        page.wait_for_timeout(2000)
+        waited += 2
+    ok = _logged_in(page.context)
+    _save_cookies(page.context)
+    if ok:
+        if log:
+            log("    ✅ Đã đăng nhập Google – tìm tiếp")
+        if back_url:
+            page.goto(back_url, wait_until="domcontentloaded", timeout=30000)
+        else:
+            page.wait_for_timeout(1500)
+    _show(page, False)
+    return ok
+
+
+def _login_on(page):
+    page.goto(LOGIN_URL.format(hl="ja", cont=urllib.parse.quote("https://www.google.co.jp/imghp?hl=ja")),
+              wait_until="domcontentloaded", timeout=30000)
+    if _logged_in(page.context) and not _is_login(page):
+        _show(page, True)              # đã đăng nhập sẵn → hiện 3 giây cho bạn thấy rồi ẩn
+        page.wait_for_timeout(3000)
+        _show(page, False)
+        return "ok"
+    return "ok" if _wait_login(page, None) else "chưa đăng nhập"
+
+
+def open_for_login() -> str:
+    """Nút 🔑 Đăng nhập Google: đăng nhập NGAY TRÊN cửa sổ Chrome mà tool dùng để tìm ảnh (cookie được lưu lại)."""
+    try:
+        return BROWSER.call(_login_on, timeout=LOGIN_WAIT_SEC + 120)
+    except Exception:  # noqa: BLE001
+        return "lỗi"
+
+
 def _collect(page, n: int) -> list[dict]:
     if "consent.google" in page.url:      # trang đồng ý cookie (hiếm khi gặp ở châu Á)
         for label in ("すべて受け入れる", "Accept all", "모두 수락"):
@@ -166,7 +234,7 @@ class _Browser:
         self.thread = None
         self.start_lock = threading.Lock()
 
-    def call(self, fn, *args, timeout: float = CAPTCHA_WAIT_SEC + 120):
+    def call(self, fn, *args, timeout: float = LOGIN_WAIT_SEC + 120):
         with self.start_lock:
             if not (self.thread and self.thread.is_alive()):
                 self.thread = threading.Thread(target=self._run, daemon=True)
@@ -231,11 +299,20 @@ def _alive(ctx) -> bool:
 BROWSER = _Browser()
 
 
-def _search_on(page, url: str, n: int, log):
+def _search_on(page, url: str, n: int, log, retry: bool = True):
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
+    if _is_login(page) and not _wait_login(page, log, url):   # Google bắt đăng nhập mới cho tìm
+        raise RuntimeError("Google yêu cầu đăng nhập (chưa đăng nhập) – bấm 🔑 Đăng nhập Google trong Cài đặt")
     if _is_captcha(page) and not _wait_human(page, log, "Google hỏi “Tôi không phải robot”"):
         raise RuntimeError("Google đang hỏi “Tôi không phải robot” (chưa xác minh)")
-    return _collect(page, n)
+    res = _collect(page, n)
+    if not res and retry:
+        page.wait_for_timeout(1000)
+        if _is_login(page):    # trang chuyển sang đăng nhập SAU khi tải (bằng JavaScript) → chờ đăng nhập rồi tìm lại
+            if not _wait_login(page, log):
+                raise RuntimeError("Google yêu cầu đăng nhập (chưa đăng nhập) – bấm 🔑 Đăng nhập Google trong Cài đặt")
+            return _search_on(page, url, n, log, retry=False)
+    return res
 
 
 def search(query: str, n: int = 80, recent: str | None = None, korean: bool = False, log=None) -> list[dict]:

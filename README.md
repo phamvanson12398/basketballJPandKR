@@ -271,6 +271,10 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Google Images**: tool mở Chrome/Edge chạy ẩn (không hiện cửa sổ), tìm giống người dùng thật, lấy ảnh gốc
   (lọc sẵn ảnh ngang). Không cần khóa API. Từ khóa tiếng Nhật → google.co.jp, tiếng Hàn → google.co.kr.
   Nếu Google hỏi "Tôi không phải robot" thì tool nghỉ Google 15 phút, các nguồn khác vẫn chạy.
+- **🔑 Đăng nhập Google** (⚙️ Cài đặt, cạnh ô Google Images): mở trang đăng nhập Google ngay trên cửa sổ Chrome mà tool
+  dùng để tìm ảnh → bạn đăng nhập như bình thường, xong cửa sổ tự ẩn, tool nhớ đăng nhập cho các lần sau
+  (nút đổi thành ✅ Đã đăng nhập Google). Đang tìm ảnh mà Google bắt đăng nhập → cửa sổ tự hiện lên, chờ bạn
+  đăng nhập tối đa 6 phút rồi tự tìm tiếp. Nếu Google báo "trình duyệt có thể không an toàn" thì nên dùng tài khoản phụ.
   Cần chạy lại `install.bat` một lần (cài Playwright + Chromium ~150MB; không cài được thì dùng Edge có sẵn).
 - **Facebook**: tự tìm thêm *video công khai* (trang báo, đội bóng, đài TV) qua DuckDuckGo/Bing (Facebook không cho
   tìm khi chưa đăng nhập). Ảnh trên Facebook thì không lấy được (cần đăng nhập). Bạn cũng có thể dán link video
