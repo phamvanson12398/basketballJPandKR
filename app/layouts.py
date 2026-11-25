@@ -537,6 +537,22 @@ def soccer_overlay(e: Ev, p, scenes, starts, total, g):
 SPORT_OVERLAYS = {"sumo": sumo_overlay, "soccer": soccer_overlay, "horse": lambda *a: None, "history": lambda *a: None}
 
 
+def era_rows(scenes, starts, total, g) -> list[str]:
+    """Nhãn NĂM to ở góc trên trái ảnh, suốt cảnh đầu (VD: 1985年 / 1997年 ヤクルト) – người xem 35+ thấy năm là dừng lại."""
+    if not scenes or not str(scenes[0].get("era") or "").strip():
+        return []
+    e = Ev()
+    txt = str(scenes[0]["era"]).strip()[:12]
+    end = starts[1] if len(starts) > 1 else total
+    px = 74
+    wpx = min(W - 60, text_width(txt, px) + 64)
+    x, y = 28, g["y"] + 26
+    pop = "\\fscx0\\fscy0\\t(0,140,\\fscx108\\fscy108)\\t(140,220,\\fscx100\\fscy100)"
+    e.shape(0, end, x, y, rrect(wpx, 112, 18), VERMILION, layer=8, extra=pop)
+    e.text(0.05, end, x + wpx / 2, y + 12, txt, px, "&HFFFFFF&", layer=9, maxw=wpx - 40, extra="\\fad(120,0)")
+    return e.rows
+
+
 def sport_rows(sport: str, p, scenes, starts, total, g) -> list[str]:
     e = Ev()
     SPORT_OVERLAYS[sport](e, p, scenes, starts, total, g)

@@ -175,12 +175,15 @@ function sceneLabelFields(s) {
       (s.split ? f('image_query2', 'Từ khóa người thứ 2', 'text', '정철원 두산') : '');
   if (lay === 'ranking') return f('rank', 'Hạng', 'number', 'trống = mở đầu/kết') + f('rank_label', 'Dải tên', 'text', '渡邊雄太 875得点');
   if (lay === 'biography') return f('year', 'Năm', 'text', '2010') + f('chapter', 'Chương', 'text', '第2章・高校時代');
+  const era = lay === 'sports' && P.sport !== 'horse' && P.genre !== 'history' && P.sport !== 'history'
+    && P.scenes && P.scenes[0] === s ? f('era', 'Nhãn năm (cảnh đầu)', 'text', '1985年 / 1997年 ヤクルト') : '';
+  if (era && !['sumo', 'soccer'].includes(P.sport)) return era;
   if (lay === 'sports' && P.sport === 'sumo')
     return f('banzuke', 'Cấp bậc', 'text', '横綱') + f('name', 'Tên võ sĩ', 'text', '大の里') +
-           f('record', 'Thành tích', 'text', '11勝1敗') + f('kimarite', 'Con dấu', 'text', 'kỹ thuật thắng, VD: 寄り切り');
+           f('record', 'Thành tích', 'text', '11勝1敗') + f('kimarite', 'Con dấu', 'text', 'kỹ thuật thắng, VD: 寄り切り') + era;
   if (lay === 'sports' && P.sport === 'soccer')
     return f('score', 'Tỉ số', 'text', '1-0') + f('minute', 'Phút', 'text', "17'") +
-           f('player', 'Cầu thủ', 'text', '坂元達裕') + f('team', 'CLB · số áo', 'text', 'コヴェントリー #7');
+           f('player', 'Cầu thủ', 'text', '坂元達裕') + f('team', 'CLB · số áo', 'text', 'コヴェントリー #7') + era;
   return '';
 }
 
@@ -938,6 +941,14 @@ $('#btnScan').onclick = async () => {
   } finally { b.disabled = false; b.textContent = '🔎 Quét tin mới nhất'; }
 };
 initNews().then(() => { toggleNewsBox(); refreshChips(); });
+// khán giả mặc định (Cài đặt) → chọn sẵn ở form tạo video và gợi ý ý tưởng
+function applyDefaultAudience(a) {
+  if (!a) return;
+  if ($('#newAudience')) $('#newAudience').value = a;
+  if ($('#ideaAudience')) $('#ideaAudience').value = a;
+  refreshChips();
+}
+api('/api/settings').then(s => applyDefaultAudience(s.default_audience || '35plus')).catch(() => {});
 
 function newRatioLabel() { const v = +$('#newRatio').value; $('#newVidPct').textContent = v; $('#newImgPct').textContent = 100 - v; }
 $('#newRatio').oninput = () => { RATIO_BEFORE_HISTORY = null; newRatioLabel(); };   // bạn tự kéo → giữ lựa chọn của bạn
@@ -1079,6 +1090,7 @@ $('#lnkSettings').onclick = async e => {
   e.preventDefault();
   const s = await api('/api/settings');
   gLoginLabel();
+  $('#sAudience').value = s.default_audience || '35plus';
   $('#sModel').value = s.claude_model;
   let srcOn = s.sources_v2 ? (s.image_sources || []) : [...(s.image_sources || []), 'naver', 'news'];
   if (!s.sources_v3) srcOn = [...srcOn, 'google'];
@@ -1097,7 +1109,8 @@ $('#lnkSettings').onclick = async e => {
     `GPU NVIDIA: ${c.cuda ? '✅ ' + c.gpu : '❌ không thấy (giọng đọc sẽ rất chậm)'}`].join('\n');
 };
 async function saveSettings() {
-  await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(),
+  applyDefaultAudience($('#sAudience').value);
+  await api('/api/settings', {method: 'PUT', json: {claude_model: $('#sModel').value.trim(), default_audience: $('#sAudience').value,
     image_sources: $$('.src').filter(c => c.checked).map(c => c.value), sources_v2: true, sources_v3: true, video_encoder: $('#sEnc').value, subtitle_size: +$('#sSize').value, media_height: +$('#sMediaH').value, media_height_korea: +$('#sMediaHK').value, sub_gap: +$('#sGap').value,
     subtitle_font: $('#sFont').value.trim(), use_claude_for_highlight: $('#sHL').checked, facebook_video: $('#sFB').checked, verify_person_video: $('#sVerify').checked, smart_image_pick: $('#sPick').checked,
     vision_provider: $('#sVision').value, agy_command: $('#sAgyCmd').value.trim() || 'agy -p {prompt}',

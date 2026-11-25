@@ -522,6 +522,8 @@ def render(pid: str, log) -> None:
             elif len(imgs) < k:
                 # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
                 log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
+            if si == 0 and lay == "sports" and sport != "history":
+                imgs = imgs[:1]     # cảnh đầu: 1 ảnh đứng yên đúng thời đó + nhãn năm (người xem kịp đọc)
             durs = _sync_cuts(s, D, len(imgs)) if sport == "history" else [D / len(imgs)] * len(imgs)
             pieces = [("image", it, dd) for it, dd in zip(imgs, durs)]
         # sticker (hình minh họa) của cảnh: hiện ở mảnh đầu tiên của cảnh
@@ -537,7 +539,8 @@ def render(pid: str, log) -> None:
             try:
                 if kind == "image":
                     prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
-                    image_part(prep, d, out, variant, g, sticker)
+                    first_still = si == 0 and lay == "sports" and sport != "history"   # cảnh đầu: ảnh đứng yên
+                    image_part(prep, d, out, variant, dict(g, still=True) if first_still else g, sticker)
                     variant += 1
                 elif kind == "split":
                     prep = prepare_split(base / it[0]["file"], base / it[1]["file"], rdir / f"img_{len(parts):03d}.jpg", g)
@@ -567,7 +570,9 @@ def render(pid: str, log) -> None:
 
     # 3) sub + chữ/hiệu ứng của bố cục
     if lay == "sports":
-        extra = LAY.sport_rows(sport, p, scenes, starts, total, g) if sport else None
+        extra = LAY.sport_rows(sport, p, scenes, starts, total, g) if sport else []
+        if sport not in ("history", "horse"):
+            extra = extra + LAY.era_rows(scenes, starts, total, g)   # nhãn năm to ở cảnh đầu
         build_ass(scenes, starts, rdir / "subs.ass", extra, LAY.SUB_STYLES.get(sport))
     else:
         LAY.build_ass(lay, p, scenes, starts, total, rdir / "subs.ass")

@@ -209,6 +209,16 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - **Bước TikTok** có thêm: **bình luận ghim** (câu hỏi gợi ký ức: "1995年、あなたは何歳でしたか？"), **chữ ảnh bìa**
   (to, ngắn: "1995年 / あの背中") và **giờ đăng gợi ý** (35+: 21–23h, 12–13h, 7–8h30; cuối tuần 9–11h).
 
+### 🎯 Giây đầu tiên & kéo đúng khán giả 35+ (từ số liệu TikTok: người xem rời đi nhiều nhất ở 0:01, 72% dưới 35 tuổi)
+- **Cảnh đầu luôn là ẢNH** (mọi thể loại), không còn ưu tiên video. Clip trận đấu hiện đại ở giây đầu làm TikTok xếp video
+  vào nhóm "highlight bóng chày" (người trẻ, cả fan Mỹ Latinh).
+- Bố cục bóng chày/thể thao: cảnh đầu là **1 ảnh đứng yên của đúng thời đó** + **nhãn năm to màu đỏ** ở góc trên trái
+  (VD "1985年 阪神"), hiện suốt cảnh đầu. Claude tự ghi nhãn (35+: luôn có; chuyện bây giờ thì lấy năm của chuyện xưa liên
+  quan, VD 1985 Hanshin vô địch); sửa ở ô **Nhãn năm (cảnh đầu)** của cảnh 1. Câu sub đầu phải tự đứng được, không cắt đôi câu hook.
+- **Hashtag 35+**: bỏ `#おすすめ #fyp` (kéo video vào luồng đại trà toàn người trẻ), thay bằng tag thời đó
+  (bóng chày: `#昭和プロ野球 #平成プロ野球 #懐かしの名選手 #プロ野球OB`).
+- **Khán giả mặc định = 35+** (⚙️ Cài đặt → Khán giả mặc định): form tạo video và gợi ý ý tưởng chọn sẵn 35+.
+
 ### ✨ Biên tập giữ chân người xem (tự chạy sau khi viết content)
 - Một lượt Claude đóng vai **biên tập viên Shorts**: chấm 6 tiêu chí (hook 2 giây đầu, câu mồi, nhịp đảo chiều,
   gọn không thừa, cụ thể, cái kết) → **thi 5 câu mở đầu** chọn câu mạnh nhất → sửa cảnh yếu (cắt câu thừa, thêm câu mồi,

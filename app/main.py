@@ -81,7 +81,7 @@ def put_project(pid: str, data: dict = Body(...)):
                                                "year", "chapter", "banzuke", "name", "record",
                                                "kimarite", "score", "minute", "player", "team",
                                                "stat", "split", "image_query2", "who", "query_alt", "uniform", "call",
-                                               "sticker", "sticker_pos") if k in s})
+                                               "sticker", "sticker_pos", "era") if k in s})
                 base["id"] = sid
                 if text_changed and base.get("audio"):
                     base["audio_stale"] = True  # cần đọc lại

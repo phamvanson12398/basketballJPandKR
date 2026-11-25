@@ -557,7 +557,13 @@ KOREA_SCREEN_RULE = """## 画面表示用テキスト（韓国式ショート: �
 - 各シーンの "stat": ナレーションで成績・数字を語るシーンにだけ、要点の数字（最大16文字。例: 「타율 2할 8리 / 1홈런」「평균자책점 6.75」）。
 - 2人の選手を比べる・トレードで交換するなど「2人」が主題のシーンは "split": true にし、
   image_query に1人目、"image_query2" に2人目の検索語を入れる（画面を左右に分けて2人を並べる）。"""
-SCENE_LABELS = ("stat", "split", "image_query2",
+ERA_RULE = """## 1シーン目（最初の1秒で離脱させない。いちばん大事）
+- 1シーン目は写真1枚を止めて見せる（動画にしない）。その話の「当時」の写真になるよう、image_query に年と当時のチームを入れる
+  （例:「バース 阪神 1985 優勝」「田畑一也 ヤクルト 1997」）。今の姿・今の試合の写真は狙わない。
+- 1シーン目の "era": 写真の左上に大きく出す年のラベル（最大10文字。例:「1985年」「1997年 ヤクルト」「平成9年」）。
+  {era_need}
+- 1シーン目の字幕は、フックの一番驚く部分が最初の1チャンクだけで伝わるようにする（文の前半だけで切らない）。"""
+SCENE_LABELS = ("stat", "split", "image_query2", "era",
                 "story", "rank", "rank_label", "year", "chapter",
                 "banzuke", "name", "record", "kimarite", "score", "minute", "player", "team")
 
@@ -675,7 +681,12 @@ def generate(pid: str, log, feedback: str = "") -> None:
         lang_rules=L["rules"] + audience_rule(p), line_max=10 if korea_layout else (13 if resolve_variant(p) == "history" else L["line_max"]), tts_rule=L["tts_rule"],
         query_lang=L["query_lang"],
         screen_rule=(KOREA_SCREEN_RULE if korea_layout else SCREEN_RULES.get(p.get("genre"), "") or
-                     (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else "")),
+                     (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else ""))
+                    + ("\n" + ERA_RULE.format(era_need=(
+                        "視聴者は35歳以上なので必ず入れる。今の話でも、つながる昔の名場面・記録の年を入れる（例: 1985年の阪神日本一）。"
+                        if p.get("audience") == "35plus" else
+                        "昔の話なら必ず入れる。今年の出来事の話なら空でよい。"))
+                       if resolve_variant(p) not in ("history", "horse") and resolve_layout(p) == "sports" else ""),
         sport_rule=SPORTS.get(p.get("sport") or "other", SPORTS["other"])["rule"].replace("{country}", L["country"]),
         image_rule=hist["image"], video_rule=hist["video"],
         title=p.get("title") or "（なし。テーマから魅力的なタイトルを考える）",
@@ -991,6 +1002,24 @@ GENRE_NAMES_JA = {"sports": "スポーツ", "biography": "有名人の人生ス�
                   "general": "雑学・解説"}
 
 
+# Khán giả 35+: KHÔNG dùng tag đại trà (#おすすめ #fyp đẩy video vào luồng đề xuất chung, phần lớn người trẻ)
+MASS_TAGS = ("#おすすめ", "#fyp", "#fypシ", "#foryou", "#foryoupage", "#추천", "#viral", "#バズれ", "#トレンド")
+ERA_TAGS = {
+    ("ja", "baseball"): "#昭和プロ野球 #平成プロ野球 #懐かしの名選手 #プロ野球OB",
+    ("ko", "baseball"): "#추억의야구 #레전드 #KBO레전드 #그시절",
+    ("ja", ""): "#昭和 #平成 #懐かしい #あの頃",
+    ("ko", ""): "#그시절 #추억 #레전드 #옛날",
+}
+
+
+def discover_tags(p: dict, L: dict) -> str:
+    if p.get("audience") != "35plus":
+        return L["discover"]
+    lang = p.get("lang") or "ja"
+    return ERA_TAGS.get((lang, p.get("sport") or ""), ERA_TAGS.get((lang, ""), "")) + \
+        "（#おすすめ #fyp などの大衆向けタグは使わない。35歳以上の人がフォロー・検索する昔の時代のタグにする）"
+
+
 def gen_tiktok(pid: str, log) -> None:
     p = P.load(pid)
     if not p.get("scenes"):
@@ -1006,7 +1035,7 @@ def gen_tiktok(pid: str, log) -> None:
            if p.get("audience") == "35plus" else "")
     text = ask(TIKTOK_PROMPT.format(genre=GENRE_NAMES_JA.get(p.get("genre"), "スポーツ") + (f"（{sport_ja}）" if sport_ja else "") + aud,
                                     title=p.get("title", ""), script=script, country=L["country"],
-                                    people=L["people"], lang_name=L["name"], discover=L["discover"]),
+                                    people=L["people"], lang_name=L["name"], discover=discover_tags(p, L)),
                timeout=300)
     data = extract_json(text)
     caps = [c for c in data.get("captions", []) if isinstance(c, dict) and c.get("ja")]
@@ -1014,6 +1043,8 @@ def gen_tiktok(pid: str, log) -> None:
     for t in data.get("hashtags", []):
         if isinstance(t, dict) and t.get("tag"):
             tag = "#" + str(t["tag"]).strip().lstrip("#").replace(" ", "")
+            if p.get("audience") == "35plus" and tag.lower() in [m.lower() for m in MASS_TAGS]:
+                continue    # 35+: bỏ tag đại trà dù AI có thêm vào
             if tag != "#" and tag not in [x["tag"] for x in tags]:
                 tags.append({"tag": tag, "group": t.get("group", ""), "vi": t.get("vi", ""), "on": True})
     if not caps:

@@ -120,10 +120,8 @@ def rebalance(scenes: list[dict], ratio: float = VIDEO_RATIO) -> None:
     for s in free:
         s["kind"] = "image"
     acc = locked_video
-    # cảnh đầu (hook) ưu tiên VIDEO: 1–2 giây đầu có chuyển động giữ người xem tốt hơn ảnh tĩnh
-    if ratio > 0 and scenes and not scenes[0].get("locked_kind"):
-        scenes[0]["kind"] = "video"
-        acc += scene_est_sec(scenes[0])
+    # cảnh đầu (hook) luôn là ẢNH đúng thời đó (+ nhãn năm to): clip trận đấu hiện đại ở giây đầu làm nền tảng
+    # đẩy video cho fan highlight trẻ và người xem lướt qua ngay ở 0:01 (số liệu TikTok của bạn)
     order = sorted((s for s in free if s is not scenes[0]),
                    key=lambda s: (-(s.get("action") or 0), scenes.index(s)))
     for s in order:
