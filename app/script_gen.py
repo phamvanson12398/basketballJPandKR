@@ -795,6 +795,9 @@ def retention_edit(pid: str, log) -> dict:
     genre = GENRE_NAMES_JA.get(p.get("genre") or "sports", "スポーツ")
     if p.get("sport") == "horse":
         genre += "（競馬のエピソード集。各馬の話のテンポとオチを重視）"
+    if p.get("genre") == "history":
+        genre += ("（歴史のヤバい雑学。友達に話すタメ口を保つ。「〜って知ってる？」型のフック、冒頭の予告と最後の回収、"
+                  "「めっちゃ気の毒」「ヤバすぎ」のような短いツッコミはこの型の持ち味なので削らない。各チャンクは話し言葉の短い1フレーズのまま）")
     if p.get("audience") == "35plus":
         genre += "／視聴者は35歳以上の大人: 懐かしさと人生の重みで引き込む。若者言葉・煽りは使わない。落ち着いた語り口を保つ"
     prompt = RETENTION_PROMPT.format(country=L["country"], lang_name=L["name"], genre=genre,
