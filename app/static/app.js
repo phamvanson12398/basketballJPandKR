@@ -425,7 +425,7 @@ function renderMedia() {
     if (isVid) {
       const it = items[0];
       chosen = `<div class="chosen"><video controls muted preload="metadata" src="/files/${P.id}/${it.file}#t=${it.start},${(+it.start + est(s)).toFixed(2)}"></video>
-        <div class="muted">Đoạn ${(+it.start).toFixed(1)}s → ${(+it.start + est(s)).toFixed(1)}s<br>${it.url && it.url !== 'upload' ? `<a href="${esc(it.url)}" target="_blank">nguồn</a>` : ''}</div></div>`;
+        <div class="muted">Đoạn ${(+it.start).toFixed(1)}s → ${(+it.start + est(s)).toFixed(1)}s${it.crop ? ' · ✂️ đã cắt khung' : ''}<br>${it.url && it.url !== 'upload' ? `<a href="${esc(it.url)}" target="_blank">nguồn</a>` : ''}</div></div>`;
     }
     const thumbs = cands.map((c, k) => {
       const key = c.kind === 'video' ? c.file + '@' + c.start : c.file;
@@ -433,8 +433,8 @@ function renderMedia() {
       return `<div class="thumb ${sel.has(key) ? 'sel' : ''}" data-k="${k}">
         <img loading="lazy" src="/files/${P.id}/${c.kind === 'video' ? c.thumb : c.file}">
         ${idx >= 0 ? `<span class="n">${idx + 1}</span>` : ''}
-        ${c.kind === 'image' ? `<button class="crop-btn" data-crop="${esc(c.file)}" title="Cắt ảnh (bỏ chữ, logo…)">✂️</button>` : ''}
-        ${c.cropped_from ? '<span class="cut">đã cắt</span>' : ''}
+        <button class="crop-btn" data-crop="${esc(c.file)}" data-k="${k}" title="${c.kind === 'video' ? 'Cắt khung video (bỏ logo, chữ, viền đen…)' : 'Cắt ảnh (bỏ chữ, logo…)'}">✂️</button>
+        ${c.cropped_from || c.crop ? '<span class="cut">đã cắt</span>' : ''}
         ${c.rejected ? '<span class="cut" style="background:#b91c1c" title="Claude thấy ảnh này sai người hoặc không hợp nội dung">AI loại</span>' : ''}
         ${c.kind === 'video' ? `<span class="t">${(+c.start).toFixed(1)}s</span>` : ''}</div>`;
     }).join('');
@@ -458,8 +458,9 @@ function renderMedia() {
     const i = +el.dataset.i, sid = el.dataset.sid, s = P.scenes[i];
     el.querySelectorAll('.crop-btn').forEach(b => b.onclick = e => {
       e.stopPropagation();
-      const c = (s.candidates || []).find(x => x.file === b.dataset.crop);
-      openCrop(sid, b.dataset.crop, !!(c && c.cropped_from));
+      const c = (s.candidates || [])[+b.dataset.k] || (s.candidates || []).find(x => x.file === b.dataset.crop);
+      if (c && c.kind === 'video') openCrop(sid, c.file, !!c.crop, c);
+      else openCrop(sid, b.dataset.crop, !!(c && c.cropped_from));
     });
     el.querySelectorAll('.thumb').forEach(t => t.onclick = async () => {
       P = Object.assign(await api(`/api/projects/${P.id}/scenes/${sid}/pick`, {method: 'POST', json: {index: +t.dataset.k}}), {job: P.job});
@@ -487,10 +488,15 @@ function renderMedia() {
   });
 }
 // ---- khung cắt ảnh
-const CROP = {sid: null, file: null, box: null, ratio: null};
-async function openCrop(sid, file, isCropped) {
-  CROP.sid = sid; CROP.file = file;
+const CROP = {sid: null, file: null, box: null, ratio: null, video: null};
+async function openCrop(sid, file, isCropped, video = null) {
+  CROP.sid = sid; CROP.file = file; CROP.video = video;
+  $('#cropTitle').textContent = video ? '✂️ Cắt khung video' : '✂️ Cắt ảnh';
+  $('#cropReset').textContent = video ? '↺ Bỏ cắt (dùng cả khung)' : '↺ Về ảnh gốc';
   try { const st = await api('/api/settings'); CROP.ratio = 1080 / (+st.media_height || 680); } catch { CROP.ratio = 1080 / 680; }
+  const lay0 = effLayout();
+  if (['sports', 'general'].includes(lay0) && (P.genre === 'history' || P.sport === 'history')) CROP.ratio = 1080 / 824;   // bố cục lịch sử
+  else if (lay0 === 'sports' && P.sport === 'horse') CROP.ratio = 1080 / 724;   // bố cục đua ngựa
   if (effLayout() === 'korea') {
     let hk = 1140;
     try { hk = Math.max(700, Math.min(1500, +(await api('/api/settings')).media_height_korea || 1140)); } catch {}
@@ -505,11 +511,20 @@ async function openCrop(sid, file, isCropped) {
     let w = W, h = W / CROP.ratio;
     if (h > H) { h = H; w = H * CROP.ratio; }
     CROP.box = {x: (W - w) / 2, y: (H - h) / 2, w, h};
+    const vc = CROP.video && CROP.video.crop;   // video đã cắt → mở lại đúng vùng đã chọn
+    if (vc) CROP.box = {x: vc.x * W, y: vc.y * H, w: vc.w * W, h: vc.h * H};
     drawCrop();
   };
   // ảnh đã cắt → mở lại ảnh gốc để cắt lại
-  const cand = P.scenes.find(x => x.id === sid)?.candidates?.find(c => c.file === file);
-  img.src = `/files/${P.id}/${cand?.cropped_from || file}?v=${Date.now() % 1e7}`;
+  if (video) {
+    // khung hình lớn của video tại đoạn đang chọn (ảnh nhỏ thì khó chọn vùng)
+    let fr = video.thumb;
+    try { fr = (await api(`/api/projects/${P.id}/scenes/${sid}/vframe`, {method: 'POST', json: {file: video.file, start: video.start}})).file; } catch {}
+    img.src = `/files/${P.id}/${fr}?v=${Date.now() % 1e7}`;
+  } else {
+    const cand = P.scenes.find(x => x.id === sid)?.candidates?.find(c => c.file === file);
+    img.src = `/files/${P.id}/${cand?.cropped_from || file}?v=${Date.now() % 1e7}`;
+  }
   $('#cropModal').classList.remove('hidden');
 }
 function drawCrop() {
@@ -563,12 +578,12 @@ $('#cropModal').onclick = e => { if (e.target.id === 'cropModal') $('#cropModal'
 $('#cropSave').onclick = async () => {
   const img = $('#cropImg'), W = img.clientWidth, H = img.clientHeight, b = CROP.box;
   P = Object.assign(await api(`/api/projects/${P.id}/scenes/${CROP.sid}/crop`, {method: 'POST',
-    json: {file: CROP.file, x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H}}), {job: P.job});
+    json: {file: CROP.file, kind: CROP.video ? 'video' : 'image', x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H}}), {job: P.job});
   $('#cropModal').classList.add('hidden');
   renderMedia();
 };
 $('#cropReset').onclick = async () => {
-  P = Object.assign(await api(`/api/projects/${P.id}/scenes/${CROP.sid}/uncrop`, {method: 'POST', json: {file: CROP.file}}), {job: P.job});
+  P = Object.assign(await api(`/api/projects/${P.id}/scenes/${CROP.sid}/uncrop`, {method: 'POST', json: {file: CROP.file, kind: CROP.video ? 'video' : 'image'}}), {job: P.job});
   $('#cropModal').classList.add('hidden');
   renderMedia();
 };

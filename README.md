@@ -168,6 +168,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 - Có thể **dán link** YouTube / TikTok / X / Facebook / Instagram, hoặc **tải ảnh/video của bạn lên**.
 - **✂️ Cắt ảnh**: rê chuột lên ảnh → bấm ✂️ → kéo khung chọn vùng giữ lại (bỏ chữ, logo, watermark).
   Khung mặc định khóa đúng tỉ lệ khung video nên không bị viền trắng; ảnh gốc được giữ, bấm "Về ảnh gốc" để hoàn tác.
+- **✂️ Cắt khung video**: rê chuột lên đoạn video → bấm ✂️ → kéo khung chọn vùng giữ lại (bỏ logo kênh, chữ, viền đen,
+  khán giả hai bên…). Lúc xuất video, tool cắt đúng vùng đó rồi phóng kín khung hình. Áp dụng cho mọi đoạn của cùng video
+  trong cảnh; file video gốc không bị sửa, bấm "Bỏ cắt" để dùng lại cả khung.
 
 ### Bước 4 – Xuất video
 - **Nhạc nền**: mặc định **🎵 Tự chọn theo thể loại**. Tool có sẵn 20 bài **do tool tự soạn bằng code, không bản quyền**

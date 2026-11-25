@@ -283,6 +283,8 @@ def crop_image(pid: str, sid: str, data: dict = Body(...)):
     if not sc:
         _err(ValueError("Không thấy cảnh"))
     old = data.get("file", "")
+    if data.get("kind") == "video":
+        return _crop_video(pid, sid, sc, old, data)
     cand = next((c for c in (sc.get("candidates") or []) + (sc.get("items") or [])
                  if c.get("file") == old and c.get("kind") == "image"), None)
     if not cand:
@@ -314,10 +316,59 @@ def crop_image(pid: str, sid: str, data: dict = Body(...)):
     return P.update(pid, apply)
 
 
+def _crop_video(pid: str, sid: str, sc: dict, file: str, data: dict):
+    """Cắt khung video: lưu vùng giữ lại (tỉ lệ 0–1) cho MỌI đoạn của cùng file video trong cảnh.
+    Không tạo file mới – lúc xuất video FFmpeg cắt khung rồi mới phóng vào khung hình."""
+    if not any(c.get("file") == file and c.get("kind") == "video"
+               for c in (sc.get("candidates") or []) + (sc.get("items") or [])):
+        _err(ValueError("Không thấy video này trong cảnh"))
+    fx = max(0.0, min(0.98, float(data.get("x", 0))))
+    fy = max(0.0, min(0.98, float(data.get("y", 0))))
+    fw = max(0.02, min(1.0 - fx, float(data.get("w", 1))))
+    fh = max(0.02, min(1.0 - fy, float(data.get("h", 1))))
+    if fw < 0.15 or fh < 0.15:
+        _err(ValueError("Vùng cắt quá nhỏ, kéo rộng ra một chút nhé"))
+    crop = {"x": round(fx, 4), "y": round(fy, 4), "w": round(fw, 4), "h": round(fh, 4)}
+
+    def apply(pp):
+        s = next(x for x in pp["scenes"] if x["id"] == sid)
+        for lst in ("candidates", "items"):
+            s[lst] = [dict(c, crop=crop) if c.get("file") == file and c.get("kind") == "video" else c
+                      for c in (s.get(lst) or [])]
+    return P.update(pid, apply)
+
+
+@app.post("/api/projects/{pid}/scenes/{sid}/vframe")
+def video_frame(pid: str, sid: str, data: dict = Body(...)):
+    """Khung hình lớn (rộng 1280) của video tại giây start – để chọn vùng cắt cho rõ."""
+    import hashlib
+    from .highlight import frame_at
+    base = P.pdir(pid)
+    rel = data.get("file", "")
+    src = (base / rel).resolve()
+    if base.resolve() not in src.parents or not src.exists():
+        _err(ValueError("Không thấy file video"))
+    t = max(0.0, float(data.get("start") or 0) + 1.0)
+    out_rel = f"media/{sid}/vcrop_{hashlib.md5(f'{rel}{t:.1f}'.encode()).hexdigest()[:8]}.jpg"
+    (base / "media" / sid).mkdir(parents=True, exist_ok=True)
+    if not (base / out_rel).exists():
+        frame_at(src, t, base / out_rel, 1280)
+    if not (base / out_rel).exists():
+        _err(ValueError("Không lấy được khung hình của video"))
+    return {"file": out_rel}
+
+
 @app.post("/api/projects/{pid}/scenes/{sid}/uncrop")
 def uncrop_image(pid: str, sid: str, data: dict = Body(...)):
-    """Trả ảnh đã cắt về ảnh gốc."""
+    """Trả ảnh đã cắt về ảnh gốc (video: bỏ vùng cắt)."""
     old = data.get("file", "")
+    if data.get("kind") == "video":
+        def apply_v(pp):
+            s = next(x for x in pp["scenes"] if x["id"] == sid)
+            for lst in ("candidates", "items"):
+                s[lst] = [{k: v for k, v in c.items() if k != "crop"} if c.get("file") == old else c
+                          for c in (s.get(lst) or [])]
+        return P.update(pid, apply_v)
 
     def apply(pp):
         s = next(x for x in pp["scenes"] if x["id"] == sid)

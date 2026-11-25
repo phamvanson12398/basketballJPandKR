@@ -157,18 +157,25 @@ def image_part(img: Path, dur: float, out: Path, variant: int, g: dict, sticker=
 
 
 # ------------------------------------------------------------------ video
-def video_part(src: Path, start: float, dur: float, out: Path, g: dict, sticker=None) -> None:
+def video_part(src: Path, start: float, dur: float, out: Path, g: dict, sticker=None,
+               crop: dict | None = None) -> None:
     n = max(2, round(dur * FPS))
     from .highlight import video_size
     w, h = video_size(src)
     if not w:
         w, h = 1920, 1080
     box = f"{g['w']}:{g['h']}"
+    pre = ""
+    if crop:   # ✂️ bạn đã chọn vùng giữ lại (bỏ logo, chữ, viền đen…)
+        cw, ch = float(crop.get("w", 1)), float(crop.get("h", 1))
+        cx, cy = float(crop.get("x", 0)), float(crop.get("y", 0))
+        pre = f"crop=trunc(iw*{cw:.4f}/2)*2:trunc(ih*{ch:.4f}/2)*2:trunc(iw*{cx:.4f}):trunc(ih*{cy:.4f}),"
+        w, h = w * cw, h * ch
     if w / max(h, 1) >= (g['w'] / g['h']) * 0.8:
-        media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
+        media = (f"[0:v]{pre}fps={FPS},scale={box}:force_original_aspect_ratio=increase,"
                  f"crop={box},setsar=1,tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m0];")
     else:  # video dọc (link TikTok bạn dán) → đặt giữa khung, nền trắng, không làm mờ
-        media = (f"[0:v]fps={FPS},scale={box}:force_original_aspect_ratio=decrease,"
+        media = (f"[0:v]{pre}fps={FPS},scale={box}:force_original_aspect_ratio=decrease,"
                  f"pad={box}:(ow-iw)/2:(oh-ih)/2:{g['bg']},setsar=1,"
                  f"tpad=stop_mode=clone:stop_duration={dur + 1:.2f}[m0];")
     extra_in, st_fc = _sticker_fc(sticker)
@@ -482,7 +489,7 @@ def render(pid: str, log) -> None:
                     image_part(prep, d, out, variant, g)
                     variant += 1
                 elif kind == "video":
-                    video_part(base / it["file"], float(it.get("start", 0)), d, out, g, sticker)
+                    video_part(base / it["file"], float(it.get("start", 0)), d, out, g, sticker, it.get("crop"))
                 else:
                     blank_part(d, out, g)
             except Exception as e:  # noqa: BLE001
