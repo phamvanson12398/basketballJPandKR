@@ -962,7 +962,12 @@ $('#btnIdeasOpen').onclick = () => {
   try { const s = JSON.parse(localStorage.getItem('shorts_stories') || 'null'); if (s && !$('#storyList').innerHTML) renderStories(s); } catch {}
 };
 $('#btnIdeasClose').onclick = () => showOnly(P ? '#proj' : '#empty');
-$$('.presets a').forEach(a => a.onclick = () => { $('#ideaNiche').value = a.dataset.n; });
+$$('.presets a').forEach(a => a.onclick = () => {
+  $('#ideaNiche').value = a.dataset.n;
+  if (a.dataset.g) $('#ideaGenre').value = a.dataset.g;     // VD 🏯 Lịch sử → thể loại Lịch sử
+  if (a.dataset.l) $('#ideaLang').value = a.dataset.l;      // Lịch sử Hàn → tiếng Hàn
+  $$('.presets a').forEach(x => x.classList.toggle('on', x === a));
+});
 function renderIdeas(list) {
   $('#ideaList').innerHTML = list.map((x, i) => `<div class="idea">
     <div class="body">
@@ -982,7 +987,8 @@ function renderIdeas(list) {
     }
     $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
     const niche = $('#ideaNiche').value.toLowerCase();
-    const sp = /m-1|hài|お笑い|芸人|漫才|コント/.test(niche) ? 'owarai' : /k-pop|kpop|케이팝|bts|blackpink/.test(niche) ? 'kpop' : /idol|アイドル|akb|乃木坂|nogizaka/.test(niche) ? 'idol' : /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
+    const sp = /đua ngựa|競馬|jra|uma musume|ウマ娘/.test(niche) ? 'horse' : /esports|e스포츠|eスポーツ|faker|lck|valorant/.test(niche) ? 'esports'
+      : /m-1|hài|お笑い|芸人|漫才|コント/.test(niche) ? 'owarai' : /k-pop|kpop|케이팝|bts|blackpink/.test(niche) ? 'kpop' : /idol|アイドル|akb|乃木坂|nogizaka/.test(niche) ? 'idol' : /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
       : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
     if (sp) $('#newSport').value = sp;
     openCreate();
