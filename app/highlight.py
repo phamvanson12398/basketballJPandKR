@@ -310,7 +310,8 @@ def image_sheet(paths: list[Path], out: Path, cols: int = 4) -> Path:
     return out
 
 
-def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, workdir: Path) -> dict | None:
+def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, workdir: Path,
+                note: str = "") -> dict | None:
     """Claude xem lưới ảnh ứng viên → {"good": [chỉ số, tốt nhất trước], "bad": [chỉ số loại], "why": {...}}.
     None nếu không hỏi được (khi đó giữ thứ tự cũ)."""
     from . import vision as VIS
@@ -322,6 +323,7 @@ def pick_images(paths: list[Path], scene_text: str, who: str, uniform: str, work
         f"この写真はショート動画で次のナレーションの間に映します:\n「{scene_text}」\n"
         + (f"写すべき人物・馬: {who}\n" if who else "")
         + (f"見分ける特徴: {uniform}\n" if uniform else "")
+        + (f"{note}\n" if note else "")
         + "\n各写真を判定してください:\n"
         "- good: ナレーションの内容（出来事・物・場面）に合い、写すべき人物・馬が写っている（またはその話の物そのもの）。"
         "合っている順に並べる。\n"

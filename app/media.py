@@ -28,15 +28,20 @@ def is_16_9(w: int, h: int) -> bool:
     return h > 0 and abs((w / h) / IMAGE_RATIO - 1) <= IMAGE_RATIO_TOL
 
 
-def search_images(query: str, log=None, recent: str | None = None) -> list[dict]:
+def search_images(query: str, log=None, recent: str | None = None, history: str = "") -> list[dict]:
+    """history="main": ảnh nhân vật/sử liệu của video lịch sử → thêm Wikipedia/Commons, bỏ ảnh báo (toàn ảnh thời nay).
+    history="object": ảnh minh họa đồ vật của video lịch sử → bỏ ảnh báo."""
     from .image_sources import search_all
     from .image_sources import ALL_SOURCES
     st = load_settings()
-    sources = st.get("image_sources") or ALL_SOURCES
+    sources = st.get("image_sources") or [s for s in ALL_SOURCES if s != "wiki"]
     if not st.get("sources_v2"):      # cài đặt cũ (chưa có Naver / ảnh từ báo) → tự bật nguồn mới
         sources = list(dict.fromkeys(list(sources) + ["naver", "news"]))
     if not st.get("sources_v3"):      # cài đặt cũ (chưa có Google) → tự bật Google
         sources = list(dict.fromkeys(list(sources) + ["google"]))
+    if history:
+        sources = (["wiki"] if history == "main" else []) + [s for s in sources if s not in ("news", "wiki")]
+        recent = None
     out = search_all(query, sources, log, recent)
     if recent and len(out) < 15:   # tin mới mà ít ảnh → lấy thêm ảnh không lọc thời gian
         out += search_all(query, sources, log)
@@ -100,6 +105,33 @@ def relevance(res: dict, names: list[str]) -> int:
     return 1 if not (res.get("title") or "").strip() else 0
 
 
+# Lịch sử: tiêu đề có những từ này = ảnh người / chuyện THỜI NAY (diễn viên, idol, thể thao, tin tức…) → bỏ
+MODERN_WORDS = ("女優", "俳優", "アイドル", "グラビア", "タレント", "モデル", "芸人", "歌手", "声優", "選手", "ゴルフ", "野球",
+                "サッカー", "結婚", "熱愛", "不倫", "離婚報道", "逮捕", "事故", "事件", "速報", "ニュース", "インスタ",
+                "instagram", "tiktok", "youtube", "写真集", "コスプレ", "ファッション", "メイク", "ヘアアレンジ", "コーデ",
+                "airbnb", "ホテル", "レストラン", "ランキング", "グルメ", "株価", "決算", "スマホ", "アプリ", "ゲーム", "アニメ",
+                "漫画", "マンガ", "配役", "キャスト", "演じる", "役者",
+                "배우", "아이돌", "가수", "선수", "결혼", "열애", "사고", "사건", "속보", "뉴스", "화보", "게임", "애니", "웹툰")
+HISTORY_GENERIC = ("肖像画", "肖像", "浮世絵", "錦絵", "絵巻", "屏風", "古文書", "写本", "史料", "史跡", "跡", "城", "古写真",
+                   "写真", "画像", "イラスト", "絵", "像", "銅像", "木像", "墓", "墓所", "博物館", "展示", "甲冑", "刀", "空撮",
+                   "초상화", "그림", "사진", "유적", "박물관", "일러스트")
+
+
+def is_history(p: dict) -> bool:
+    return p.get("genre") == "history" or (p.get("sport") == "history" and p.get("genre") not in ("news", "brand"))
+
+
+def modern(res: dict) -> bool:
+    t = f"{res.get('title') or ''} {res.get('page') or ''}".lower()
+    return any(w.lower() in t for w in MODERN_WORDS)
+
+
+def query_names(q: str) -> list[str]:
+    """Lịch sử, cảnh không ghi người: lấy chủ đề trong từ khóa (bỏ các từ chung như 肖像画, 写本) làm "tên" để lọc ảnh."""
+    return [n for n in (_norm(w) for w in re.split(r"[\s　]+", q or "") if w and w not in HISTORY_GENERIC)
+            if len(n) >= 2]
+
+
 POLITICS_WORDS = ("首相", "総理", "政府", "内閣", "国会", "議員", "選挙", "自民党", "立憲", "大臣", "知事", "外交", "政権",
                   "政治", "大統領", "대통령", "국회", "의원", "선거", "정부", "장관", "정당", "정치", "총리")
 SPORT_WORDS = {
@@ -133,8 +165,8 @@ def off_topic(res: dict, p: dict, names: list[str]) -> str:
 
 
 SRC_NAMES = {"google": "Google", "yahoo.co.jp": "Yahoo", "bing": "Bing", "duckduckgo": "DuckDuckGo",
-             "naver": "Naver", "news-photo": "Ảnh báo", "video-frame": "Khung hình video"}
-SRC_RANK = {"news-photo": 0, "google": 0, "naver": 1, "yahoo.co.jp": 1, "bing": 1, "duckduckgo": 2}
+             "naver": "Naver", "news-photo": "Ảnh báo", "video-frame": "Khung hình video", "wiki": "Wikipedia"}
+SRC_RANK = {"wiki": -1, "news-photo": 0, "google": 0, "naver": 1, "yahoo.co.jp": 1, "bing": 1, "duckduckgo": 2}
 
 
 def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
@@ -221,9 +253,16 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         # tên ngựa hay trùng từ thường (モーリス, ゴールドシップ…) → thêm 競走馬 để không ra ảnh khác
         horse_words = ("競走馬", "競馬", "JRA", "レース", "G1", "GI", "記念", "賞", "ダービー", "ステークス", "牧場", "厩舎")
         queries = [x if any(w in x for w in horse_words) else f"{x} 競走馬" for x in queries]
+    hist = is_history(proj)
+    if hist and not query:
+        # lịch sử: thêm từ khóa dự phòng chắc chắn ra tranh cổ (chân dung / tranh) trước khi dùng tên trần
+        who0 = (split_people(scene.get("who") or "") or [""])[0]
+        if who0:
+            extra = [f"{who0} 肖像画" if not re.search(r"[\uac00-\ud7a3]", who0) else f"{who0} 초상화"]
+            queries = queries[:-1] + [x for x in extra if x not in queries] + queries[-1:]
     q = queries[0]
     names = names_of(scene)
-    dropped = {"chính trị": 0, "môn khác": 0, "báo không nhắc tên": 0}
+    dropped = {"chính trị": 0, "môn khác": 0, "báo không nhắc tên": 0, "ảnh thời nay": 0}
     d = P.pdir(pid) / "media" / scene["id"]
     if d.exists():
         for pat in ("c*.jpg", "f*.jpg"):   # c*.jpg gồm cả c2_*.jpg
@@ -242,16 +281,19 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         if qi:
             log(f"    ít ảnh đúng → thử từ khóa dự phòng “{qq}”")
         tried = 0
-        for res in rank_by_names(search_images(qq, log, recent), names):
+        qnames = names or (query_names(qq) if hist else [])
+        for res in rank_by_names(search_images(qq, log, recent, history="main" if hist else ""), qnames):
             if res["url"] in used or len(cands) >= want:
                 continue
-            why = off_topic(res, proj, names)
+            why = off_topic(res, proj, qnames)
+            if not why and hist and res.get("src") != "wiki" and modern(res):
+                why = "ảnh thời nay"
             if not why and names and res.get("src") == "news-photo" and relevance(res, names) < 2:
                 why = "báo không nhắc tên"    # ảnh đại diện bài báo không nhắc tên người → hay lạc đề
             if why:
                 dropped[why] += 1
                 continue
-            if relevance(res, names) == 0:
+            if relevance(res, qnames) == 0:
                 weak.append(res)
                 continue
             tried += 1
@@ -266,6 +308,9 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         log(f"    bỏ {len(weak)} ảnh không nhắc tới “{scene.get('who')}” (dễ sai người)")
     if any(dropped.values()):
         log("    bỏ ảnh lạc đề: " + ", ".join(f"{k} {v}" for k, v in dropped.items() if v))
+    if hist and weak:
+        log(f"    lịch sử: bỏ {len(weak)} ảnh có tiêu đề không nhắc tới chủ đề (hay ra người thời nay)")
+        weak = weak[:3] if not cands else []    # chỉ dùng tạm khi không có ảnh nào khác
     if len(cands) < k:
         for res in weak[:20]:      # vẫn thiếu → dùng tạm ảnh “không chắc”, xếp sau cùng
             if len(cands) >= k + 1 or res["url"] in used:
@@ -275,7 +320,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
                 cands.append({"kind": "image", "file": f"media/{scene['id']}/{f.name}", "url": res["url"],
                               "page": res.get("page", ""), "src": res.get("src", ""), "unsure": True})
                 used.add(res["url"])
-    if len(cands) < k + 2:
+    if len(cands) < k + 2 and not hist:   # lịch sử: khung hình YouTube hay ra người thời nay → không dùng
         # Thiếu ảnh 16:9 → chụp khung hình nét từ video liên quan (luôn đúng 16:9)
         try:
             cands += stills_from_video(pid, scene, k + 2 - len(cands) + 2, log, recent)
@@ -290,8 +335,10 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
     # ảnh "đồ vật / cảnh" của câu chuyện (VD: ふじりんご, ギネスビール) xen kẽ với ảnh nhân vật – kiểu video đua ngựa mẫu
     if scene.get("image_query2") and not scene.get("split"):
         c2 = []
-        for res in search_images(scene["image_query2"], log, recent):
+        for res in search_images(scene["image_query2"], log, recent, history="object" if hist else ""):
             if res["url"] in used or len(c2) >= 6:
+                continue
+            if hist and modern(res):
                 continue
             f = d / f"c2_{len(c2) + 1}_{tok}.jpg"
             if download_image(res["url"], f, loose=True):
@@ -299,7 +346,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
                            "page": res.get("page", ""), "src": res.get("src", ""), "role": "object"})
                 used.add(res["url"])
         if c2:
-            c2 = smart_order(pid, dict(scene, who="", uniform=""), c2, log)
+            c2 = smart_order(pid, dict(scene, who="", uniform=""), c2, log, role="object")
             good1 = [c for c in cands if not c.get("rejected")] or cands
             good2 = [c for c in c2 if not c.get("rejected")] or c2
             mixed = [x for pair in zip(good1, good2) for x in pair] + good1[len(good2):] + good2[len(good1):]
@@ -330,7 +377,7 @@ def fill_images(pid: str, scene: dict, used: set, log, query: str | None = None,
         + " · ".join(f"{k} {v}" for k, v in srcs.most_common()))
 
 
-def smart_order(pid: str, scene: dict, cands: list[dict], log) -> list[dict]:
+def smart_order(pid: str, scene: dict, cands: list[dict], log, role: str = "") -> list[dict]:
     """Claude xem ảnh ứng viên: ảnh hợp nội dung lên trước, ảnh sai người / không liên quan đánh dấu "rejected" (xuống cuối)."""
     from . import vision as VIS
     if not load_settings().get("smart_image_pick", True) or len(cands) < 2 or VIS.provider() == "off":
@@ -338,8 +385,16 @@ def smart_order(pid: str, scene: dict, cands: list[dict], log) -> list[dict]:
     head = cands[:12]
     base = P.pdir(pid)
     d = base / "media" / scene["id"]
+    note = ""
+    if is_history(P.load(pid)):
+        note = ("これは歴史の動画です。現代の写真（芸能人・俳優・アイドル・スポーツ選手・現代人のポートレート・"
+                "現代の街や店・ニュース写真・スマホやゲーム画面）はすべて bad。"
+                + ("ナレーションに出てくる物・動物・場所・気持ちのイラスト、地図、物の写真は good。"
+                   if role == "object" else
+                   "肖像画・絵巻・浮世絵・錦絵・屏風・古文書・古写真・城や史跡・仏像・博物館の甲冑や刀などは good。"
+                   "時代劇・大河ドラマの場面写真は、他に良い候補が無い時だけ低い順位で good。"))
     r = HL.pick_images([base / c["file"] for c in head], P.scene_plain_text(scene), scene.get("who", ""),
-                       scene.get("uniform", ""), d)
+                       scene.get("uniform", ""), d, note)
     if not r:
         return cands
     good = [head[i] for i in r["good"]]

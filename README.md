@@ -56,6 +56,10 @@ Thể loại **🏯 Lịch sử** giờ làm theo video mẫu nhiều view:
   đi qua các thời đại và ngày càng "ghê" hơn; câu đầu hỏi thẳng; **hé lộ chuyện buồn cười nhất ngay đầu rồi để dành tới cuối**;
   thỉnh thoảng chen câu bình luận ngắn; kết bằng 1 câu cảm thán. Vẫn phải đúng sử liệu.
 - **Ảnh**: tranh cổ / ukiyo-e / chân dung / ảnh cũ, **xen hình minh họa đồ vật** được nhắc tới (con quạ, bát cơm, bản đồ…).
+- **Không ra ảnh người thời nay**: video lịch sử tìm ảnh ở **Wikipedia / Wikimedia Commons trước** (tranh chân dung, cuộn tranh,
+  sử liệu, lâu đài – phần lớn là tài liệu công cộng), bỏ nguồn ảnh báo; ảnh có tiêu đề kiểu diễn viên / idol / tuyển thủ /
+  tin tức / game… bị loại; ảnh có tiêu đề không nhắc tới chủ đề (VD 甲陽軍鑑) bị loại; không chụp khung hình YouTube;
+  AI xem ảnh được dặn loại mọi ảnh thời nay. Thiếu ảnh thì tool thử thêm "tên nhân vật + 肖像画".
 - **Đổi ảnh nhanh như video mẫu**: ~2,5 giây/ảnh (thể loại khác ~3 giây), và ảnh đổi **đúng lúc đổi cụm sub** nên hình
   và chữ luôn khớp nhau. Tool tự tìm thêm ảnh cho đủ.
 - **100% ảnh** (video lịch sử rất khó tìm): chọn thể loại Lịch sử hoặc lĩnh vực Lịch sử là thanh tỉ lệ tự về 0% video

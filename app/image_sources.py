@@ -279,32 +279,102 @@ def news_photos(query: str, n: int = 30, recent: str | None = None) -> list[dict
     return out
 
 
+# ---------------------------------------------------------------- Wikipedia / Wikimedia Commons (lịch sử)
+# Tranh chân dung, cuộn tranh, ukiyo-e, sử liệu, lâu đài… hầu hết là tài liệu công cộng → nguồn tốt nhất cho video lịch sử.
+WIKI_HEADERS = {"User-Agent": "ShortsMaker/1.0 (local video tool; requests)"}
+_WIKI_SKIP = ("icon", "logo", "flag", "symbol", "commons-logo", "wikipedia", "wiktionary", "wikisource", "question_book",
+              "ambox", "disambig", "edit-clear", "padlock", "crystal", "nuvola", "folder", "text-x", "gnome", "pictogram",
+              "location map", "locator", "loudspeaker", "speaker", "audio", "signature", "署名", "花押", "家紋", "紋",
+              "mon of", "kamon", "seal of")
+
+
+def _wiki_api(host: str, params: dict) -> dict:
+    r = requests.get(f"https://{host}/w/api.php", params={**params, "format": "json", "formatversion": 2},
+                     headers=WIKI_HEADERS, timeout=20)
+    r.raise_for_status()
+    return r.json()
+
+
+def _wiki_info(host: str, files: list[tuple[str, str]]) -> list[dict]:
+    """[(tên file, tên bài)] → ảnh (url thu nhỏ rộng 1600 nếu ảnh lớn hơn, giữ nguyên nếu nhỏ hơn)."""
+    out = []
+    for i in range(0, len(files), 20):
+        part = files[i:i + 20]
+        art = dict(part)
+        data = _wiki_api(host, {"action": "query", "titles": "|".join(t for t, _ in part), "prop": "imageinfo",
+                                "iiprop": "url|size|mime", "iiurlwidth": 1600})
+        norm = {x.get("to"): x.get("from") for x in data.get("query", {}).get("normalized", [])}
+        for pg in data.get("query", {}).get("pages", []):
+            ii = (pg.get("imageinfo") or [{}])[0]
+            url = ii.get("thumburl") or ii.get("url")
+            if not url or not str(ii.get("mime", "image/")).startswith("image/") or "svg" in str(ii.get("mime")):
+                continue
+            title = pg.get("title", "")
+            article = art.get(title) or art.get(norm.get(title, ""), "")
+            out.append({"url": url, "w": int(ii.get("thumbwidth") or ii.get("width") or 0),
+                        "h": int(ii.get("thumbheight") or ii.get("height") or 0),
+                        "title": f"{article} {title}".strip(), "page": ii.get("descriptionurl", ""), "src": "wiki"})
+    return out
+
+
+def wiki(query: str, n: int = 40, recent: str | None = None) -> list[dict]:
+    """Ảnh trong các bài Wikipedia (tiếng Nhật / tiếng Hàn) khớp từ khóa + tìm trên Wikimedia Commons."""
+    host = "ko.wikipedia.org" if _hangul(query) else "ja.wikipedia.org"
+    files: list[tuple[str, str]] = []
+    data = _wiki_api(host, {"action": "query", "generator": "search", "gsrsearch": query, "gsrlimit": 3,
+                            "prop": "images", "imlimit": 40})
+    for pg in sorted(data.get("query", {}).get("pages", []), key=lambda x: x.get("index", 99)):
+        for im in pg.get("images", []):
+            t = im.get("title", "")
+            low = t.lower()
+            if low.endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp")) and not any(b in low for b in _WIKI_SKIP) \
+                    and t not in dict(files):
+                files.append((t, pg.get("title", "")))
+    out = _wiki_info(host, files[:n]) if files else []
+    try:   # Commons: tìm theo mô tả file (bổ sung, thường có tranh cổ độ phân giải cao)
+        data = _wiki_api("commons.wikimedia.org", {"action": "query", "generator": "search", "gsrsearch": query,
+                                                    "gsrnamespace": 6, "gsrlimit": 30, "prop": "imageinfo",
+                                                    "iiprop": "url|size|mime", "iiurlwidth": 1600})
+        for pg in sorted(data.get("query", {}).get("pages", []), key=lambda x: x.get("index", 99)):
+            ii = (pg.get("imageinfo") or [{}])[0]
+            t = pg.get("title", "")
+            if not (ii.get("thumburl") or ii.get("url")) or "svg" in str(ii.get("mime")) \
+                    or not str(ii.get("mime", "image/")).startswith("image/") or any(b in t.lower() for b in _WIKI_SKIP):
+                continue
+            out.append({"url": ii.get("thumburl") or ii.get("url"), "w": int(ii.get("thumbwidth") or ii.get("width") or 0),
+                        "h": int(ii.get("thumbheight") or ii.get("height") or 0), "title": t,
+                        "page": ii.get("descriptionurl", ""), "src": "wiki"})
+    except Exception:  # noqa: BLE001
+        pass
+    return out[:n]
+
+
 def google(query: str, n: int = 80, recent: str | None = None, log=None) -> list[dict]:
     from .google_images import search
     return search(query, n, recent, korean=_hangul(query), log=log)
 
 
 SOURCES = {"google": google, "duckduckgo": duckduckgo, "bing": bing, "yahoo": yahoo_japan, "naver": naver,
-           "news": news_photos}
+           "news": news_photos, "wiki": wiki}
 ALL_SOURCES = list(SOURCES)
 
 
 def route(sources: list[str], query: str) -> list[str]:
     """Thứ tự nguồn theo ngôn ngữ từ khóa: tiếng Hàn → Naver trước (bỏ Yahoo! JAPAN);
     tiếng Nhật → Yahoo! JAPAN + báo Nhật trước (bỏ Naver Image)."""
-    order = (["news", "google", "naver", "bing", "duckduckgo"] if _hangul(query)
-             else ["news", "google", "yahoo", "bing", "duckduckgo"])
+    order = (["wiki", "news", "google", "naver", "bing", "duckduckgo"] if _hangul(query)
+             else ["wiki", "news", "google", "yahoo", "bing", "duckduckgo"])
     return [s for s in order if s in sources]
 
 
 # Nguồn nào lỗi (bị chặn tạm thời, mất mạng...) thì nghỉ một lúc, không gọi lại ở các cảnh sau
 COOLDOWN_SEC = 15 * 60
-MIN_GAP_SEC = {"google": 3.0, "duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5, "naver": 1.0, "news": 1.0}   # giãn cách giữa 2 lượt tìm
+MIN_GAP_SEC = {"google": 3.0, "duckduckgo": 2.0, "bing": 0.5, "yahoo": 0.5, "naver": 1.0, "news": 1.0, "wiki": 0.5}   # giãn cách giữa 2 lượt tìm
 _paused_until: dict[str, float] = {}
 _last_call: dict[str, float] = {}
 _lock = threading.Lock()
 NAMES = {"google": "Google", "duckduckgo": "DuckDuckGo", "bing": "Bing", "yahoo": "Yahoo! JAPAN", "naver": "Naver",
-         "news": "Ảnh từ báo"}
+         "news": "Ảnh từ báo", "wiki": "Wikipedia"}
 
 
 def _short_error(e: Exception) -> str:
