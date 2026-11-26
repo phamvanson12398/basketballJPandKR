@@ -2,12 +2,13 @@
   〔chữ〕 → chữ ĐỎ (tên ngựa / tên người)
   【chữ】 → chữ ĐỎ + TO (điểm nhấn chính)
   《chữ》 → chữ đen + TO (nhấn phụ)
+  〈chữ〉 → chữ VÀNG (bố cục toàn màn hình kiểu Shorts Nhật; bố cục khác chỉ bỏ ký hiệu)
 Giọng đọc, đếm thời lượng… luôn dùng bản đã bỏ ký hiệu (strip)."""
 import re
 
-OPEN = {"〔": "red", "【": "redbig", "《": "big"}
-CLOSE = {"〕": "red", "】": "redbig", "》": "big"}
-_ALL = re.compile("[〔〕【】《》]")
+OPEN = {"〔": "red", "【": "redbig", "《": "big", "〈": "yellow"}
+CLOSE = {"〕": "red", "】": "redbig", "》": "big", "〉": "yellow"}
+_ALL = re.compile("[〔〕【】《》〈〉]")
 RED = "&H0A00E6&"          # đỏ (230, 0, 10) như video mẫu
 BLACK = "&H000000&"
 

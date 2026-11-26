@@ -575,6 +575,35 @@ KOREA_SCREEN_RULE = """## 画面表示用テキスト（韓国式ショート: �
 - 各シーンの "stat": ナレーションで成績・数字を語るシーンにだけ、要点の数字（最大16文字。例: 「타율 2할 8리 / 1홈런」「평균자책점 6.75」）。
 - 2人の選手を比べる・トレードで交換するなど「2人」が主題のシーンは "split": true にし、
   image_query に1人目、"image_query2" に2人目の検索語を入れる（画面を左右に分けて2人を並べる）。"""
+# Bố cục toàn màn hình kiểu Shorts Nhật – học từ video mẫu 「井上尚弥 オリンピックを一晩で諦めた」
+HOOK_FULLSCREEN = """## 構成（最重要。日本の人気スポーツショート「〇〇 △△を一晩で諦めた」型。参考台本を必ず見本にする）
+### 0. 切り口: 主役の「意外な決断・挫折・本音」1つに絞る（台本を書く前に WebSearch で本人の発言・報道を調べる）
+### 1. 1シーン目 = タイトル（画面に3行の大きな文字で出る。ナレーションもそのまま読む）
+- screen.title1: 主役の名前（例:「井上尚弥」）/ screen.title2: 何を（例:「オリンピックを」）/
+  screen.title3: 衝撃の結末（例:「一晩で諦めた」）。各8文字以内。3行つなげて1文の強いフックにする。
+- 1シーン目の chunks は title1〜3 を "\n" でつないだ1チャンク、tts はその読み。
+### 2. 本人の実際の言葉から入る（2シーン目）
+- 報道・インタビューで確認できた本人の一言を「」で（例:「一晩だけです」「翌朝にはオリンピックを諦めていました」）
+  → 「これは〈世界最強ボクサー〉〈井上尚弥〉の言葉だ」。確認できない発言は作らない。
+### 3. 舞台を具体的に: 年・大会・相手・結果（例:「2012年ロンドン五輪アジア予選決勝。井上はカザフスタンのジャキポフに敗れ、五輪への切符を逃した」）
+### 4. 反転: 「しかし本人が明かした敗因は〇〇ではなかった」→ 本人の言葉 → 何が起きたかを短く説明 → 「〜ではなく、〜だった」
+### 5. 決断: 「それでも〇〇は一晩だけ悩み、翌朝に即決した」＋短いセリフ（「プロに行く」）
+### 6. その後の結果を数字でたたみかける（「わずか6戦目で世界王者」「8戦目で2階級制覇」「そして今や33戦全勝無敗のモンスターとなった」）
+### 7. 世間の反応: 「SNSでは「〜」という声が溢れた」
+### 8. 冒頭と対比する一文: 「〜だった男が、今では〜として君臨している」
+### 9. 締め = 仮定の問い + いいねのお願い（この型だけは問いかけで終わる）:
+  「もし今の〇〇が〜としたら、どうなるのか。〜だろうと思う人はいいねで教えて」
+
+## 語り口・字幕
+- ドキュメンタリーの常体（「〜だ」「〜した」）。短い文、体言止めも使う。若者言葉・ネットスラングは使わない。
+- 1チャンク = 字幕1回分 = 1〜2行（1行最大11文字）。約1秒で切り替わる短いフレーズに区切る。
+- 強調（ほぼ毎チャンク1〜2か所）: 〈〉= 黄色（人名・大会名・数字・キーワード。例:「〈井上尚弥〉の」「わずか〈6戦目〉で」）、
+  〔〕= 赤（強い言葉・敗北・結果・衝撃。例:「〔敗れ〕」「〔世界王者〕」「〔33戦全勝無敗〕の」）。tts には記号を入れない。
+- 画面は動画が中心（全画面）。各シーン2〜4秒、ナレーションの中身と同じ場面（試合・会見・練習・表彰）の映像を選ぶ。
+"""
+FULLSCREEN_SCREEN_RULE = """## 画面表示用テキスト（JSON の "screen"）
+- screen.title1 / title2 / title3: 1シーン目に大きく出す3行タイトル（上の構成ルール参照。各8文字以内）。"""
+
 ERA_RULE = """## 1シーン目（最初の1秒で離脱させない。いちばん大事）
 - 1シーン目は写真1枚を止めて見せる（動画にしない）。その話の「当時」の写真になるよう、image_query に年と当時のチームを入れる
   （例:「バース 阪神 1985 優勝」「田畑一也 ヤクルト 1997」）。今の姿・今の試合の写真は狙わない。
@@ -679,6 +708,8 @@ def generate(pid: str, log, feedback: str = "") -> None:
         from .layouts import sport_variant
         return sport_variant(pp, resolve_layout(pp))
     korea_layout = resolve_layout(p) == "korea"
+    # bố cục toàn màn hình (Shorts Nhật): cấu trúc riêng cho câu chuyện (không dùng cho tin tức / top)
+    fullscreen = resolve_layout(p) == "fullscreen" and p.get("genre") in ("sports", "biography", "general", None)
     if p.get("genre") == "news":
         style = news_context(p.get("news") or {}, p.get("lang"))
     elif p.get("genre") == "ranking":
@@ -693,12 +724,14 @@ def generate(pid: str, log, feedback: str = "") -> None:
     hist = GENRES["history"] if p.get("sport") == "history" and p.get("genre") != "history" else gen
     prompt = PROMPT.format(
         role=gen["role"].format(country=L["country"]), style=style, extra=extra, action_rule=hist["action"],
-        hook_rule=(HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
+        hook_rule=(HOOK_FULLSCREEN if fullscreen else
+                   HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
                    else HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT)).replace("{country}", L["country"]),
         refs=REFS.prompt_block(p.get("lang") or "ja", p.get("genre") or "sports", p.get("sport")),
-        lang_rules=L["rules"] + audience_rule(p), line_max=10 if korea_layout else (13 if resolve_variant(p) == "history" else L["line_max"]), tts_rule=L["tts_rule"],
+        lang_rules=L["rules"] + audience_rule(p), line_max=10 if korea_layout else 11 if fullscreen else (13 if resolve_variant(p) == "history" else L["line_max"]), tts_rule=L["tts_rule"],
         query_lang=L["query_lang"],
-        screen_rule=(KOREA_SCREEN_RULE if korea_layout else SCREEN_RULES.get(p.get("genre"), "") or
+        screen_rule=(KOREA_SCREEN_RULE if korea_layout else FULLSCREEN_SCREEN_RULE if fullscreen else
+                     SCREEN_RULES.get(p.get("genre"), "") or
                      (SPORT_SCREEN_RULES.get(p.get("sport"), "") if (p.get("genre") or "sports") == "sports" else ""))
                     + ("\n" + ERA_RULE.format(era_need=(
                         "視聴者は35歳以上なので必ず入れる。今の話でも、つながる昔の名場面・記録の年を入れる（例: 1985年の阪神日本一）。"
@@ -833,6 +866,10 @@ def retention_edit(pid: str, log) -> dict:
     genre = GENRE_NAMES_JA.get(p.get("genre") or "sports", "スポーツ")
     if p.get("sport") == "horse":
         genre += "（競馬のエピソード集。各馬の話のテンポとオチを重視）"
+    from .layouts import resolve as _rl
+    if _rl(p) == "fullscreen":
+        genre += ("（日本式全画面ショート: 1シーン目は3行タイトル。〈〉黄色・〔〕赤の強調はほぼ毎チャンク残す。"
+                  "最後の「〜と思う人はいいねで教えて」はこの型の締めなので消さない）")
     if p.get("genre") == "history":
         genre += ("（歴史のヤバい雑学。友達に話すタメ口を保つ。「〜って知ってる？」型のフック、冒頭の予告と最後の回収、"
                   "「めっちゃ気の毒」「ヤバすぎ」のような短いツッコミはこの型の持ち味なので削らない。各チャンクは話し言葉の短い1フレーズのまま）")

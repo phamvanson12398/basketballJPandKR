@@ -522,7 +522,7 @@ def render(pid: str, log) -> None:
             elif len(imgs) < k:
                 # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
                 log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
-            if si == 0 and lay == "sports" and sport != "history":
+            if si == 0 and (lay == "fullscreen" or (lay == "sports" and sport != "history")):
                 imgs = imgs[:1]     # cảnh đầu: 1 ảnh đứng yên đúng thời đó + nhãn năm (người xem kịp đọc)
             durs = _sync_cuts(s, D, len(imgs)) if sport == "history" else [D / len(imgs)] * len(imgs)
             pieces = [("image", it, dd) for it, dd in zip(imgs, durs)]
@@ -539,7 +539,7 @@ def render(pid: str, log) -> None:
             try:
                 if kind == "image":
                     prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
-                    first_still = si == 0 and lay == "sports" and sport != "history"   # cảnh đầu: ảnh đứng yên
+                    first_still = si == 0 and (lay == "fullscreen" or (lay == "sports" and sport != "history"))   # cảnh đầu: ảnh đứng yên
                     image_part(prep, d, out, variant, dict(g, still=True) if first_still else g, sticker)
                     variant += 1
                 elif kind == "split":

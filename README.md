@@ -98,6 +98,19 @@ Riêng **Bóng đá**: thuật ngữ chuẩn (ハットトリック・VAR・移�
 tên cầu thủ/CLB nước ngoài có cách đọc, ưu tiên góc cầu thủ Nhật/Hàn ở châu Âu, và nhạc nền riêng **Sân vận động / Hào hùng**
 (vỗ tay cổ động, tiếng khán đài, kèn đồng).
 
+### 📱 Bố cục toàn màn hình – kiểu Shorts Nhật (theo video mẫu 「井上尚弥 オリンピックを一晩で諦めた」)
+Tự dùng cho **🥊 Boxing**; video khác chọn ở ô 🎨 Bố cục → "Toàn màn hình – Shorts Nhật".
+- **Cảnh 1 = thẻ tiêu đề**: 1 ảnh đứng yên kín màn hình + 3 dòng chữ rất to giữa màn hình — tên (vàng cam) /
+  chuyện gì (trắng) / kết cục sốc (đỏ), viền đen dày; giọng đọc đọc đúng tiêu đề. Sửa ở 🖥️ Chữ trên màn hình.
+  Chữ tiêu đề dùng font Minh triều đậm (Noto Serif CJK JP Black, install.bat tự tải; không có thì dùng chữ thường).
+- **Ảnh / video phủ kín màn hình dọc**, ~80% video (thanh tỉ lệ tự đặt 80% khi chọn Boxing), cắt cảnh thẳng không chớp.
+- **Phụ đề giữa màn hình**: 1–2 dòng chữ trắng viền đen dày, đổi theo từng cụm ~1 giây; `〈chữ〉` = **vàng**
+  (tên, giải, con số), `〔chữ〕` = **đỏ** (thua, vô địch, kết quả sốc) – vị trí, cỡ chữ đo từ video mẫu.
+- **Kịch bản theo đúng mạch video mẫu**: câu nói thật của nhân vật → "これは〜の言葉だ" → bối cảnh (năm, giải, đối thủ) →
+  đảo chiều "しかし本人が明かした〜は〜ではなかった" → quyết định → dồn dập thành tích bằng con số → phản ứng SNS →
+  câu đối lập trước/sau → **kết bằng câu hỏi giả định + 「〜と思う人はいいねで教えて」**. Kịch bản mẫu đã có trong thư viện
+  (video boxing chỉ học từ mẫu boxing).
+
 ### 🥊 Boxing
 Chọn **Lĩnh vực = 🥊 Boxing** (hoặc bấm preset 🥊 Boxing ở Gợi ý ý tưởng). AI dùng đúng thuật ngữ (hạng cân, WBA/WBC/IBF/WBO,
 bảo vệ đai, KO/TKO/thắng điểm, thành tích 〇戦〇勝〇KO), tra số liệu ở BoxRec / JBC / báo lớn, tên võ sĩ có cách đọc,

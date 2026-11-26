@@ -112,10 +112,11 @@ function renderSources() {
     `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.date || '')} · ${esc(s.title || s.url)}</a>`).join('');
 }
 // ---- bố cục & chữ trên màn hình
-const LAYOUT_NAMES = ['sports', 'news', 'ranking', 'biography', 'general', 'korea'];
+const LAYOUT_NAMES = ['sports', 'news', 'ranking', 'biography', 'general', 'korea', 'fullscreen'];
 function effLayout() {
   if (P.layout && P.layout !== 'auto') return P.layout;
   const g = P.genre || 'sports';
+  if (P.sport === 'boxing' && ['sports', 'biography', 'general'].includes(g)) return 'fullscreen';
   if (g === 'sports' && P.lang === 'ko' && !['idol', 'kpop'].includes(P.sport)) return 'korea';
   return LAYOUT_NAMES.includes(g) ? g : 'sports';
 }
@@ -128,7 +129,11 @@ function renderScreenBox() {
   if (lay === 'sports' && !sportV) return;
   const inp = (k, label, ph = '') => `<div><label>${label}</label><input data-s="${k}" value="${esc(S[k] || '')}" placeholder="${esc(ph)}"></div>`;
   let html = '<h3>🖥️ Chữ trên màn hình (tiêu đề cố định, nhãn…)</h3>';
-  if (lay === 'korea') {
+  if (lay === 'fullscreen') {
+    html += `<div class="two">${inp('title1', 'Tiêu đề dòng 1 – tên (vàng cam)', '井上尚弥')}${inp('title2', 'Dòng 2 – chuyện gì (trắng)', 'オリンピックを')}</div>
+      ${inp('title3', 'Dòng 3 – kết cục sốc (đỏ)', '一晩で諦めた')}
+      <p class="hint">Hiện rất to trên ảnh của cảnh 1 (thay cho sub cảnh 1). Mỗi dòng ≤ 8 chữ.</p>`;
+  } else if (lay === 'korea') {
     html += `<div class="two">${inp('title1', 'Tiêu đề dòng trên (chữ vàng)', '롯데가 정철원 먼저')}${inp('title2', 'Tiêu đề dòng dưới (chữ đỏ)', '팔아넘긴 진짜 이유')}</div>
       <p class="hint">Hộp số liệu và chia đôi khung (so sánh 2 người): chỉnh ở từng cảnh bên dưới.</p>`;
   } else if (sportV === 'sumo') {
@@ -191,7 +196,9 @@ function renderScript() {
   renderSources();
   renderScreenBox();
   $('#pLayout').value = P.layout || 'auto';
-  $('#subHint').innerHTML = effLayout() === 'korea'
+  $('#subHint').innerHTML = effLayout() === 'fullscreen'
+    ? 'Kiểu Shorts Nhật toàn màn hình: cảnh 1 = tiêu đề 3 dòng to (sửa ở 🖥️ Chữ trên màn hình: title1 vàng / title2 trắng / title3 đỏ). Các cảnh sau: mỗi dòng trong ô sub = 1 cụm hiện giữa màn hình. <code>〈chữ〉</code> = vàng, <code>〔chữ〕</code> = đỏ, <code>/</code> = xuống dòng.'
+    : effLayout() === 'korea'
     ? 'Kiểu Shorts Hàn: mỗi dòng trong ô sub = 1 cụm ngắn hiện giữa ảnh (chữ trắng viền đen). Dùng dấu <code>/</code> để chia nhỏ thêm.'
     : effLayout() === 'sports'
     ? 'Mỗi dòng trong ô sub = 1 lần hiện chữ. Dùng dấu <code>/</code> để xuống dòng. Lần hiện thứ 1, 3, 5... nằm <b>trên</b> khung, lần 2, 4, 6... hiện thêm <b>dưới</b> khung (giống video mẫu).'
@@ -877,8 +884,10 @@ let RATIO_BEFORE_HISTORY = null;
 function historyRatio() {
   const g = $('#newGenre').value;
   const hist = g === 'history' || (!['news', 'brand'].includes(g) && $('#newSport').value === 'history');
-  if (hist && RATIO_BEFORE_HISTORY === null) { RATIO_BEFORE_HISTORY = $('#newRatio').value; $('#newRatio').value = 0; }
-  else if (!hist && RATIO_BEFORE_HISTORY !== null) { $('#newRatio').value = RATIO_BEFORE_HISTORY; RATIO_BEFORE_HISTORY = null; }
+  const boxing = ['sports', 'biography', 'general'].includes(g) && $('#newSport').value === 'boxing';
+  const want = hist ? 0 : boxing ? 80 : null;   // lịch sử: 100% ảnh · boxing (Shorts Nhật toàn màn hình): ~80% video như video mẫu
+  if (want !== null) { if (RATIO_BEFORE_HISTORY === null) RATIO_BEFORE_HISTORY = $('#newRatio').value; $('#newRatio').value = want; }
+  else if (RATIO_BEFORE_HISTORY !== null) { $('#newRatio').value = RATIO_BEFORE_HISTORY; RATIO_BEFORE_HISTORY = null; }
   if (typeof newRatioLabel === 'function') newRatioLabel();
 }
 function toggleNewsBox() {

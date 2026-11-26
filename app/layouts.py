@@ -13,9 +13,9 @@ import re
 from . import markup as MK
 from pathlib import Path
 
-from .config import H, W, layout as frame_layout, load_settings
+from .config import FONTS, H, W, layout as frame_layout, load_settings
 
-LAYOUTS = ["sports", "news", "ranking", "biography", "general", "korea"]
+LAYOUTS = ["sports", "news", "ranking", "biography", "general", "korea", "fullscreen"]
 K = 1.45          # đổi cỡ chữ px → cỡ ASS
 FPS_FLASH = 0.12  # chớp chuyển cảnh (giây)
 
@@ -32,6 +32,9 @@ def resolve(p: dict) -> str:
     if lay in LAYOUTS:
         return lay
     g = p.get("genre") or "sports"
+    # boxing → kiểu Shorts Nhật toàn màn hình (theo video mẫu 井上尚弥)
+    if p.get("sport") == "boxing" and g in ("sports", "biography", "general"):
+        return "fullscreen"
     # video thể thao tiếng Hàn → bố cục kiểu Shorts Hàn (idol / K-pop vẫn giữ nền trắng)
     if g == "sports" and p.get("lang") == "ko" and p.get("sport") not in ("idol", "kpop"):
         return "korea"
@@ -89,6 +92,9 @@ def geometry(name: str, sport: str | None = None, light: bool = False) -> dict:
     elif name == "biography":
         # ảnh nhỏ lại, viền trắng 20px như ảnh in, rơi nhẹ + nghiêng khi vào cảnh
         g.update(bg="0xf4ecdf", x=60, y=my + 20, w=960, h=mh - 40, frame=20, drop=True)
+    if name == "fullscreen":
+        # kiểu Shorts Nhật (video mẫu 井上尚弥): ảnh / video phủ KÍN màn hình dọc
+        g.update(bg="black", x=0, y=0, w=W, h=H)
     if name == "korea":
         # khung ảnh lớn gần vuông giữa màn hình (theo video mẫu Hàn)
         hk = max(700, min(1500, int(load_settings().get("media_height_korea") or 1140))) // 2 * 2
@@ -422,13 +428,91 @@ def korea(e: Ev, p, scenes, starts, total, g):
                 t += d
 
 
-BUILDERS = {"news": news, "ranking": ranking, "biography": biography, "general": general, "korea": korea}
+# ------------------------------------------------------------------ 📱 TOÀN MÀN HÌNH (kiểu Shorts Nhật)
+# Đo từ video mẫu 「井上尚弥 オリンピックを一晩で諦めた」 (720×1280, nhân 1,5 lên 1080×1920):
+# cảnh đầu = thẻ tiêu đề 3 dòng rất to (tên vàng cam / trắng / đỏ) trên 1 ảnh đứng yên; sau đó video kín màn hình,
+# phụ đề 1–2 dòng chữ trắng viền đen dày ở GIỮA màn hình, từ khóa vàng 〈〉 / đỏ 〔〕, đổi theo từng cụm (~1 giây).
+FS_YELLOW, FS_RED, FS_ORANGE = "&H00E1FF&", "&H1E1EFF&", "&H1EB4FF&"
+FS_SUB_PX, FS_SUB_Y, FS_TITLE_Y = 88, 1020, (885, 1077, 1268)
+
+
+def _marked(line: str, base: str) -> str:
+    """Dòng có 〈vàng〉 / 〔đỏ〕 (【】 cũng là đỏ) → chữ ASS đổi màu từng đoạn."""
+    out, stack, buf = [], [], ""
+    color = {"〈": FS_YELLOW, "〔": FS_RED, "【": FS_RED}
+    for ch in line:
+        if ch in color:
+            out.append(esc(buf)); buf = ""
+            stack.append(color[ch])
+            out.append(f"{{\\c{stack[-1]}}}")
+        elif ch in "〉〕】":
+            out.append(esc(buf)); buf = ""
+            if stack:
+                stack.pop()
+            out.append(f"{{\\c{stack[-1] if stack else base}}}")
+        elif ch in "《》":
+            continue
+        else:
+            buf += ch
+    out.append(esc(buf))
+    return "".join(out)
+
+
+def _marked_timing(scene: dict, t0: float):
+    """Giống chunk_timing nhưng GIỮ ký hiệu màu (thời lượng vẫn tính theo chữ đã bỏ ký hiệu)."""
+    chunks = [c.strip() for c in scene.get("chunks", []) if MK.strip(c).strip()]
+    speech = max(0.3, float(scene["duration"]) - 0.18)
+    weights = [max(1, len(MK.strip(c).replace("\n", "").replace(" ", ""))) for c in chunks]
+    tot = sum(weights) or 1
+    acc, out = t0, []
+    for i, (c, wgt) in enumerate(zip(chunks, weights)):
+        d = speech * wgt / tot
+        end = acc + d if i < len(chunks) - 1 else t0 + float(scene["duration"])
+        out.append((c, acc, end))
+        acc += d
+    return out
+
+
+def fullscreen(e: Ev, p, scenes, starts, total, g):
+    scr = p.get("screen") or {}
+    title_font = "Noto Serif CJK JP Black" if (FONTS / "NotoSerifCJKjp-Black.otf").exists() else ""
+    # 1) thẻ tiêu đề (cảnh đầu): 3 dòng to – tên (vàng cam) / chuyện gì (trắng) / kết cục sốc (đỏ)
+    lines = [str(scr.get(k) or "").strip() for k in ("title1", "title2", "title3")]
+    if not any(lines) and scenes:
+        lines = [MK.strip(x) for x in "\n".join(scenes[0].get("chunks", [])).split("\n") if x.strip()][:3]
+    lines = [x for x in lines if x][:3]
+    t_end = starts[1] if len(starts) > 1 else total
+    if lines:
+        ys = FS_TITLE_Y if len(lines) == 3 else ((980, 1172) if len(lines) == 2 else (1077,))
+        cols = [FS_ORANGE, WHITE, FS_RED] if len(lines) == 3 else ([FS_ORANGE, FS_RED] if len(lines) == 2 else [FS_RED])
+        for k, (ln, y, c) in enumerate(zip(lines, ys, cols)):
+            px = min(150, 900 / max(1, len(MK.strip(ln))))
+            pop = f"\\fscx70\\fscy70\\alpha&HFF&\\t({k * 90},{k * 90 + 160},\\fscx100\\fscy100\\alpha&H00&)"
+            fn = f"\\fn{title_font}" if title_font else ""
+            e.add(0, t_end, f"\\an5\\pos(540,{y}){fn}\\fs{px * K:.0f}\\c{c}\\bord11\\3c{BLACK}\\shad5\\4c{BLACK}"
+                            f"{fit(MK.strip(ln), px, 980)}{pop}", _marked(ln, c), 8)
+    # 2) phụ đề: 1 cụm (1–2 dòng) ở giữa màn hình, chữ trắng viền đen dày, từ khóa vàng / đỏ
+    px = FS_SUB_PX
+    lh = px * 1.22
+    for i, (sc, st) in enumerate(zip(scenes, starts)):
+        if i == 0 and lines:
+            continue          # cảnh đầu đã có thẻ tiêu đề (giọng đọc đọc chính tiêu đề)
+        for chunk, a, b in _marked_timing(sc, st):
+            rows = [x for x in chunk.split("\n") if MK.strip(x).strip()]
+            y0 = FS_SUB_Y - (len(rows) - 1) * lh / 2
+            for k, ln in enumerate(rows):
+                e.add(a, b, f"\\an5\\pos(540,{y0 + k * lh:.0f})\\fs{px * K:.0f}\\c{WHITE}\\bord9\\3c{BLACK}"
+                            f"\\shad3\\4c{BLACK}{fit(MK.strip(ln), px, 1000)}", _marked(ln, WHITE), 6)
+
+
+BUILDERS = {"news": news, "ranking": ranking, "biography": biography, "general": general, "korea": korea,
+            "fullscreen": fullscreen}
 
 
 def build_ass(name: str, p: dict, scenes: list, starts: list, total: float, out: Path) -> None:
     g = geometry(name, light=is_light(p))
     e = Ev()
-    if name != "korea":          # kiểu Hàn: cắt cảnh thẳng, không chớp
+    if name not in ("korea", "fullscreen"):          # kiểu Hàn / Nhật toàn màn hình: cắt cảnh thẳng, không chớp
         scene_flash(e, starts, g)
     BUILDERS[name](e, p, scenes, starts, total, g)
     font = load_settings().get("subtitle_font") or "Noto Sans CJK JP Black"

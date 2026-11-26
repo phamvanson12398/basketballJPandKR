@@ -66,6 +66,21 @@ DEFAULTS = [
              "〔スーパークリーク〕は、ご飯を綺麗に《4等分》にして食べやすくしないと食べなかった。"
              "〔シンザン〕は、幕の内弁当のようにきれいに配置しないと食べなかった。"
              "それに対して、〔ゴルシ〕はご飯を水に浸して《ぐちゃぐちゃ》にして、《お茶漬け》のように食べるのが【大好きだった！！！】"},
+    {"id": "inoue_olympic", "title": "井上尚弥 オリンピックを一晩で諦めた（ボクシング）", "lang": "ja", "genre": "sports",
+     "sport": "boxing", "views": "",
+     "note": "Shorts Nhật toàn màn hình: cảnh 1 = tiêu đề 3 dòng (title1/2/3), câu nói thật → bối cảnh → đảo chiều → "
+             "quyết định → dồn dập thành tích → phản ứng SNS → câu đối lập → câu hỏi giả định + 'いいねで教えて'. "
+             "〈〉 = chữ vàng, 〔〕 = chữ đỏ.",
+     "text": "〈井上尚弥〉\nオリンピックを\n〔一晩で諦めた〕。"
+             "「〔一晩だけです〕」「翌朝には〈オリンピック〉を〔諦めていました〕」。これは〔世界最強ボクサー〕〈井上尚弥〉の言葉だ。"
+             "2012年ロンドン五輪アジア予選決勝。〈井上〉はカザフスタンの〈ジャキポフ〉に〔敗れ〕、〈五輪〉への切符を〔逃した〕。"
+             "しかし本人が明かした〔敗因〕は、〔実力差〕ではなかった。「練習してきたことが〔2割〕も出せませんでした」。"
+             "気負って大振りになり、相手のパンチをもらった。〈実力〉で〔負けた〕のではなく、〈緊張〉で〔自滅〕した試合だった。"
+             "それでも〈井上〉は一晩だけ悩み、翌朝に〔即決〕した。「〈プロに行く〉」。"
+             "〈プロ転向〉から、わずか〈6戦目〉で〔世界王者〕。〈8戦目〉で〔2階級制覇〕。そして今や〔33戦全勝無敗〕の〈モンスター〉となった。"
+             "SNSでは「〔2割〕しか出せなかった選手が〈ここまでなるのか〉」という声が溢れた。"
+             "〈オリンピック予選〉で本気を出せなかった男が、今では〔世界最強〕の〈モンスター〉として〔君臨〕している。"
+             "もし今の〈井上尚弥〉が〈オリンピック〉に出るとしたら、どうなるのか。完璧に〔圧勝するだろう〕と思う人は、いいねで教えて。"},
     {"id": "shimanagashi", "title": "島流しの刑の実態（歴史の雑学）", "lang": "ja", "genre": "history", "sport": "",
      "views": "", "note": "Kiểu kể chuyện với bạn (タメ口): 1 chủ đề đi qua các thời đại, mỗi cụm sub ~1,3 giây ở dưới ảnh, "
                           "đầu video hé lộ chuyện buồn cười nhất rồi để dành tới cuối; ảnh = tranh cổ xen hình minh họa đồ vật.",
@@ -131,7 +146,7 @@ def delete(rid: str) -> None:
 
 
 STORY_GENRES = ("sports", "biography", "brand", "history")
-FORMAT_SPORTS = ("horse",)
+FORMAT_SPORTS = ("horse", "boxing")
 FORMAT_GENRES = ("history",)   # thể loại có giọng văn riêng (lịch sử = タメ口 kể chuyện): chỉ học mẫu cùng thể loại
 
 
