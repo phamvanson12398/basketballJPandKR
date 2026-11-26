@@ -1027,7 +1027,7 @@ function renderIdeas(list) {
     }
     $('#newTitle').value = x.title; $('#newTopic').value = x.topic || '';
     const niche = $('#ideaNiche').value.toLowerCase();
-    const sp = /lịch sử|samurai|侍|武士|武将|戦国|幕末|歴史|사무라이|역사|조선/.test(niche) ? 'history' : /đua ngựa|競馬|jra|uma musume|ウマ娘/.test(niche) ? 'horse' : /esports|e스포츠|eスポーツ|faker|lck|valorant/.test(niche) ? 'esports'
+    const sp = /boxing|ボクシング|ボクサー|복싱|권투|quyền anh|井上尚弥/.test(niche) ? 'boxing' : /lịch sử|samurai|侍|武士|武将|戦国|幕末|歴史|사무라이|역사|조선/.test(niche) ? 'history' : /đua ngựa|競馬|jra|uma musume|ウマ娘/.test(niche) ? 'horse' : /esports|e스포츠|eスポーツ|faker|lck|valorant/.test(niche) ? 'esports'
       : /m-1|hài|お笑い|芸人|漫才|コント/.test(niche) ? 'owarai' : /k-pop|kpop|케이팝|bts|blackpink/.test(niche) ? 'kpop' : /idol|アイドル|akb|乃木坂|nogizaka/.test(niche) ? 'idol' : /sumo|相撲/.test(niche) ? 'sumo' : /bóng chày|野球|npb|kbo|mlb/.test(niche) ? 'baseball'
       : /bóng đá|サッカー|league|k league/.test(niche) && !/b\.league/.test(niche) ? 'soccer' : /bóng rổ|バスケ|nba/.test(niche) ? 'basketball' : null;
     if (sp) $('#newSport').value = sp;
@@ -1036,7 +1036,7 @@ function renderIdeas(list) {
   });
 }
 // ---- tìm chuyện đời nhân vật
-const SPORT_IDS = ['baseball', 'basketball', 'soccer', 'sumo', 'horse', 'esports', 'idol', 'kpop', 'owarai', 'history', 'other'];
+const SPORT_IDS = ['baseball', 'basketball', 'soccer', 'sumo', 'boxing', 'horse', 'esports', 'idol', 'kpop', 'owarai', 'history', 'other'];
 function renderStories(list) {
   $('#storyList').innerHTML = list.map((x, i) => `<div class="idea">
     <div class="body">

@@ -98,6 +98,15 @@ Riêng **Bóng đá**: thuật ngữ chuẩn (ハットトリック・VAR・移�
 tên cầu thủ/CLB nước ngoài có cách đọc, ưu tiên góc cầu thủ Nhật/Hàn ở châu Âu, và nhạc nền riêng **Sân vận động / Hào hùng**
 (vỗ tay cổ động, tiếng khán đài, kèn đồng).
 
+### 🥊 Boxing
+Chọn **Lĩnh vực = 🥊 Boxing** (hoặc bấm preset 🥊 Boxing ở Gợi ý ý tưởng). AI dùng đúng thuật ngữ (hạng cân, WBA/WBC/IBF/WBO,
+bảo vệ đai, KO/TKO/thắng điểm, thành tích 〇戦〇勝〇KO), tra số liệu ở BoxRec / JBC / báo lớn, tên võ sĩ có cách đọc,
+không thổi phồng chuyện chảy máu / chấn thương, không đồn thổi bán độ. Video chỉ lấy **cảnh thi đấu** (bỏ họp báo, cân ký,
+face-off, talkshow); AI xem hình nhận võ sĩ theo **màu quần** (uniform) và tên bình luận viên gọi. Khán giả 35+: nối với các
+trận kinh điển xưa (Tatsuyoshi, Gushiken, Hasegawa, Hong Soo-hwan "4전5기"…), hashtag `#昭和ボクシング #平成ボクシング #伝説の一戦`.
+Nhạc nền riêng **Boxing – Tập luyện** (trống rock, kèn đồng, chuông võ đài) và **Boxing – Ra võ đài** (trống trầm, dây, piano),
+tự soạn khi mở tool lần sau.
+
 ### 🇰🇷 Bố cục kiểu Shorts Hàn Quốc (video tiếng Hàn, thể loại Thể thao)
 Nền đen · tiêu đề 2 dòng cố định (vàng / đỏ) · ảnh lớn gần vuông (tự cắt vào chỗ có người) · phụ đề trắng viền đen
 1 cụm ngắn đè giữa ảnh · hộp số liệu (타율… / 평균자책점…) khi nhắc tới thành tích · cảnh so sánh 2 người tự chia đôi khung.

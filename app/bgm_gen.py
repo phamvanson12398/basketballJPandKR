@@ -47,6 +47,8 @@ TRACKS = [
     ("Lịch sử Hàn - Chiến trận (tool).m4a",   "history_ko", "history_battle_ko"),
     ("eSports - EDM sôi động (tool).m4a",     "esports",   "esports_hype"),
     ("eSports - Hùng tráng kiểu Worlds (tool).m4a", "esports", "esports_epic"),
+    ("Boxing - Tập luyện (tool).m4a",         "boxing",    "boxing_training"),
+    ("Boxing - Ra võ đài (tool).m4a",         "boxing",    "boxing_ringwalk"),
 ]
 
 
@@ -66,15 +68,16 @@ def resolve(p: dict) -> str:
     lay = p.get("layout") if p.get("layout") not in (None, "", "auto") else (p.get("genre") or "sports")
     if p.get("genre") == "history" or p.get("sport") == "history":
         lay = "history_ko" if p.get("lang") == "ko" else "history_ja"   # nhạc cổ truyền theo nước
-    elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse", "esports") and tracks_for(p["sport"]):
+    elif p.get("sport") in ("sumo", "soccer", "idol", "kpop", "owarai", "horse", "esports", "boxing") and tracks_for(p["sport"]):
         lay = p["sport"]   # sumo: taiko / shamisen · bóng đá: sân vận động · idol: J-pop
-    if p.get("audience") == "35plus" and lay in ("sports", "general", "ranking", "brand", "esports", "kpop", "idol", "soccer"):
+    if p.get("audience") == "35plus" and lay in ("sports", "general", "ranking", "brand", "esports", "kpop", "idol", "soccer",
+                                                "boxing"):
         calm = [f for f in ("Tiểu sử - Truyền cảm hứng (tool).m4a", "Thương hiệu - Hoài niệm (tool).m4a",
                             "Tiểu sử - Cảm động (tool).m4a") if (BGM / f).exists()]
         if calm:
             return calm[sum(p.get("id", "").encode()) % len(calm)]   # 35+: piano / hoài niệm thay cho EDM, nhạc sôi động
     files = tracks_for(lay if lay in ("sports", "news", "ranking", "biography", "general", "sumo", "soccer", "idol",
-                                      "kpop", "owarai", "horse", "brand", "history_ja", "history_ko", "esports")
+                                      "kpop", "owarai", "horse", "brand", "history_ja", "history_ko", "esports", "boxing")
                        else "sports")
     if not files:
         return ""
@@ -836,6 +839,67 @@ def owarai_tension():
 
 
 # ---------------------------------------------------------------- xuất file
+def ring_bell():
+    """Chuông võ đài (gong kim loại, ngân dài)."""
+    n = int(1.6 * SR)
+    t = np.arange(n) / SR
+    parts = ((870, 0.5, 3.0), (1385, 0.35, 4.0), (2210, 0.25, 6.0), (3170, 0.15, 9.0))
+    return sum(np.sin(2 * np.pi * f * t) * a * np.exp(-t * k) for f, a, k in parts) * 0.35
+
+
+def boxing_training():
+    """Nhạc tập luyện kiểu phim quyền anh: trống rock dồn, bass chạy, kèn đồng hô vang, mở đầu bằng chuông võ đài."""
+    s = Song(116, 40)
+    prog = ["Am", "F", "G", "Em"]
+    s.put("fx", ring_bell(), 0, 0.8)
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 3)
+        b0 = bar * 4
+        sec = bar // 8
+        if sec >= 1:
+            backbeat(s, bar, hat_div=2, kick_pat=(0, 1.5, 2.5))
+        else:
+            for k in (0, 1, 2, 3):
+                s.put("drums", tom(40), b0 + k, 0.6)       # bước chân / đấm bao cát
+        for k in range(8):
+            s.put("bass", bass(c[0] - 12, s.beat / 2 * 0.85, cutoff=700), b0 + k / 2)
+        if sec in (2, 4):
+            s.put("brass", brass(chord(name, 4), s.beat * 1.5, 0.12), b0)
+            s.put("brass", brass(chord(name, 4), s.beat * 0.6, 0.12), b0 + 2.5)
+            s.put("brass", brass(chord(name, 4), s.beat * 0.9, 0.12), b0 + 3)
+        if sec == 3:
+            for k, m in enumerate([c[0] + 24, c[2] + 12, c[1] + 24, c[2] + 12]):
+                s.put("lead", lead(m, s.beat * 0.9, 0.07, "saw"), b0 + k)
+        s.put("pad", pad(chord(name, 4), s.beat * 4, 1500, 0.07), b0)
+    return s.mix({"drums": 1.0, "bass": 0.9, "brass": 0.9, "lead": 0.7, "pad": 0.6, "fx": 0.8}, reverb=0.25)
+
+
+def boxing_ringwalk():
+    """Lúc võ sĩ bước ra võ đài: trống trầm nặng, dây đàn căng, piano đơn âm – hồi hộp, nặng ký."""
+    s = Song(84, 32)
+    prog = ["Dm", "A#", "C", "A"]
+    s.put("fx", ring_bell(), 0, 0.7)
+    for bar in range(s.bars):
+        name = prog[bar % 4]
+        c = chord(name, 3)
+        b0 = bar * 4
+        s.put("drums", kick(1.4), b0, 1.0)
+        s.put("drums", tom(36), b0 + 2, 0.9)
+        if bar >= 8:
+            s.put("drums", snare(), b0 + 3, 0.7)
+            s.put("drums", tom(41), b0 + 3.5, 0.6)
+        for k in (0, 1.5, 3):
+            s.put("piano", piano(c[0] + 12, s.beat * 1.2, 0.5), b0 + k)
+        s.put("pad", pad(chord(name, 3), s.beat * 4, 900, 0.14), b0)
+        if bar >= 16:
+            s.put("brass", brass(chord(name, 4), s.beat * 3.5, 0.09), b0)
+        s.put("bass", bass(c[0] - 12, s.beat * 3.8, cutoff=400, vol=0.4), b0)
+    s.put("crowd", crowd(s.n / SR + 1), 0, 0.5)
+    return s.mix({"drums": 1.0, "piano": 0.7, "pad": 0.9, "brass": 0.8, "bass": 0.9, "crowd": 0.6, "fx": 0.8},
+                 reverb=0.35)
+
+
 def write_track(name: str, fn: str, dest: Path) -> Path:
     import soundfile as sf
     audio = globals()[fn]()

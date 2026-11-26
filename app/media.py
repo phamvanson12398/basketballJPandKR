@@ -141,6 +141,8 @@ SPORT_WORDS = {
     "basketball": ("バスケ", "NBA", "Bリーグ", "농구", "KBL"),
     "esports": ("eスポーツ", "e스포츠", "LCK", "LJL", "Worlds", "월즈", "MSI", "EVO", "리그 오브 레전드", "LoL",
                 "格闘ゲーム", "スト6", "VALORANT"),
+    # không dùng KO / WBC (bóng chày cũng dùng: ピッチャーKO, WBC = World Baseball Classic)
+    "boxing": ("ボクシング", "ボクサー", "WBA", "IBF", "WBO", "복싱", "권투", "boxing"),
     "horse": ("競馬", "JRA", "騎手", "厩舎", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "G1", "GI", "牝馬", "牡馬",
               "경마"),
 }
@@ -177,7 +179,7 @@ def rank_by_names(results: list[dict], names: list[str]) -> list[dict]:
 
 # ---------------------------------------------------------------- CHỈ LẤY VIDEO THI ĐẤU (thể thao)
 # Video talkshow / phỏng vấn / kênh bình luận của cựu cầu thủ… → bỏ qua; ưu tiên highlight, cảnh trận đấu.
-TALK_WORDS = ("トーク", "対談", "鼎談", "ラジオ", "雑談", "語る", "語った", "激白", "告白", "本音", "暴露", "切り抜き",
+TALK_WORDS = ("計量", "公開練習", "フェイスオフ", "記者会見", "トーク", "対談", "鼎談", "ラジオ", "雑談", "語る", "語った", "激白", "告白", "本音", "暴露", "切り抜き",
               "反応", "ゆっくり", "考察", "予想", "インタビュー", "会見", "密着", "ドキュメント", "チャンネル", "ちゃんねる",
               "OB", "YouTuber", "ライブ配信", "生配信", "podcast", "ポッドキャスト", "番組", "スタジオ", "ワイドショー",
               "토크", "인터뷰", "라디오", "썰", "반응", "예능", "기자회견", "분석", "예측", "다큐", "방송", "채널",
@@ -187,8 +189,9 @@ GAME_WORDS = ("ハイライト", "試合", "vs", "対", "投球", "奪三振", "
               "하이라이트", "경기", "홈런", "삼진", "골", "득점", "결승", "highlights", "game", "match",
               "レース", "競馬", "ダービー", "有馬記念", "天皇賞", "ジャパンカップ", "引退式", "G1", "GI",
               "スーパープレー", "슈퍼플레이", "명장면", "매드무비", "決勝", "優勝", "우승", "Worlds", "월즈", "LCK", "EVO",
-              "play", "VS", "vs")
-TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo", "horse", "esports")
+              "play", "VS", "vs", "KO", "TKO", "ノックアウト", "ダウン", "世界戦", "タイトルマッチ", "넉아웃", "KO승",
+              "fight", "knockout")
+TITLE_FILTER_SPORTS = ("baseball", "soccer", "basketball", "sumo", "horse", "esports", "boxing")
 FIELD_SPORTS = ("baseball", "soccer")      # sân cỏ → kiểm tra bằng màu sân trong hình
 
 

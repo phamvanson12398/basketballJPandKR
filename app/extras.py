@@ -318,7 +318,7 @@ STORY_PROMPT = """今日は{date}です。あなたは{country}の人気ショ�
    "summary_vi": "Câu chuyện tóm tắt 2–3 câu tiếng Việt (có năm, con số, chi tiết cụ thể)",
    "era": "年代（例: 1995年 / 高校時代）",
    "genre": "sports / biography / history / brand のどれか",
-   "sport": "分野（baseball / basketball / soccer / sumo / horse / esports / idol / kpop / owarai / history（歴史上の人物） / other）",
+   "sport": "分野（baseball / basketball / soccer / sumo / boxing / horse / esports / idol / kpop / owarai / history（歴史上の人物） / other）",
    "topic": "台本作成AIへのメモ（{lang_name}。切り口・重要な事実・年・数字・確認できた発言とその出典）",
    "sources": [{{"title": "資料名", "url": "https://..."}}],
    "known": "あまり知られていない / ファンなら知っている / 有名",
