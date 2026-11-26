@@ -510,6 +510,16 @@ async function openCrop(sid, file, isCropped, video = null) {
   const lay0 = effLayout();
   if (['sports', 'general'].includes(lay0) && (P.genre === 'history' || P.sport === 'history')) CROP.ratio = 1080 / 824;   // bố cục lịch sử
   else if (lay0 === 'sports' && P.sport === 'horse') CROP.ratio = 1080 / 724;   // bố cục đua ngựa
+  // toàn màn hình (boxing / Shorts Nhật): khung cắt đúng tỉ lệ video xuất ra 9:16 → bạn tự chọn chỗ có nhân vật
+  const fs = lay0 === 'fullscreen';
+  if (fs) { CROP.ratio = 1080 / 1920; $('#cropLock').checked = true; }
+  const sc0 = P.scenes.find(x => x.id === sid);
+  $('#cropGuide').classList.toggle('hidden', !fs);
+  $('#cropGuide').classList.toggle('title', fs && P.scenes[0] === sc0);
+  $('#cropHint').textContent = fs
+    ? 'Khung = đúng màn hình video xuất ra (dọc 9:16). Kéo khung tới chỗ có nhân vật · kéo 4 góc để phóng to / thu nhỏ. '
+      + 'Vùng gạch chéo ở giữa là chỗ hiện chữ (tiêu đề / phụ đề) – tránh để mặt nhân vật nằm dưới chữ.'
+    : 'Kéo khung để chọn vùng giữ lại · kéo 4 góc để phóng to / thu nhỏ · phần mờ sẽ bị cắt bỏ.';
   if (effLayout() === 'korea') {
     let hk = 1140;
     try { hk = Math.max(700, Math.min(1500, +(await api('/api/settings')).media_height_korea || 1140)); } catch {}

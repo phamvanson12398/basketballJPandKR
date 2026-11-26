@@ -104,6 +104,9 @@ Tự dùng cho **🥊 Boxing**; video khác chọn ở ô 🎨 Bố cục → "T
   chuyện gì (trắng) / kết cục sốc (đỏ), viền đen dày; giọng đọc đọc đúng tiêu đề. Sửa ở 🖥️ Chữ trên màn hình.
   Chữ tiêu đề dùng font Minh triều đậm (Noto Serif CJK JP Black, install.bat tự tải; không có thì dùng chữ thường).
 - **Ảnh / video phủ kín màn hình dọc**, ~80% video (thanh tỉ lệ tự đặt 80% khi chọn Boxing), cắt cảnh thẳng không chớp.
+  **✂️ Cắt khung** (ảnh và video) ở bố cục này dùng **đúng tỉ lệ video xuất ra 9:16**: kéo khung dọc tới chỗ có nhân vật
+  để không bị che/cắt mất người. Khung có **vùng gạch chéo vàng** = chỗ hiện phụ đề (cảnh 1: chỗ hiện tiêu đề 3 dòng),
+  tránh để mặt nhân vật nằm dưới chữ.
 - **Phụ đề giữa màn hình**: 1–2 dòng chữ trắng viền đen dày, đổi theo từng cụm ~1 giây; `〈chữ〉` = **vàng**
   (tên, giải, con số), `〔chữ〕` = **đỏ** (thua, vô địch, kết quả sốc) – vị trí, cỡ chữ đo từ video mẫu.
 - **Kịch bản theo đúng mạch video mẫu**: câu nói thật của nhân vật → "これは〜の言葉だ" → bối cảnh (năm, giải, đối thủ) →

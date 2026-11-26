@@ -311,3 +311,10 @@ details.fact a { display: block; margin: 4px 0 0 4px; word-break: break-all; }
 
 /* nút chủ đề nhanh đang chọn */
 .presets a.on { background: var(--accent, #2563eb); color: #fff; }
+
+/* khung cắt toàn màn hình: vùng hiện phụ đề (giữa, y 950–1090 / 1920) – thẻ tiêu đề cảnh 1 lớn hơn (y 790–1360) */
+#cropGuide{position:absolute;left:0;right:0;top:47%;height:12%;pointer-events:none;z-index:1;
+  border-top:1px dashed rgba(255,230,0,.9);border-bottom:1px dashed rgba(255,230,0,.9);
+  background:repeating-linear-gradient(45deg,rgba(255,230,0,.18) 0 6px,transparent 6px 14px)}
+#cropGuide.title{top:41%;height:30%}
+#cropGuide span{position:absolute;right:4px;top:2px;font:600 11px/1 sans-serif;color:#ffe600;text-shadow:0 0 3px #000}
