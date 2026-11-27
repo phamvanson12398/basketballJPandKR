@@ -246,6 +246,9 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
 
 ### ⚾ Bóng chày: giữ người xem tới cuối (từ số liệu video 沢村賞投手 48本: đúng nhóm 35+ nhưng xem TB 18,75 giây, xem hết 9,2%)
 Chỉ áp dụng cho video **bóng chày**:
+- Biểu đồ giữ chân video đó: **~70% người xem bỏ trong 9 giây đầu** (mạnh nhất giây 6–9), sau đó gần như đi ngang.
+  Vì vậy: cảnh 1 chỉ là câu hook (≤ 2 cụm, ~3 giây); ảnh đứng yên + nhãn năm chỉ giữ **3 giây** rồi đổi ảnh;
+  cảnh 2 (giây 3–9) **không giải thích**, tung ngay cú sốc thứ 2 (so sánh con số với năm trước / câu nói thật / "実は…").
 - Phần "ai cũng biết" (thành tích, tiểu sử) chỉ **1 câu ~3 giây**.
 - Câu hỏi "なぜ〜のか" có **manh mối đầu tiên trước giây 15**, đào sâu dần, cuối video mới nói hết.
 - **Cứ 7–8 giây có cái mới** (con số, đảo chiều, câu nói thật, cảnh cụ thể); **móc câu thứ 2 ở giây 20–30**.

@@ -522,9 +522,19 @@ def render(pid: str, log) -> None:
             elif len(imgs) < k:
                 # BẠN ĐÃ CHỌN ẢNH (hoặc dự án cũ) → dùng đúng và chỉ những ảnh đang được chọn.
                 log(f"  {s['id']}: dùng {len(imgs)} ảnh đang được chọn → mỗi ảnh {D / len(imgs):.1f}s")
-            if si == 0 and (lay == "fullscreen" or (lay == "sports" and sport != "history")):
+            baseball_first = si == 0 and lay == "sports" and p.get("sport") == "baseball" and len(imgs) > 1 and D > 3.6
+            if si == 0 and not baseball_first and (lay == "fullscreen" or (lay == "sports" and sport != "history")):
                 imgs = imgs[:1]     # cảnh đầu: 1 ảnh đứng yên đúng thời đó + nhãn năm (người xem kịp đọc)
-            durs = _sync_cuts(s, D, len(imgs)) if sport == "history" else [D / len(imgs)] * len(imgs)
+            if baseball_first:
+                # bóng chày: số liệu TikTok cho thấy người xem bỏ nhiều nhất ở giây 6–9 → ảnh đứng yên của cảnh đầu
+                # chỉ giữ 3 giây (đủ đọc nhãn năm), sau đó đổi ảnh như bình thường
+                rest = imgs[1:max(2, n_images_for(D - 3.0, switch_sec(p)) + 1)]
+                durs = [3.0] + [(D - 3.0) / len(rest)] * len(rest)
+                imgs = imgs[:1] + rest
+            elif sport == "history":
+                durs = _sync_cuts(s, D, len(imgs))
+            else:
+                durs = [D / len(imgs)] * len(imgs)
             pieces = [("image", it, dd) for it, dd in zip(imgs, durs)]
         # sticker (hình minh họa) của cảnh: hiện ở mảnh đầu tiên của cảnh
         stk = None
@@ -539,7 +549,7 @@ def render(pid: str, log) -> None:
             try:
                 if kind == "image":
                     prep = prepare_image(base / it["file"], rdir / f"img_{len(parts):03d}.jpg", g)
-                    first_still = si == 0 and (lay == "fullscreen" or (lay == "sports" and sport != "history"))   # cảnh đầu: ảnh đứng yên
+                    first_still = si == 0 and pi == 0 and (lay == "fullscreen" or (lay == "sports" and sport != "history"))   # cảnh đầu: ảnh đứng yên
                     image_part(prep, d, out, variant, dict(g, still=True) if first_still else g, sticker)
                     variant += 1
                 elif kind == "split":
