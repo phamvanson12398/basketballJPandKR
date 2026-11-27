@@ -170,6 +170,20 @@ HOOK_DEFAULT = """## 冒頭と視聴維持（最重要。視聴者の多くは�
 
 HOOK_RULES = {"sports": HOOK_STORY, "biography": HOOK_STORY}
 
+# Bóng chày: số liệu TikTok (video 沢村賞投手 48本: đúng nhóm 35+ nhưng xem TB 18,75 giây, xem hết 9,2%)
+# → khán giả bỏ ở đoạn giữa: phần "ai cũng biết" quá dài, câu hỏi "なぜ" bị kéo tới cuối, 10–15 giây mới có gì mới.
+BASEBALL_PACING = """
+## 野球動画の視聴維持（最重要。上の構成より優先。前回は平均18秒で離脱・完走9%だった）
+- 「みんなが知っている姿」は1文（約3秒）だけ。前年の成績・経歴の説明を2文以上続けない。
+- 「なぜ〜のか」と問いを立てたら、15秒までに答えの入口（意外な一言・最初の手がかり・本人のセリフ）を出し、
+  そこから深掘りして最後に核心を明かす。答えを最後の1シーンまで丸ごと隠さない。
+- 7〜8秒ごとに必ず新しいもの（数字・反転・セリフ・具体的な場面）を出す（「ところが」「しかも」「実は」「さらに」）。
+  説明の文が2つ続いたら、次は必ず場面かセリフにする。
+- 20〜30秒あたりに2つ目のフックを置く（例:「だが、本当の理由は別にあった」「それを決定づけたのは、ある1球だった」）。
+- 数字は1シーンに1つまで。比較で見せる（例:「前年の被本塁打は9本。それが48本」）。
+- 終盤は短く: 答え → 冒頭を言い直す1文で終える。最後のシーンは2チャンク以内。目標秒数より長くしない（短いほうがよい）。
+"""
+
 # Thương hiệu / doanh nghiệp: cùng khung "雑学・裏話", đổi ví dụ & điểm nhấn cho công ty
 HOOK_BRAND = """## 構成（最重要。再生数の多い「企業・ブランド雑学」の型）
 ### 0. 切り口を1つに決める（台本を書く前に WebSearch で公式の沿革・社史・報道を調べる）
@@ -708,6 +722,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
         from .layouts import sport_variant
         return sport_variant(pp, resolve_layout(pp))
     korea_layout = resolve_layout(p) == "korea"
+    baseball = p.get("sport") == "baseball" and (p.get("genre") or "sports") in ("sports", "biography")
     # bố cục toàn màn hình (Shorts Nhật): cấu trúc riêng cho câu chuyện (không dùng cho tin tức / top)
     fullscreen = resolve_layout(p) == "fullscreen" and p.get("genre") in ("sports", "biography", "general", None)
     if p.get("genre") == "news":
@@ -728,7 +743,7 @@ def generate(pid: str, log, feedback: str = "") -> None:
                    HOOK_HORSE if (p.get("genre") or "sports") == "sports" and p.get("sport") == "horse"
                    else HOOK_RULES.get(p.get("genre") or "sports", HOOK_DEFAULT)).replace("{country}", L["country"]),
         refs=REFS.prompt_block(p.get("lang") or "ja", p.get("genre") or "sports", p.get("sport")),
-        lang_rules=L["rules"] + audience_rule(p), line_max=10 if korea_layout else 11 if fullscreen else (13 if resolve_variant(p) == "history" else L["line_max"]), tts_rule=L["tts_rule"],
+        lang_rules=L["rules"] + audience_rule(p) + (BASEBALL_PACING if baseball else ""), line_max=10 if korea_layout else 11 if fullscreen else (13 if resolve_variant(p) == "history" else L["line_max"]), tts_rule=L["tts_rule"],
         query_lang=L["query_lang"],
         screen_rule=(KOREA_SCREEN_RULE if korea_layout else FULLSCREEN_SCREEN_RULE if fullscreen else
                      SCREEN_RULES.get(p.get("genre"), "") or
@@ -866,6 +881,10 @@ def retention_edit(pid: str, log) -> dict:
     genre = GENRE_NAMES_JA.get(p.get("genre") or "sports", "スポーツ")
     if p.get("sport") == "horse":
         genre += "（競馬のエピソード集。各馬の話のテンポとオチを重視）"
+    if p.get("sport") == "baseball":
+        genre += ("（野球。視聴維持の最優先: 前置き・成績説明は1文まで、7〜8秒ごとに新しい数字・反転・セリフ、"
+                  "20〜30秒に2つ目のフック、「なぜ」の答えの入口は15秒までに出す、終盤は短く切る。"
+                  "pacing は「7〜8秒ごと」で採点する）")
     from .layouts import resolve as _rl
     if _rl(p) == "fullscreen":
         genre += ("（日本式全画面ショート: 1シーン目は3行タイトル。〈〉黄色・〔〕赤の強調はほぼ毎チャンク残す。"

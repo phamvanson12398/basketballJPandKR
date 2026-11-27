@@ -450,7 +450,8 @@ function renderMedia() {
         ${c.rejected ? '<span class="cut" style="background:#b91c1c" title="Claude thấy ảnh này sai người hoặc không hợp nội dung">AI loại</span>' : ''}
         ${c.kind === 'video' ? `<span class="t">${(+c.start).toFixed(1)}s</span>` : ''}</div>`;
     }).join('');
-    const sw = (P.genre === 'history' || (P.sport === 'history' && !['news', 'brand'].includes(P.genre))) ? 2.5 : 3;   // lịch sử đổi ảnh nhanh hơn
+    const sw = (P.genre === 'history' || (P.sport === 'history' && !['news', 'brand'].includes(P.genre))
+      || (P.sport === 'baseball' && ['sports', 'biography'].includes(P.genre || 'sports'))) ? 2.5 : 3;   // lịch sử / bóng chày đổi ảnh nhanh hơn
     const need = s.kind === 'image' ? Math.max(1, Math.round(est(s) / sw)) : 1;
     const vres = (s.video_results || []).map(r => `<a data-url="${esc(r.url)}" title="${esc(r.title)}">▶ ${esc(r.title.slice(0, 40))} (${Math.round(r.duration || 0)}s)</a>`).join('');
     return `<div class="mscene" data-i="${i}" data-sid="${s.id}">

@@ -244,6 +244,14 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   (bóng chày: `#昭和プロ野球 #平成プロ野球 #懐かしの名選手 #プロ野球OB`).
 - **Khán giả mặc định = 35+** (⚙️ Cài đặt → Khán giả mặc định): form tạo video và gợi ý ý tưởng chọn sẵn 35+.
 
+### ⚾ Bóng chày: giữ người xem tới cuối (từ số liệu video 沢村賞投手 48本: đúng nhóm 35+ nhưng xem TB 18,75 giây, xem hết 9,2%)
+Chỉ áp dụng cho video **bóng chày**:
+- Phần "ai cũng biết" (thành tích, tiểu sử) chỉ **1 câu ~3 giây**.
+- Câu hỏi "なぜ〜のか" có **manh mối đầu tiên trước giây 15**, đào sâu dần, cuối video mới nói hết.
+- **Cứ 7–8 giây có cái mới** (con số, đảo chiều, câu nói thật, cảnh cụ thể); **móc câu thứ 2 ở giây 20–30**.
+- Mỗi cảnh tối đa 1 con số, nói bằng so sánh ("前年は9本。それが48本"); đoạn kết ngắn, không dài hơn thời lượng chọn.
+- Bước Biên tập giữ chân chấm nhịp theo "7–8 giây", ảnh/video đổi ~2,5 giây (trước 3 giây).
+
 ### ✨ Biên tập giữ chân người xem (tự chạy sau khi viết content)
 - Một lượt Claude đóng vai **biên tập viên Shorts**: chấm 6 tiêu chí (hook 2 giây đầu, câu mồi, nhịp đảo chiều,
   gọn không thừa, cụ thể, cái kết) → **thi 5 câu mở đầu** chọn câu mạnh nhất → sửa cảnh yếu (cắt câu thừa, thêm câu mồi,
@@ -296,6 +304,8 @@ Bấm đúp **`run.bat`**, trình duyệt sẽ tự mở trang `http://127.0.0.1
   2. **Claude xem hình**: AI ghi đội + số áo của nhân vật lúc đó; tool đưa khung hình các đoạn ứng viên + 1 ảnh chân dung
      cho Claude xác nhận đoạn nào có đúng người (số áo, màu áo, khuôn mặt). Không có đoạn nào đúng → thử video khác.
      Thêm ~20–40 giây mỗi cảnh video, tắt được trong Cài đặt. Link bạn tự dán thì không bị loại.
+- Nếu Antigravity / Gemini báo **"User location is not supported"** (Google không cho dùng API ở khu vực / IP của bạn),
+  tool tự chuyển sang **Claude** để xem ảnh/video cho tới khi tắt tool; nút Kiểm tra trong Cài đặt cũng báo rõ lỗi này.
 - **🤖 AI xem ảnh / video** (Cài đặt): chọn AI làm phần *chọn ảnh, chọn đoạn video, xác nhận đúng người* –
   **Antigravity CLI** (`agy`, tài khoản Google, không tốn lượt Claude) / **Gemini API key** (Google AI Studio, có gói miễn phí
   theo ngày) / **Claude** / **Tắt** (chỉ thuật toán). **Viết content vẫn luôn là Claude.** Nút **🧪 Kiểm tra AI xem ảnh**

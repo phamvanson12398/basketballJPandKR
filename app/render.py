@@ -500,7 +500,7 @@ def render(pid: str, log) -> None:
                                   [c for c in (s.get("candidates") or [])
                                    if c.get("kind") == "video" and c is not items[0]
                                    and (c.get("file"), c.get("start")) != (items[0].get("file"), items[0].get("start"))])
-            k = max(1, min(len(clips), round(D / SWITCH_SEC)))
+            k = max(1, min(len(clips), round(D / switch_sec(p))))
             pieces = [("video", clips[i], D / k) for i in range(k)]
         elif lay == "korea" and s.get("split") and len(items) >= 2 and items[1]["kind"] == "image":
             pieces = [("split", (items[0], items[1]), D)]   # so sánh 2 người: chia đôi khung

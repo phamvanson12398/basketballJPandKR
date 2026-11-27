@@ -29,9 +29,21 @@ class VisionOff(Exception):
     """Đang tắt AI xem ảnh → nơi gọi tự dùng cách chọn không cần AI."""
 
 
-def provider() -> str:
+# Nhà cung cấp hỏng hẳn trong lần chạy này (VD Google báo "User location is not supported" – khu vực / IP của bạn
+# không được dùng API Gemini) → tự chuyển sang Claude cho tới khi tắt tool, không thử lại mỗi cảnh cho mất thời gian.
+_BROKEN: dict[str, str] = {}
+_FATAL = ("location is not supported", "not supported in your country", "not available in your country",
+          "failed_precondition", "permission_denied", "api key not valid", "api_key_invalid")
+
+
+def configured() -> str:
     p = load_settings().get("vision_provider") or "claude"
     return p if p in PROVIDERS else "claude"
+
+
+def provider() -> str:
+    p = configured()
+    return "claude" if p in _BROKEN else p
 
 
 def provider_name(p: str | None = None) -> str:
@@ -118,13 +130,32 @@ def ask_json(task: str, images: list[Path], workdir: Path, timeout: int = 300, l
     if p == "off":
         raise VisionOff()
     workdir.mkdir(parents=True, exist_ok=True)
-    if p == "gemini":
-        text = _gemini(task, images, timeout)
-    elif p == "antigravity":
-        text = _antigravity(task, images, workdir, timeout)
-    else:
-        text = _claude(task, images, workdir, timeout)
+    try:
+        if p == "gemini":
+            text = _gemini(task, images, timeout)
+        elif p == "antigravity":
+            text = _antigravity(task, images, workdir, timeout)
+        else:
+            text = _claude(task, images, workdir, timeout)
+    except Exception as e:  # noqa: BLE001
+        msg = str(e)
+        if p in ("gemini", "antigravity") and any(k in msg.lower() for k in _FATAL):
+            _BROKEN[p] = msg[:200]
+            (log or (lambda m: print(m, flush=True)))(f"    ⚠️ {provider_name(p)} không dùng được: Google báo khu vực / tài khoản của bạn không được dùng API này"
+                    f" ({_short(msg)}) → từ giờ tới khi tắt tool dùng Claude để xem ảnh/video.")
+            text = _claude(task, images, workdir, timeout)
+        else:
+            raise
     return extract_json(text)
+
+
+def _short(msg: str) -> str:
+    low = msg.lower()
+    for k in _FATAL:
+        i = low.find(k)
+        if i >= 0:
+            return msg[i:i + 60].strip()
+    return msg[:60]
 
 
 def self_test(workdir: Path) -> dict:
@@ -141,10 +172,15 @@ def self_test(workdir: Path) -> dict:
         font = ImageFont.load_default()
     d.text((300, 70), "7", fill="black", font=font)
     im.save(img, quality=90)
+    _BROKEN.clear()          # nút Kiểm tra: thử lại đúng AI bạn chọn
     p = provider()
     try:
         data = ask_json('画像1を見て答えて。JSONのみ: {"shape_color": "図形の色（英語1語）", "number": 画像の数字}',
                         [img], workdir, timeout=180)
+        if p in _BROKEN:     # AI bạn chọn bị Google chặn (tool đã tạm dùng Claude thay)
+            return {"ok": False, "provider": provider_name(p),
+                    "error": f"{provider_name(p)} không dùng được ở khu vực / tài khoản này: {_BROKEN[p]} "
+                             "→ khi tìm ảnh/video tool sẽ tự dùng Claude thay. Nên chọn Claude (hoặc Tắt) trong Cài đặt."}
         ok = "red" in str(data.get("shape_color", "")).lower() and str(data.get("number")) == "7"
         return {"ok": ok, "provider": provider_name(p), "answer": data}
     except VisionOff:

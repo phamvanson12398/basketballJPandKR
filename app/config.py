@@ -34,6 +34,8 @@ def switch_sec(p: dict | None) -> float:
     """Bao nhiêu giây đổi ảnh một lần cho dự án này."""
     if p and (p.get("genre") == "history" or (p.get("sport") == "history" and p.get("genre") not in ("news", "brand"))):
         return SWITCH_SEC_HISTORY
+    if p and p.get("sport") == "baseball" and p.get("genre") in ("sports", "biography", None):
+        return 2.5   # bóng chày: đổi hình nhanh hơn chút (người xem bỏ ở đoạn giữa)
     return SWITCH_SEC
 VIDEO_RATIO = 0.30       # 70% ảnh / 30% video
 
