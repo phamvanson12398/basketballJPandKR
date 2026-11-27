@@ -152,7 +152,6 @@ HOOK_STORY = """## 構成（最重要。再生数の多い人気チャンネル�
   韓国語は 합니다체 を保つ）。字幕は1行8〜14文字程度の短いフレーズに区切る。
 - 「」のセリフは、本人・監督・関係者が実際に言ったと報道・インタビューで確認できるものだけ使う。
   WebSearch で確認できないセリフは絶対に作らない（その場合はナレーションで「〜と語っている」と要約する）。
-- 1シーン目は映像で見せたい「動き」のある場面にし、action を高く（8以上）する。
 """
 
 # Tin tức / Top / Chung: đưa điều gây sốc lên trước
@@ -165,7 +164,6 @@ HOOK_DEFAULT = """## 冒頭と視聴維持（最重要。視聴者の多くは�
 - 動画が長い場合は15〜20秒ごとに「でも本当にすごいのはここから」「その代償は大きかった」のような
   続きが気になる一言（再フック）を入れ、最後まで見る理由を作る。
 - 最後は視聴者がコメントしたくなる問いかけで締める（例:「投げすぎだったと思う？」）。
-- 1シーン目は映像で見せたい「動き」のある場面にし、action を高く（8以上）する。
 """
 
 HOOK_RULES = {"sports": HOOK_STORY, "biography": HOOK_STORY}
@@ -797,6 +795,13 @@ def generate(pid: str, log, feedback: str = "") -> None:
     def apply(pp):
         if not pp.get("title"):
             pp["title"] = data.get("title", "")
+        if feedback:
+            # viết lại theo góp ý: cảnh nào chữ giữ nguyên thì giữ kết quả kiểm tra sự thật cũ (không tra lại)
+            old_fact = {P.scene_plain_text(o): o["fact"] for o in pp.get("scenes") or []
+                        if (o.get("fact") or {}).get("status") in ("ok", "fixed")}
+            for sc in scenes:
+                if P.scene_plain_text(sc) in old_fact:
+                    sc["fact"] = old_fact[P.scene_plain_text(sc)]
         pp["scenes"] = scenes
         pp["script_approved"] = False
         pp["sources"] = [x for x in (data.get("sources") or []) if isinstance(x, dict)]
@@ -813,7 +818,11 @@ def generate(pid: str, log, feedback: str = "") -> None:
         f"(ảnh {info['image_pct']}% / video {info['video_pct']}%).", 0.6)
     from .config import load_settings
     st = load_settings()
-    if st.get("retention_edit", True):
+    if feedback and st.get("retention_edit", True):
+        # bản nháp đầu đã qua biên tập giữ chân; lần này bạn đang tự chỉnh theo góp ý → không chạy lại
+        # (đỡ 1 lượt Claude và không làm mất ý bạn vừa sửa). Muốn chạy thì bấm ✨ Biên tập giữ chân.
+        log("  (viết lại theo góp ý → bỏ qua Biên tập giữ chân; bấm ✨ nếu muốn chạy lại)")
+    elif st.get("retention_edit", True):
         try:
             retention_edit(pid, log)
         except Exception as e:  # noqa: BLE001
@@ -942,6 +951,9 @@ def retention_edit(pid: str, log) -> dict:
 FACT_PROMPT = """今日は{date}です。あなたは{country}のテレビ局の、とても厳しいファクトチェック担当です。
 次のショート動画の台本（{lang_name}）に書かれた事実を、WebSearch / WebFetch で1つずつ必ず確認してください。
 記憶だけで判断しないこと。
+{targets}
+## 台本作成時に使われた資料（まずこれを WebFetch で開いて照合し、ここで確認できない事実だけ WebSearch する）
+{known_sources}
 
 ## 確認すること（すべて）
 - 人名・チーム名・会社名・地名・作品名・大会名の表記
@@ -986,18 +998,34 @@ def fact_check(pid: str, log) -> dict:
     L = LG.get(p.get("lang"))
     if not p.get("scenes"):
         raise RuntimeError("Chưa có content để kiểm tra.")
-    log(f"🔍 Đang kiểm tra sự thật từng cảnh ({len(p['scenes'])} cảnh) – tra lại tên, năm, con số, câu trích dẫn...", 0.65)
+    # chỉ kiểm tra cảnh CHƯA được xác minh (mới viết / bạn đã sửa chữ / chưa chắc). Cảnh đã ✅ / 🛠 mà chữ không đổi
+    # thì không tra lại trên mạng nữa (tốn lượt Claude mà kết quả như cũ)
+    todo = [i + 1 for i, s in enumerate(p["scenes"])
+            if (s.get("fact") or {}).get("status") not in ("ok", "fixed")]
+    if not todo:
+        log("🔍 Mọi cảnh đã được kiểm tra trước đó và chưa sửa chữ → không cần tra lại.", 1.0)
+        return {"ok": len(p["scenes"]), "fixed": 0, "unsure": 0}
+    n_all = len(p["scenes"])
+    log(f"🔍 Đang kiểm tra sự thật {len(todo)}/{n_all} cảnh" + (" (các cảnh khác đã kiểm tra, chữ không đổi)" if len(todo) < n_all else "")
+        + " – tra lại tên, năm, con số, câu trích dẫn...", 0.65)
     script_json = _json.dumps({"title": p.get("title", ""), "screen": p.get("screen") or {},
                                "scenes": [{"no": i + 1, "chunks": s.get("chunks", []), "tts": s.get("tts", "")}
                                           for i, s in enumerate(p["scenes"])]}, ensure_ascii=False, indent=1)
+    targets = ("" if len(todo) == n_all else
+               f"\n## 確認対象\n- 確認するのはシーン {', '.join(map(str, todo))} だけ（他のシーンは確認済み。流れを見るための参考で、"
+               "scenes には出力しない）。title / screen は確認対象のシーンに関係する時だけ直す。\n")
+    known = "\n".join(f"- {x.get('title', '')} {x.get('url', '')}" for x in (p.get("sources") or [])
+                      if isinstance(x, dict) and x.get("url"))[:3000] or "（なし）"
     prompt = FACT_PROMPT.format(date=today_ja(), country=L["country"], lang_name=L["name"],
-                                tts_rule=L["tts_rule"], script_json=script_json)
+                                tts_rule=L["tts_rule"], script_json=script_json, targets=targets, known_sources=known)
     data = extract_json(ask(prompt, tools=["WebSearch", "WebFetch"], timeout=1200))
     res = {int(x.get("no", 0)): x for x in (data.get("scenes") or []) if isinstance(x, dict)}
     counts = {"ok": 0, "fixed": 0, "unsure": 0}
 
     def apply(pp):
         for i, s in enumerate(pp["scenes"]):
+            if i + 1 not in todo:
+                continue            # cảnh đã kiểm tra trước đó → giữ kết quả cũ
             r = res.get(i + 1)
             if not r:
                 s["fact"] = {"status": "unchecked", "note": "Không có kết quả kiểm tra cho cảnh này", "sources": []}

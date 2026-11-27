@@ -270,6 +270,10 @@ Chỉ áp dụng cho video **bóng chày**:
 - Mỗi cảnh hiện huy hiệu kết quả + ghi chú + link nguồn; bạn sửa chữ thì cảnh đó chuyển ✏️ "nên kiểm tra lại".
 - Nút **🔍 Kiểm tra sự thật** để chạy lại bất cứ lúc nào. Bấm Duyệt mà còn cảnh ⚠️/✏️/❔ → tool nhắc trước.
 - Thêm ~2–5 phút mỗi video; tắt được trong Cài đặt (không khuyến khích).
+- **Tiết kiệm lượt Claude**: chỉ kiểm tra những cảnh **chưa được xác minh** (mới viết, bạn sửa chữ, chưa chắc). Cảnh đã
+  ✅/🛠 mà chữ không đổi thì không tra lại. Người kiểm tra được đưa sẵn danh sách nguồn mà bước viết đã dùng → mở thẳng các
+  trang đó để đối chiếu, chỉ tìm mới khi nguồn đó không có. **Viết lại theo góp ý**: cảnh nào giữ nguyên chữ thì giữ kết quả
+  kiểm tra cũ, và **không chạy lại Biên tập giữ chân** (bản nháp đầu đã qua bước này; muốn chạy thì bấm ✨).
 
 ### 📈 Giữ chân người xem (đã cài sẵn)
 - **Thể thao & Tiểu sử** – AI viết theo kiểu "雑学・裏話" của các kênh nhiều view (học từ 3 video đối thủ):
